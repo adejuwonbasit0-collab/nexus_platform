@@ -1,0 +1,101 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Automation{% endblock %}
+{% block topbar_title %}⚡ Automation Center{% endblock %}
+{% block content %}
+<div class="stat-grid">
+  <div class="stat-card"><div class="stat-label">Scheduled Jobs</div><div class="stat-value">{{ stats.total_jobs }}</div><div class="stat-change">{{ stats.active_jobs }} active</div></div>
+  <div class="stat-card"><div class="stat-label">Workflows</div><div class="stat-value">{{ stats.total_workflows }}</div><div class="stat-change">{{ stats.active_workflows }} active</div></div>
+  <div class="stat-card"><div class="stat-label">Failed Runs</div><div class="stat-value" style="color:{% if stats.failed_runs > 0 %}#e74c3c{% else %}#27ae60{% endif %};">{{ stats.failed_runs }}</div></div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+  <!-- Scheduled Jobs -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">🗓 Scheduled Jobs</span>
+      <a href="/admin-panel/automation/jobs/create/" class="btn btn-primary btn-sm">+ Add Job</a>
+    </div>
+    {% if scheduled_jobs %}
+    <div class="table-wrap" style="border:none;border-radius:0;">
+      <table class="data-table">
+        <thead><tr><th>Job</th><th>Interval</th><th>Last Run</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+        {% for j in scheduled_jobs %}
+        <tr>
+          <td><div style="font-weight:500;font-size:13px;">{{ j.name }}</div>{% if j.description %}<div style="font-size:11px;color:var(--text2);">{{ j.description|truncatechars:40 }}</div>{% endif %}</td>
+          <td style="font-size:12px;">{{ j.get_interval_display }}</td>
+          <td style="font-size:12px;color:var(--text2);">{{ j.last_run|date:"M d H:i"|default:'Never' }}</td>
+          <td><span class="status-badge {% if j.status == 'active' %}s-approved{% elif j.status == 'paused' %}s-pending{% else %}s-rejected{% endif %}">{{ j.status }}</span></td>
+          <td style="display:flex;gap:4px;">
+            <button onclick="toggleJob({{ j.pk }}, this)" class="btn btn-ghost btn-sm">{% if j.status == 'active' %}Pause{% else %}Resume{% endif %}</button>
+            <form method="post" action="/admin-panel/automation/jobs/{{ j.pk }}/delete/" onsubmit="return confirm('Delete this job?')">{% csrf_token %}<button class="btn btn-ghost btn-sm" style="color:#e74c3c;">Delete</button></form>
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding:32px;"><div class="empty-icon">🗓</div><h3>No scheduled jobs</h3><p>Create automated tasks like email sequences and cleanup jobs.</p></div>
+    {% endif %}
+  </div>
+
+  <!-- Workflows -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">⚡ Workflows</span>
+      <a href="/admin-panel/automation/workflows/create/" class="btn btn-primary btn-sm">+ New Workflow</a>
+    </div>
+    {% if workflows %}
+    <div class="table-wrap" style="border:none;border-radius:0;">
+      <table class="data-table">
+        <thead><tr><th>Workflow</th><th>Trigger</th><th>Runs</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+        {% for wf in workflows %}
+        <tr>
+          <td style="font-weight:500;font-size:13px;">{{ wf.name }}</td>
+          <td style="font-size:12px;color:var(--text2);">{{ wf.get_trigger_event_display }}</td>
+          <td style="font-size:12px;">{{ wf.run_count }}</td>
+          <td><span class="status-badge {% if wf.is_active %}s-approved{% else %}s-draft{% endif %}">{% if wf.is_active %}Active{% else %}Paused{% endif %}</span></td>
+          <td><a href="/admin-panel/automation/workflows/{{ wf.pk }}/edit/" class="btn btn-ghost btn-sm">Edit</a></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding:32px;"><div class="empty-icon">⚡</div><h3>No workflows</h3><p>Build automated email sequences and event-driven workflows.</p></div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Recent Runs -->
+<div class="panel" style="margin-top:20px;">
+  <div class="panel-header"><span class="panel-title">📋 Recent Workflow Runs</span></div>
+  <div class="table-wrap" style="border:none;border-radius:0;">
+    <table class="data-table">
+      <thead><tr><th>Workflow</th><th>Status</th><th>Started</th><th>Duration</th></tr></thead>
+      <tbody>
+      {% for run in recent_runs %}
+      <tr>
+        <td style="font-weight:500;font-size:13px;">{{ run.workflow.name }}</td>
+        <td><span class="status-badge {% if run.status == 'completed' %}s-approved{% elif run.status == 'running' %}s-pending{% else %}s-rejected{% endif %}">{{ run.status }}</span></td>
+        <td style="font-size:12px;color:var(--text2);">{{ run.started_at|date:"M d H:i" }}</td>
+        <td style="font-size:12px;color:var(--text2);">{% if run.finished_at %}{{ run.started_at|timesince:run.finished_at }}{% else %}—{% endif %}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text2);">No workflow runs yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+function toggleJob(pk, btn) {
+  fetch('/admin-panel/automation/jobs/' + pk + '/toggle/', { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' } })
+    .then(r => r.json()).then(d => { btn.textContent = d.status === 'active' ? 'Pause' : 'Resume'; });
+}
+</script>
+{% endblock %}

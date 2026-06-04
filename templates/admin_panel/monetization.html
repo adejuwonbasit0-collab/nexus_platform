@@ -1,0 +1,135 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Finance{% endblock %}
+{% block topbar_title %}Finance Center{% endblock %}
+{% block content %}
+
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;">
+  <div class="stat-card accent"><div class="stat-label">Total Revenue</div><div class="stat-value">₦{{ stats.total_revenue|default:0 }}</div></div>
+  <div class="stat-card green"><div class="stat-label">Creator Earnings</div><div class="stat-value">₦{{ stats.total_earnings|default:0 }}</div></div>
+  <div class="stat-card {% if stats.pending_withdrawals_count > 0 %}yellow{% endif %}">
+    <div class="stat-label">Pending Withdrawals</div>
+    <div class="stat-value" style="{% if stats.pending_withdrawals_count > 0 %}color:var(--yellow){% endif %}">{{ stats.pending_withdrawals_count|default:0 }}</div>
+    <div class="stat-sub">₦{{ stats.pending_withdrawals_amount|default:0 }} total</div>
+  </div>
+</div>
+
+{% if pending_withdrawals %}
+<div class="panel" style="margin-bottom:16px;">
+  <div class="panel-head"><span class="panel-title" style="color:var(--yellow);">⏳ Pending Withdrawals</span></div>
+  <div class="table-wrap borderless"><table class="dt">
+    <thead><tr><th>Creator</th><th>Amount</th><th>Method</th><th>Bank Details</th><th>Requested</th><th>Actions</th></tr></thead>
+    <tbody>
+    {% for wr in pending_withdrawals %}
+    <tr>
+      <td><a href="/admin-panel/users/{{ wr.user.pk }}/" style="color:var(--ac);font-weight:500;">{{ wr.user.username }}</a></td>
+      <td style="font-weight:700;font-size:15px;">₦{{ wr.amount }}</td>
+      <td><span class="badge badge-blue" style="font-size:10px;">{{ wr.method }}</span></td>
+      <td style="font-size:12px;color:var(--tx2);">
+        {% if wr.bank_name %}{{ wr.bank_name }}<br><span style="font-family:monospace;">{{ wr.account_number }}</span> — {{ wr.account_name }}
+        {% else %}—{% endif %}
+      </td>
+      <td style="font-size:11px;color:var(--tx2);">{{ wr.created_at|date:"M d, Y H:i" }}</td>
+      <td>
+        <div style="display:flex;gap:6px;">
+          <form method="post">{% csrf_token %}
+            <input type="hidden" name="action" value="approve_withdrawal">
+            <input type="hidden" name="withdrawal_pk" value="{{ wr.pk }}">
+            <button class="btn btn-success btn-xs">✓ Approve</button>
+          </form>
+          <form method="post" onsubmit="return confirm('Reject and refund?')">{% csrf_token %}
+            <input type="hidden" name="action" value="reject_withdrawal">
+            <input type="hidden" name="withdrawal_pk" value="{{ wr.pk }}">
+            <button class="btn btn-danger btn-xs">✕ Reject</button>
+          </form>
+        </div>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endif %}
+
+<div class="panel">
+  <div class="panel-head"><span class="panel-title">Recent Payments</span></div>
+  <div class="table-wrap borderless"><table class="dt">
+    <thead><tr><th>User</th><th>Amount</th><th>Currency</th><th>Reference</th><th>Status</th><th>Date</th></tr></thead>
+    <tbody>
+    {% for p in recent_payments %}
+    <tr>
+      <td><a href="/admin-panel/users/{{ p.user.pk }}/" style="color:var(--ac);font-size:13px;">{{ p.user.username }}</a></td>
+      <td style="font-weight:600;">{{ p.amount }}</td>
+      <td style="font-size:12px;color:var(--tx2);">{{ p.currency|default:'NGN' }}</td>
+      <td style="font-family:monospace;font-size:11px;color:var(--tx2);">{{ p.paystack_ref|default:'—'|truncatechars:20 }}</td>
+      <td><span class="badge {% if p.status == 'completed' %}badge-green{% elif p.status == 'pending' %}badge-yellow{% else %}badge-red{% endif %}" style="font-size:10px;">{{ p.status }}</span></td>
+      <td style="font-size:11px;color:var(--tx2);">{{ p.created_at|date:"M d, Y" }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="6"><div class="empty" style="padding:32px;"><div class="empty-icon">💳</div><h3>No payments yet</h3></div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+
+{# ─── Subscription Plans ─── #}
+<div class="panel" style="margin-top:24px;">
+  <div class="panel-head" style="display:flex;justify-content:space-between;align-items:center;">
+    <span class="panel-title">💎 Subscription Plans</span>
+    <button onclick="document.getElementById('new-plan-form').style.display=document.getElementById('new-plan-form').style.display==='none'?'block':'none'" class="btn btn-primary btn-sm">+ New Plan</button>
+  </div>
+
+  <div id="new-plan-form" style="display:none;padding:20px;border-bottom:1px solid var(--border);">
+    <form method="post">
+      <input type="hidden" name="action" value="create_plan">{% csrf_token %}
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+        <div class="fg"><label>Plan Name *</label><input class="finput" name="name" required placeholder="e.g. Premium Monthly"></div>
+        <div class="fg"><label>Price (₦)</label><input class="finput" type="number" name="price" min="0" placeholder="2500"></div>
+        <div class="fg"><label>Billing Cycle</label>
+          <select class="finput" name="billing_cycle">
+            <option value="monthly">Monthly</option>
+            <option value="yearly">Yearly</option>
+            <option value="weekly">Weekly</option>
+            <option value="lifetime">Lifetime</option>
+          </select>
+        </div>
+        <div class="fg" style="grid-column:span 2;"><label>Description</label><input class="finput" name="description" placeholder="Brief plan description"></div>
+        <div class="fg" style="display:flex;align-items:flex-end;"><label class="fcheck"><input type="checkbox" name="is_active" checked> Active (visible to users)</label></div>
+        <div class="fg" style="grid-column:span 3;"><label>Features <span style="color:var(--text2);font-weight:400;font-size:10px;">One per line</span></label><textarea class="finput" name="features" rows="3" placeholder="HD streaming&#10;Download content&#10;No ads"></textarea></div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm" style="margin-top:8px;">Create Plan</button>
+    </form>
+  </div>
+
+  <div class="table-wrap borderless"><table class="dt">
+    <thead><tr><th>Name</th><th>Price</th><th>Cycle</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>
+    {% for plan in plans %}
+    <tr>
+      <td>
+        <div style="font-weight:600;font-size:13px;">{{ plan.name }}</div>
+        {% if plan.description %}<div style="font-size:11px;color:var(--text2);">{{ plan.description }}</div>{% endif %}
+      </td>
+      <td style="font-weight:700;">₦{{ plan.price }}</td>
+      <td><span class="badge badge-blue" style="font-size:10px;">{{ plan.billing_cycle }}</span></td>
+      <td>
+        <form method="post" style="display:inline;">
+          <input type="hidden" name="action" value="toggle_plan">
+          <input type="hidden" name="plan_pk" value="{{ plan.pk }}">{% csrf_token %}
+          <button class="badge {% if plan.is_active %}badge-green{% else %}badge-gray{% endif %}" style="border:none;cursor:pointer;font-size:10px;">{% if plan.is_active %}Active{% else %}Inactive{% endif %}</button>
+        </form>
+      </td>
+      <td>
+        <form method="post" style="display:inline;" onsubmit="return confirm('Delete this plan?')">
+          <input type="hidden" name="action" value="delete_plan">
+          <input type="hidden" name="plan_pk" value="{{ plan.pk }}">{% csrf_token %}
+          <button class="btn btn-danger btn-xs">Del</button>
+        </form>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="5"><div class="empty" style="padding:32px;"><div class="empty-icon">💎</div><h3>No plans yet</h3><p>Create your first subscription plan above.</p></div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endblock %}

@@ -1,0 +1,144 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Dashboard{% endblock %}
+{% block topbar_title %}Dashboard{% endblock %}
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+
+<div class="stats-row">
+  <div class="stat-card accent">
+    <div class="stat-label">Total Users</div>
+    <div class="stat-value">{{ stats.total_users|default:0 }}</div>
+    <div class="stat-sub pos">+{{ stats.new_users_week|default:0 }} this week</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Total Content</div>
+    <div class="stat-value">{{ stats.total_content|default:0 }}</div>
+    <div class="stat-sub">{{ stats.approved_content|default:0 }} approved</div>
+  </div>
+  <div class="stat-card {% if stats.pending_content > 0 %}yellow{% else %}green{% endif %}">
+    <div class="stat-label">Pending Review</div>
+    <div class="stat-value" style="{% if stats.pending_content > 0 %}color:var(--yellow){% else %}color:var(--green){% endif %}">{{ stats.pending_content|default:0 }}</div>
+    <div class="stat-sub"><a href="/admin-panel/content/?status=pending" style="color:inherit;">Review →</a></div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-label">Revenue</div>
+    <div class="stat-value">₦{{ stats.revenue_total|default:0 }}</div>
+    <div class="stat-sub pos">₦{{ stats.revenue_month|default:0 }} this month</div>
+  </div>
+  <div class="stat-card {% if stats.pending_withdrawals > 0 %}yellow{% endif %}">
+    <div class="stat-label">Pending Withdrawals</div>
+    <div class="stat-value" style="{% if stats.pending_withdrawals > 0 %}color:var(--yellow){% endif %}">{{ stats.pending_withdrawals|default:0 }}</div>
+    <div class="stat-sub"><a href="/admin-panel/monetization/" style="color:inherit;">Review →</a></div>
+  </div>
+  <div class="stat-card {% if health.overall == 'healthy' %}green{% elif health.overall == 'degraded' %}yellow{% else %}red{% endif %}">
+    <div class="stat-label">System Health</div>
+    <div class="stat-value" style="font-size:16px;display:flex;align-items:center;gap:8px;margin-top:6px;">
+      <span class="dot dot-{% if health.overall == 'healthy' %}green{% elif health.overall == 'degraded' %}yellow{% else %}red{% endif %}"></span>
+      {{ health.overall|default:'unknown'|title }}
+    </div>
+    <div class="stat-sub"><a href="/admin-panel/system/" style="color:inherit;">Details →</a></div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+
+  <!-- Moderation Queue -->
+  <div class="panel">
+    <div class="panel-head">
+      <span class="panel-title">⏳ Pending Moderation</span>
+      <a href="/admin-panel/content/?status=pending" class="btn btn-ghost btn-xs">View All</a>
+    </div>
+    {% if pending_content %}
+    <div class="table-wrap borderless"><table class="dt">
+      <thead><tr><th>Title</th><th>Creator</th><th>Type</th><th>Actions</th></tr></thead>
+      <tbody>
+      {% for c in pending_content %}
+      <tr>
+        <td style="font-weight:500;font-size:13px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ c.title }}</td>
+        <td style="font-size:12px;"><a href="/admin-panel/users/{{ c.creator.pk }}/" style="color:var(--accent);">{{ c.creator.username }}</a></td>
+        <td><span class="badge badge-purple" style="font-size:10px;">{{ c.content_type }}</span></td>
+        <td>
+          <div style="display:flex;gap:4px;">
+            <form method="post" action="/admin-panel/content/{{ c.pk }}/approve/">{% csrf_token %}<button class="btn btn-success btn-xs">✓</button></form>
+            <form method="post" action="/admin-panel/content/{{ c.pk }}/reject/"><input type="hidden" name="reason" value="Does not meet guidelines.">{% csrf_token %}<button class="btn btn-danger btn-xs">✕</button></form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}
+    <div class="empty" style="padding:32px;"><div class="empty-icon">✅</div><h3>Queue clear</h3></div>
+    {% endif %}
+  </div>
+
+  <!-- Recent Users -->
+  <div class="panel">
+    <div class="panel-head">
+      <span class="panel-title">👥 New Members</span>
+      <a href="/admin-panel/users/" class="btn btn-ghost btn-xs">View All</a>
+    </div>
+    <div class="table-wrap borderless"><table class="dt">
+      <thead><tr><th>User</th><th>Role</th><th>Joined</th></tr></thead>
+      <tbody>
+      {% for u in recent_users %}
+      <tr>
+        <td><a href="/admin-panel/users/{{ u.pk }}/" style="color:var(--accent);font-weight:500;font-size:13px;">{{ u.username }}</a></td>
+        <td><span class="badge {% if u.role == 'admin' %}badge-red{% elif u.role == 'creator' %}badge-purple{% else %}badge-gray{% endif %}" style="font-size:10px;">{{ u.role }}</span></td>
+        <td style="font-size:11px;color:var(--text2);">{{ u.date_joined|date:"M d, Y" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="3" style="text-align:center;padding:24px;color:var(--text2);">No users yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- Module stats + alerts -->
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;">
+  <div class="panel">
+    <div class="panel-head"><span class="panel-title">📊 Content by Module</span></div>
+    <div class="panel-body" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+      {% for icon, label, count, link in module_items %}{% empty %}
+      <a href="/movies/" style="text-align:center;padding:16px;background:rgba(255,255,255,.03);border-radius:10px;display:block;transition:background .15s;text-decoration:none;" onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background='rgba(255,255,255,.03)'">
+        <div style="font-size:28px;margin-bottom:6px;">🎬</div>
+        <div style="font-size:22px;font-weight:700;">{{ module_stats.movies|default:0 }}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:3px;">Movies</div>
+      </a>
+      <a href="/music/" style="text-align:center;padding:16px;background:rgba(255,255,255,.03);border-radius:10px;display:block;transition:background .15s;text-decoration:none;" onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background='rgba(255,255,255,.03)'">
+        <div style="font-size:28px;margin-bottom:6px;">🎵</div>
+        <div style="font-size:22px;font-weight:700;">{{ module_stats.tracks|default:0 }}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:3px;">Tracks</div>
+      </a>
+      <a href="/images/" style="text-align:center;padding:16px;background:rgba(255,255,255,.03);border-radius:10px;display:block;transition:background .15s;text-decoration:none;" onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background='rgba(255,255,255,.03)'">
+        <div style="font-size:28px;margin-bottom:6px;">🖼</div>
+        <div style="font-size:22px;font-weight:700;">{{ module_stats.images|default:0 }}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:3px;">Images</div>
+      </a>
+      <a href="/blog/" style="text-align:center;padding:16px;background:rgba(255,255,255,.03);border-radius:10px;display:block;transition:background .15s;text-decoration:none;" onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background='rgba(255,255,255,.03)'">
+        <div style="font-size:28px;margin-bottom:6px;">📝</div>
+        <div style="font-size:22px;font-weight:700;">{{ module_stats.posts|default:0 }}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:3px;">Posts</div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><span class="panel-title">🔔 Quick Actions</span></div>
+    <div class="panel-body" style="display:flex;flex-direction:column;gap:8px;">
+      <a href="/admin-panel/upload/" class="btn btn-secondary" style="justify-content:center;">⬆ Upload Content</a>
+      <a href="/admin-panel/cms/" class="btn btn-secondary" style="justify-content:center;">🎛 Open CMS</a>
+      <a href="/admin-panel/monetization/" class="btn btn-secondary" style="justify-content:center;">💰 Finance Center</a>
+      <a href="/admin-panel/system/" class="btn btn-secondary" style="justify-content:center;">🏥 System Health</a>
+      <a href="/admin-panel/settings/" class="btn btn-secondary" style="justify-content:center;">⚙ Settings</a>
+      {% if open_alerts > 0 %}
+      <a href="/admin-panel/system/?tab=alerts" class="btn btn-danger" style="justify-content:center;">🛡 {{ open_alerts }} Open Alert{{ open_alerts|pluralize }}</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

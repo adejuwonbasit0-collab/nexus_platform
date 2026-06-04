@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}Create Account — NEXUS{% endblock %}
+{% block content %}
+<div style="min-height:80vh;display:flex;align-items:center;justify-content:center;padding:40px 16px;">
+  <div style="width:100%;max-width:460px;">
+    <div style="text-align:center;margin-bottom:28px;">
+      <h1 style="font-size:26px;font-weight:800;margin-bottom:6px;">Join NEXUS</h1>
+      <p style="color:var(--tx2);font-size:14px;">Create your free account</p>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:14px;padding:28px;">
+      <form method="post">{% csrf_token %}
+        <div class="form-group"><label class="form-label">Username</label><input class="form-input" type="text" name="username" minlength="3" maxlength="30" required autofocus placeholder="3–30 characters"></div>
+        <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" name="email" required placeholder="you@email.com"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group"><label class="form-label">Password</label><input class="form-input" type="password" name="password" minlength="8" required placeholder="Min 8 chars"></div>
+          <div class="form-group"><label class="form-label">Confirm</label><input class="form-input" type="password" name="confirm_password" required placeholder="Repeat password"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Account Type</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:2px;">
+            <label style="border:1px solid var(--bd);border-radius:10px;padding:12px;cursor:pointer;" id="lbl-user">
+              <input type="radio" name="role" value="user" checked style="display:none;" onchange="sel(this)">
+              <div style="font-weight:600;font-size:13px;margin-bottom:3px;">👤 Member</div>
+              <div style="font-size:11px;color:var(--tx2);">Browse & enjoy</div>
+            </label>
+            <label style="border:1px solid var(--bd);border-radius:10px;padding:12px;cursor:pointer;" id="lbl-creator">
+              <input type="radio" name="role" value="creator" style="display:none;" onchange="sel(this)">
+              <div style="font-weight:600;font-size:13px;margin-bottom:3px;">🎨 Creator</div>
+              <div style="font-size:11px;color:var(--tx2);">Upload & earn</div>
+            </label>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:11px;font-size:15px;">Create Account</button>
+      </form>
+    </div>
+    <p style="text-align:center;margin-top:16px;font-size:12px;color:var(--tx2);">
+      Already have an account? <a href="/auth/login/" style="color:var(--ac);">Log in</a> ·
+      By signing up you agree to our <a href="/page/terms/" style="color:var(--ac);">Terms</a>
+    </p>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function sel(radio){
+  document.getElementById('lbl-user').style.borderColor = 'var(--bd)';
+  document.getElementById('lbl-creator').style.borderColor = 'var(--bd)';
+  document.getElementById('lbl-'+radio.value).style.borderColor = 'var(--ac)';
+}
+document.getElementById('lbl-user').style.borderColor = 'var(--ac)';
+</script>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block title %}Browse Music{% endblock %}
+{% block head %}<style>body{background:#0a0d12;}.track-row{display:flex;align-items:center;gap:14px;padding:10px 16px;background:#111;border-radius:8px;cursor:pointer;transition:background 0.18s;}.track-row:hover{background:#171717;}#player-bar{display:none;position:fixed;bottom:0;left:0;right:0;z-index:500;background:rgba(12,15,20,0.97);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.08);padding:10px 24px;align-items:center;gap:16px;}</style>{% endblock %}
+{% block content %}
+<div style="background:#0a0d12;min-height:100vh;color:#fff;padding-bottom:80px;">
+<div style="background:#0d1118;border-bottom:1px solid rgba(255,255,255,0.06);padding:24px 0;">
+  <div class="container">
+    <h1 style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;margin-bottom:16px;">🎵 Browse Music</h1>
+    <form method="get" style="display:flex;gap:8px;flex-wrap:wrap;">
+      <input name="q" value="{{ q }}" placeholder="Search tracks, artists…" style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 14px;color:#fff;font-family:'Inter',sans-serif;font-size:0.84rem;outline:none;width:220px;">
+      <select name="genre" style="background:#0d1118;border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px 12px;color:#fff;font-size:0.82rem;" onchange="this.form.submit()">
+        <option value="">All Genres</option>{% for g in genres %}<option value="{{ g.slug }}" {% if active_genre == g.slug %}selected{% endif %}>{{ g.name }}</option>{% endfor %}
+      </select>
+      <select name="artist" style="background:#0d1118;border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px 12px;color:#fff;font-size:0.82rem;" onchange="this.form.submit()">
+        <option value="">All Artists</option>{% for a in artists %}<option value="{{ a.slug }}" {% if active_artist == a.slug %}selected{% endif %}>{{ a.name }}</option>{% endfor %}
+      </select>
+      <select name="sort" style="background:#0d1118;border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px 12px;color:#fff;font-size:0.82rem;" onchange="this.form.submit()">
+        <option value="-trend_score">Trending</option>
+        <option value="-created_at">Newest</option>
+        <option value="-plays_count">Most Played</option>
+        <option value="-downloads_count">Most Downloaded</option>
+        <option value="-likes_count">Most Liked</option>
+      </select>
+      <button type="submit" class="btn btn-sm" style="background:#1db954;color:var(--tx);font-weight:700;">Search</button>
+    </form>
+  </div>
+</div>
+
+<!-- Sticky player -->
+<div id="mini-player" style="display:none;background:rgba(13,17,24,0.97);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.06);padding:10px 24px;position:sticky;top:63px;z-index:50;align-items:center;gap:14px;">
+  <div id="mp-cover" style="width:40px;height:40px;border-radius:6px;background:#0a2010;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">🎵</div>
+  <div style="flex:1;min-width:0;"><div id="mp-title" style="font-size:0.84rem;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div><div id="mp-artist" style="font-size:0.72rem;color:#1db954;"></div></div>
+  <audio id="main-player" style="flex:2;max-width:400px;accent-color:#1db954;" controls></audio>
+  {% if branding and branding.show_on_player and branding.logo %}<div style="opacity:0.5;"><img src="{{ branding.logo.url }}" style="height:20px;width:auto;"></div>{% endif %}
+</div>
+
+<div class="container" style="padding:24px 20px 40px;">
+  <div style="color:rgba(255,255,255,0.4);font-size:0.8rem;margin-bottom:16px;">{{ tracks.count }} track{{ tracks.count|pluralize }} found</div>
+  <div style="display:flex;flex-direction:column;gap:6px;">
+    {% for t in tracks %}
+    <div class="track-row" onclick="window.location='/music/track/{{ t.slug }}/'">
+      {% if t.cover_image %}<img src="{{ t.cover_image.url }}" style="width:44px;height:44px;border-radius:6px;object-fit:cover;flex-shrink:0;">
+      {% elif t.album and t.album.cover_image %}<img src="{{ t.album.cover_image.url }}" style="width:44px;height:44px;border-radius:6px;object-fit:cover;flex-shrink:0;">
+      {% else %}<div style="width:44px;height:44px;border-radius:6px;background:#0a2010;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1rem;">🎵</div>{% endif %}
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:500;font-size:0.86rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ t.title }}{% if t.featured_artists.all %} <span style="color:rgba(255,255,255,0.35);font-size:0.7rem;">ft. {% for fa in t.featured_artists.all %}{{ fa.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>{% endif %}</div>
+        <div style="font-size:0.74rem;margin-top:2px;">
+          <a href="/music/artist/{{ t.artist.slug }}/" onclick="event.stopPropagation()" style="color:#1db954;text-decoration:none;">{{ t.artist.name }}</a>
+          {% if t.album %} · <a href="/music/album/{{ t.album.slug }}/" onclick="event.stopPropagation()" style="color:rgba(255,255,255,0.35);text-decoration:none;">{{ t.album.title }}</a>{% endif %}
+        </div>
+      </div>
+      {% if t.genre %}<span style="font-size:0.7rem;color:rgba(255,255,255,0.3);white-space:nowrap;">{{ t.genre.name }}</span>{% endif %}
+      <span style="font-size:0.72rem;color:rgba(255,255,255,0.3);">{{ t.release_year }}</span>
+      <span style="font-size:0.72rem;color:rgba(255,255,255,0.3);">{{ t.duration_str }}</span>
+      <span style="font-size:0.72rem;color:rgba(255,255,255,0.3);">▶ {{ t.plays_count }}</span>
+      {% if t.is_premium %}<span style="background:rgba(245,166,35,0.15);color:#f5a623;border:1px solid rgba(245,166,35,0.25);padding:2px 7px;border-radius:20px;font-size:0.65rem;white-space:nowrap;">⭐ Pro</span>{% endif %}
+      <a href="/music/track/{{ t.slug }}/" onclick="event.stopPropagation()" style="font-size:0.7rem;color:rgba(255,255,255,0.3);text-decoration:none;padding:4px;white-space:nowrap;">Details</a>
+      <a href="/music/download/{{ t.pk }}/" onclick="event.stopPropagation()" class="btn btn-sm" style="background:rgba(29,185,84,0.15);color:#1db954;border:1px solid rgba(29,185,84,0.2);white-space:nowrap;flex-shrink:0;">⬇ MP3</a>
+    </div>
+    {% empty %}
+    <div style="text-align:center;padding:80px 0;color:rgba(255,255,255,0.3);">
+      <div style="font-size:3rem;margin-bottom:12px;">🎵</div><div>No tracks found</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function playTrack(url,title,artist,cover){
+  if(!url){showToast('No audio file','error');return;}
+  const mp=document.getElementById('mini-player');const main=document.getElementById('main-player');
+  document.getElementById('mp-title').textContent=title;document.getElementById('mp-artist').textContent=artist;
+  const cw=document.getElementById('mp-cover');
+  if(cover)cw.innerHTML=`<img src="${cover}" style="width:40px;height:40px;border-radius:6px;object-fit:cover;">`;
+  else cw.innerHTML='🎵';
+  main.src=url;mp.style.display='flex';main.play();showToast('▶ '+title);
+}
+</script>
+{% endblock %}

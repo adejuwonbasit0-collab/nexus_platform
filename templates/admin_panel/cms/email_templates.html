@@ -1,0 +1,34 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Email Templates{% endblock %}
+{% block topbar_title %}✉️ Email Templates{% endblock %}
+{% block content %}
+<div class="panel">
+  <div class="table-wrap" style="border:none;border-radius:0;">
+    <table class="data-table">
+      <thead><tr><th>Template</th><th>Subject</th><th>Status</th><th>Last Updated</th><th>Actions</th></tr></thead>
+      <tbody>
+      {% for val, label in all_types %}
+        {% for t in templates %}{% if t.template_type == val %}
+          <tr>
+            <td style="font-weight:500;">{{ label }}</td>
+            <td style="font-size:13px;color:var(--text2);">{{ t.subject|truncatechars:50 }}</td>
+            <td><span class="status-badge {% if t.is_active %}s-approved{% else %}s-draft{% endif %}">{% if t.is_active %}Active{% else %}Disabled{% endif %}</span></td>
+            <td style="font-size:12px;color:var(--text2);">{{ t.updated_at|date:"M d, Y" }}</td>
+            <td><a href="/admin-panel/cms/email-templates/{{ val }}/" class="btn btn-ghost btn-sm">Edit</a></td>
+          </tr>
+        {% endif %}{% endfor %}
+        {% if val not in templates|dictsortreversed:"template_type"|first|default:"" %}
+          <tr>
+            <td style="font-weight:500;">{{ label }}</td>
+            <td style="font-size:13px;color:var(--text2);">—</td>
+            <td><span class="status-badge s-draft">Not configured</span></td>
+            <td style="font-size:12px;color:var(--text2);">—</td>
+            <td><a href="/admin-panel/cms/email-templates/{{ val }}/" class="btn btn-primary btn-sm">Configure</a></td>
+          </tr>
+        {% endif %}
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

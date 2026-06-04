@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}{{ series.title }}{% endblock %}
+{% block content %}
+<div style="background:#0a0a0a;min-height:100vh;color:#fff;">
+  <div style="position:relative;height:340px;overflow:hidden;">
+    {% if series.thumbnail %}<div style="position:absolute;inset:0;background-image:url('{{ series.thumbnail.url }}');background-size:cover;background-position:center;filter:brightness(0.25);"></div>{% endif %}
+    <div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 20%,#0a0a0a);"></div>
+    <div class="container" style="position:relative;z-index:2;height:100%;display:flex;align-items:flex-end;padding-bottom:32px;">
+      <div style="display:flex;gap:24px;align-items:flex-end;">
+        {% if series.thumbnail %}<img src="{{ series.thumbnail.url }}" style="width:130px;border-radius:8px;flex-shrink:0;box-shadow:0 16px 40px rgba(0,0,0,0.6);">{% endif %}
+        <div>
+          <div style="display:flex;gap:8px;margin-bottom:10px;">{% for g in series.genres.all %}<span style="background:rgba(229,9,20,0.25);color:#e50914;border:1px solid rgba(229,9,20,0.3);padding:2px 9px;border-radius:20px;font-size:0.7rem;font-weight:600;">{{ g.name }}</span>{% endfor %}</div>
+          <h1 style="font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;color:#fff;margin-bottom:8px;">{{ series.title }}</h1>
+          <p style="color:rgba(255,255,255,0.55);font-size:0.85rem;">{{ series.seasons.count }} Season{{ series.seasons.count|pluralize }} · {{ series.release_year }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="container" style="padding:32px 20px 60px;">
+    <p style="color:rgba(255,255,255,0.6);margin-bottom:32px;max-width:700px;line-height:1.8;font-size:0.9rem;">{{ series.description }}</p>
+    {% for season in seasons %}
+    <div style="margin-bottom:32px;">
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;color:#fff;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.07);">Season {{ season.number }}{% if season.title %} — {{ season.title }}{% endif %}</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        {% for ep in season.episodes.all %}
+        <a href="/movies/episode/{{ ep.pk }}/" style="text-decoration:none;display:flex;gap:14px;align-items:center;background:#111;border-radius:8px;padding:10px 14px;transition:background 0.2s;" onmouseover="this.style.background='#1a1a1a'" onmouseout="this.style.background='#111'">
+          {% if ep.thumbnail %}<img src="{{ ep.thumbnail.url }}" style="width:110px;height:62px;object-fit:cover;border-radius:6px;flex-shrink:0;">
+          {% else %}<div style="width:110px;height:62px;background:#1a0808;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.3rem;">▶</div>{% endif %}
+          <div style="flex:1;">
+            <div style="font-weight:500;font-size:0.88rem;color:#fff;margin-bottom:4px;">E{{ ep.number }} — {{ ep.title }}</div>
+            <div style="font-size:0.76rem;color:rgba(255,255,255,0.4);">{{ ep.description|truncatechars:100 }}</div>
+          </div>
+          <div style="width:36px;height:36px;border-radius:50%;background:#e50914;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.85rem;color:#fff;">▶</div>
+        </a>
+        {% empty %}<p style="color:rgba(255,255,255,0.3);font-size:0.82rem;padding:8px 0;">No episodes yet</p>{% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

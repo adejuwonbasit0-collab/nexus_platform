@@ -1,0 +1,258 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Settings{% endblock %}
+{% block topbar_title %}Settings{% endblock %}
+{% block content %}
+
+<div class="tab-bar">
+  <button class="tab-btn {% if active_tab == 'general' %}active{% endif %}" data-group="settings" data-id="general" onclick="switchTab('settings','general',this)">⚙ General</button>
+  <button class="tab-btn {% if active_tab == 'email' %}active{% endif %}" data-group="settings" data-id="email" onclick="switchTab('settings','email',this)">📧 Email</button>
+  <button class="tab-btn {% if active_tab == 'payments' %}active{% endif %}" data-group="settings" data-id="payments" onclick="switchTab('settings','payments',this)">💳 Payments</button>
+  <button class="tab-btn {% if active_tab == 'ai' %}active{% endif %}" data-group="settings" data-id="ai" onclick="switchTab('settings','ai',this)">🤖 AI Providers</button>
+</div>
+
+{# ══════════════ GENERAL ══════════════ #}
+<div class="tab-panel {% if active_tab == 'general' %}active{% endif %}" data-group="settings" data-id="general">
+<div style="max-width:720px;">
+<form method="post"><input type="hidden" name="_action" value="general">{% csrf_token %}
+  <div class="panel"><div class="panel-head"><span class="panel-title">🌐 Site Configuration</span></div><div class="panel-body">
+    <div class="form-grid">
+      <div class="fg"><label>Site Name</label><input class="finput" name="site_name" value="{{ site.site_name|default:'' }}"></div>
+      <div class="fg"><label>Site URL</label><input class="finput" name="site_url" value="{{ site.site_url|default:'' }}" placeholder="https://yourdomain.com"></div>
+      <div class="fg" style="grid-column:span 2"><label>Site Description</label><textarea class="finput" name="site_description" rows="2">{{ site.site_description|default:'' }}</textarea></div>
+      <div class="fg"><label>Contact Email</label><input class="finput" type="email" name="contact_email" value="{{ site.contact_email|default:'' }}"></div>
+      <div class="fg"><label>Support Email</label><input class="finput" type="email" name="support_email" value="{{ site.support_email|default:'' }}"></div>
+    </div>
+  </div></div>
+  <div class="panel"><div class="panel-head"><span class="panel-title">📁 Upload & Content</span></div><div class="panel-body">
+    <div class="form-grid">
+      <div class="fg"><label>Max Upload Size (MB)</label><input class="finput" type="number" name="max_upload_size_mb" value="{{ site.max_upload_size_mb|default:'500' }}"></div>
+      <div class="fg"><label>Default Content Tier</label>
+        <select class="finput" name="default_content_tier">
+          <option value="free" {% if site.default_content_tier == 'free' %}selected{% endif %}>Free</option>
+          <option value="premium" {% if site.default_content_tier == 'premium' %}selected{% endif %}>Premium</option>
+        </select>
+      </div>
+      <div class="fg" style="display:flex;align-items:flex-end;padding-bottom:4px;"><label class="fcheck"><input type="checkbox" name="enable_registration" {% if site.enable_registration != 'false' %}checked{% endif %}> Enable new user registration</label></div>
+    </div>
+  </div></div>
+  <button type="submit" class="btn btn-primary">💾 Save General Settings</button>
+</form>
+</div>
+</div>
+
+{# ══════════════ EMAIL ══════════════ #}
+<div class="tab-panel {% if active_tab == 'email' %}active{% endif %}" data-group="settings" data-id="email">
+<div style="display:grid;grid-template-columns:1fr 360px;gap:16px;">
+<div>
+<form method="post"><input type="hidden" name="_action" value="email">{% csrf_token %}
+  <div class="panel"><div class="panel-head"><span class="panel-title">📧 Email Backend</span></div><div class="panel-body">
+    <div class="fg"><label>Backend / Provider</label>
+      <select class="finput" name="backend" id="email-backend" onchange="handleEmailBackend(this.value)">
+        {% for v,l in email_backends %}<option value="{{ v }}" {% if email_cfg.backend == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+      </select>
+    </div>
+
+    <div id="smtp-fields">
+      <div class="form-grid">
+        <div class="fg"><label>SMTP Host</label><input class="finput" name="host" id="email-host" value="{{ email_cfg.host }}" placeholder="smtp.gmail.com"></div>
+        <div class="fg"><label>Port</label><input class="finput" type="number" name="port" id="email-port" value="{{ email_cfg.port|default:'587' }}"></div>
+      </div>
+      <div class="fg"><label>Encryption</label>
+        <select class="finput" name="encryption" id="email-enc" onchange="updatePort(this.value)">
+          {% for v,l in email_encryptions %}<option value="{{ v }}" {% if email_cfg.encryption == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-grid">
+        <div class="fg"><label>Username / Email</label><input class="finput" name="username" value="{{ email_cfg.username }}" placeholder="you@gmail.com"></div>
+        <div class="fg"><label>Password / App Password</label><input class="finput" type="password" name="password" placeholder="{% if email_cfg.password %}••••••••{% else %}Enter password{% endif %}"><div class="hint">For Gmail use an App Password, not your account password</div></div>
+      </div>
+    </div>
+
+    <div id="api-key-field" style="display:none;">
+      <div class="fg"><label>API Key <span id="api-key-label" class="hint" style="font-weight:400;letter-spacing:0;"></span></label><input class="finput" type="password" name="api_key" placeholder="{% if email_cfg.api_key %}••••••••{% else %}Enter API key{% endif %}"></div>
+    </div>
+
+    <div class="form-grid">
+      <div class="fg"><label>From Name</label><input class="finput" name="from_name" value="{{ email_cfg.from_name }}" placeholder="NEXUS"></div>
+      <div class="fg"><label>From Email</label><input class="finput" type="email" name="from_email" value="{{ email_cfg.from_email }}" placeholder="noreply@yourdomain.com"></div>
+    </div>
+    <div class="fg"><label class="fcheck"><input type="checkbox" name="is_active" {% if email_cfg.is_active %}checked{% endif %}> Enable this email configuration</label></div>
+    <button type="submit" class="btn btn-primary">💾 Save Email Config</button>
+  </div></div>
+</form>
+</div>
+
+<div>
+  <div class="panel"><div class="panel-head"><span class="panel-title">🧪 Send Test Email</span></div><div class="panel-body">
+    <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">After saving your config, send a test email to verify it works.</p>
+    <form method="post" action="/admin-panel/settings/email-test/">{% csrf_token %}
+      <div class="fg"><label>Test Recipient</label><input class="finput" name="recipient" type="email" value="{{ email_cfg.test_recipient|default:user.email }}" required></div>
+      <button type="submit" class="btn btn-secondary" style="width:100%;justify-content:center;">📨 Send Test Email</button>
+    </form>
+  </div></div>
+
+  <div class="panel"><div class="panel-head"><span class="panel-title">💡 Provider Setup Guides</span></div><div class="panel-body" style="font-size:13px;">
+    <div style="margin-bottom:12px;padding:10px;background:rgba(255,255,255,.03);border-radius:8px;"><strong>Gmail</strong><br><span style="color:var(--text2);">Host: smtp.gmail.com · Port: 587 · TLS<br>Use an <em>App Password</em> (not your account password). Enable 2FA first.</span></div>
+    <div style="margin-bottom:12px;padding:10px;background:rgba(255,255,255,.03);border-radius:8px;"><strong>SendGrid</strong><br><span style="color:var(--text2);">Host: smtp.sendgrid.net · Port: 587 · TLS<br>Username: <code>apikey</code> · Password: your API key</span></div>
+    <div style="margin-bottom:12px;padding:10px;background:rgba(255,255,255,.03);border-radius:8px;"><strong>Mailgun</strong><br><span style="color:var(--text2);">Host: smtp.mailgun.org · Port: 587 · TLS<br>Username: postmaster@yourdomain · Password: SMTP password</span></div>
+    <div style="padding:10px;background:rgba(255,255,255,.03);border-radius:8px;"><strong>Amazon SES</strong><br><span style="color:var(--text2);">Host: email-smtp.[region].amazonaws.com · Port: 587 · TLS<br>Use SMTP credentials (not AWS access keys)</span></div>
+  </div></div>
+</div>
+</div>
+</div>
+
+{# ══════════════ PAYMENTS ══════════════ #}
+<div class="tab-panel {% if active_tab == 'payments' %}active{% endif %}" data-group="settings" data-id="payments">
+<div class="alert alert-info"><span class="alert-icon">🔒</span> Secret keys are stored securely in the database. For maximum security, use environment variables (PAYSTACK_SECRET_KEY etc.) and leave secret fields blank here.</div>
+
+{% for gw_key, gw_label, gw_icon, gw_currency_hint in gateway_list %}{% empty %}
+{% for gw_key, gw_label, gw_icon, gw_cur in gateways_config %}{% empty %}
+
+{# Paystack #}
+{% with gw=gateways.paystack %}
+<div class="panel"><div class="panel-head">
+  <span class="panel-title">🟢 Paystack</span>
+  <span class="badge {% if gw and gw.is_active %}badge-green{% else %}badge-gray{% endif %}">{% if gw and gw.is_active %}Active{% else %}Inactive{% endif %}</span>
+</div><div class="panel-body">
+<form method="post"><input type="hidden" name="_action" value="payment">{% csrf_token %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+  <div class="fg"><label>Public Key</label><input class="finput" name="paystack_public" value="{{ gw.public_key|default:'' }}" placeholder="pk_live_… or pk_test_…"></div>
+  <div class="fg"><label>Secret Key</label><input class="finput" type="password" name="paystack_secret" placeholder="{% if gw and gw.secret_key %}••••••••{% else %}sk_live_…{% endif %}"><div class="hint">Leave blank to keep existing</div></div>
+  <div class="fg"><label>Webhook Secret</label><input class="finput" type="password" name="paystack_webhook" placeholder="{% if gw and gw.webhook_secret %}••••••••{% else %}Webhook secret{% endif %}"></div>
+  <div class="fg"><label>Currency</label><select class="finput" name="paystack_currency">{% for c in currencies %}<option value="{{ c }}" {% if gw and gw.currency == c %}selected{% endif %}>{{ c }}</option>{% endfor %}</select></div>
+  <div class="fg"><label class="fcheck"><input type="checkbox" name="paystack_test" {% if gw and gw.is_test_mode %}checked{% endif %}> Test Mode</label></div>
+  <div class="fg"><label class="fcheck"><input type="checkbox" name="paystack_active" {% if gw and gw.is_active %}checked{% endif %}> Active</label></div>
+</div>
+
+{# Stripe #}
+{% with sgw=gateways.stripe %}
+<div style="border-top:1px solid var(--border);margin:16px -18px;"></div>
+<div style="font-size:14px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px;">🔵 Stripe <span class="badge {% if sgw and sgw.is_active %}badge-green{% else %}badge-gray{% endif %}" style="font-size:11px;">{% if sgw and sgw.is_active %}Active{% else %}Inactive{% endif %}</span></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+  <div class="fg"><label>Publishable Key</label><input class="finput" name="stripe_public" value="{{ sgw.public_key|default:'' }}" placeholder="pk_live_…"></div>
+  <div class="fg"><label>Secret Key</label><input class="finput" type="password" name="stripe_secret" placeholder="{% if sgw and sgw.secret_key %}••••••••{% else %}sk_live_…{% endif %}"></div>
+  <div class="fg"><label>Webhook Secret</label><input class="finput" type="password" name="stripe_webhook" placeholder="{% if sgw and sgw.webhook_secret %}••••••••{% else %}whsec_…{% endif %}"></div>
+  <div class="fg"><label>Currency</label><select class="finput" name="stripe_currency">{% for c in currencies %}<option value="{{ c }}" {% if sgw and sgw.currency == c %}selected{% endif %}>{{ c }}</option>{% endfor %}</select></div>
+  <div class="fg"><label class="fcheck"><input type="checkbox" name="stripe_test" {% if sgw and sgw.is_test_mode %}checked{% endif %}> Test Mode</label></div>
+  <div class="fg"><label class="fcheck"><input type="checkbox" name="stripe_active" {% if sgw and sgw.is_active %}checked{% endif %}> Active</label></div>
+</div>
+{% endwith %}
+
+{# Flutterwave #}
+{% with fgw=gateways.flutterwave %}
+<div style="border-top:1px solid var(--border);margin:16px -18px;"></div>
+<div style="font-size:14px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px;">🟠 Flutterwave <span class="badge {% if fgw and fgw.is_active %}badge-green{% else %}badge-gray{% endif %}" style="font-size:11px;">{% if fgw and fgw.is_active %}Active{% else %}Inactive{% endif %}</span></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+  <div class="fg"><label>Public Key</label><input class="finput" name="flutterwave_public" value="{{ fgw.public_key|default:'' }}" placeholder="FLWPUBK_TEST-…"></div>
+  <div class="fg"><label>Secret Key</label><input class="finput" type="password" name="flutterwave_secret" placeholder="{% if fgw and fgw.secret_key %}••••••••{% else %}FLWSECK_TEST-…{% endif %}"></div>
+  <div class="fg"><label>Webhook Secret (Hash)</label><input class="finput" type="password" name="flutterwave_webhook" placeholder="{% if fgw and fgw.webhook_secret %}••••••••{% else %}Your secret hash{% endif %}"></div>
+  <div class="fg"><label>Currency</label><select class="finput" name="flutterwave_currency">{% for c in currencies %}<option value="{{ c }}" {% if fgw and fgw.currency == c %}selected{% endif %}>{{ c }}</option>{% endfor %}</select></div>
+  <div class="fg"><label class="fcheck"><input type="checkbox" name="flutterwave_test" {% if fgw and fgw.is_test_mode %}checked{% endif %}> Test Mode</label></div>
+  <div class="fg"><label class="fcheck"><input type="checkbox" name="flutterwave_active" {% if fgw and fgw.is_active %}checked{% endif %}> Active</label></div>
+</div>
+{% endwith %}
+
+{# Wave #}
+{% with wgw=gateways.wave %}
+<div style="border-top:1px solid var(--border);margin:16px -18px;"></div>
+<div style="font-size:14px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px;">🌊 Wave <span class="badge {% if wgw and wgw.is_active %}badge-green{% else %}badge-gray{% endif %}" style="font-size:11px;">{% if wgw and wgw.is_active %}Active{% else %}Inactive{% endif %}</span></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+  <div class="fg"><label>Public Key</label><input class="finput" name="wave_public" value="{{ wgw.public_key|default:'' }}"></div>
+  <div class="fg"><label>Secret Key</label><input class="finput" type="password" name="wave_secret" placeholder="{% if wgw and wgw.secret_key %}••••••••{% else %}Wave secret{% endif %}"></div>
+  <div class="fg"><label>Currency</label><select class="finput" name="wave_currency"><option value="XOF">XOF (West African CFA)</option><option value="USD">USD</option></select></div>
+  <div class="fg"><label class="fcheck"><input type="checkbox" name="wave_test" {% if wgw and wgw.is_test_mode %}checked{% endif %}> Test Mode</label></div>
+  <div class="fg" style="grid-column:span 2"><label class="fcheck"><input type="checkbox" name="wave_active" {% if wgw and wgw.is_active %}checked{% endif %}> Active</label></div>
+</div>
+{% endwith %}
+
+{# Bank Transfer #}
+{% with bgw=gateways.bank %}
+<div style="border-top:1px solid var(--border);margin:16px -18px;"></div>
+<div style="font-size:14px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px;">🏦 Bank Transfer (Manual) <span class="badge {% if bgw and bgw.is_active %}badge-green{% else %}badge-gray{% endif %}" style="font-size:11px;">{% if bgw and bgw.is_active %}Active{% else %}Inactive{% endif %}</span></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+  <div class="fg"><label>Bank Name</label><input class="finput" name="bank_bank_name" value="{{ bgw.extra.bank_name|default:'' }}" placeholder="First Bank of Nigeria"></div>
+  <div class="fg"><label>Account Name</label><input class="finput" name="bank_account_name" value="{{ bgw.extra.account_name|default:'' }}"></div>
+  <div class="fg"><label>Account Number</label><input class="finput" name="bank_account_number" value="{{ bgw.extra.account_number|default:'' }}"></div>
+  <div class="fg"><label>Routing / Sort Code</label><input class="finput" name="bank_routing_number" value="{{ bgw.extra.routing_number|default:'' }}"></div>
+  <div class="fg" style="grid-column:span 2"><label>Payment Instructions</label><textarea class="finput" name="bank_instructions" rows="2">{{ bgw.extra.instructions|default:'' }}</textarea></div>
+  <div class="fg"><label class="fcheck"><input type="checkbox" name="bank_active" {% if bgw and bgw.is_active %}checked{% endif %}> Accept bank transfers</label></div>
+</div>
+{% endwith %}
+
+<button type="submit" class="btn btn-primary" style="margin-top:8px;">💾 Save All Payment Settings</button>
+</form>
+</div></div>
+{% endwith %}
+
+{% endfor %}{% endfor %}
+</div>
+
+{# ══════════════ AI ══════════════ #}
+<div class="tab-panel {% if active_tab == 'ai' %}active{% endif %}" data-group="settings" data-id="ai">
+<div class="alert alert-warning"><span class="alert-icon">⚠️</span> API keys are stored in the database. For production, prefer environment variables (ANTHROPIC_API_KEY, OPENAI_API_KEY, STABILITY_API_KEY).</div>
+<form method="post"><input type="hidden" name="_action" value="ai">{% csrf_token %}
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
+
+  {# Anthropic #}
+  {% with p=ai_providers.anthropic %}
+  <div class="panel"><div class="panel-head"><span class="panel-title">🟠 Anthropic Claude</span><span class="badge {% if p and p.is_active %}badge-green{% else %}badge-gray{% endif %}">{% if p and p.is_active %}Active{% else %}Off{% endif %}</span></div><div class="panel-body">
+    <div class="fg"><label>API Key</label><input class="finput" type="password" name="anthropic_key" placeholder="{% if p and p.api_key %}••••••••{% else %}sk-ant-…{% endif %}"><div class="hint">Leave blank to keep existing</div></div>
+    <div class="fg"><label>Model</label><input class="finput" name="anthropic_model" value="{{ p.model_name|default:'claude-sonnet-4-5' }}" placeholder="claude-sonnet-4-5"></div>
+    <div class="fg"><label class="fcheck"><input type="checkbox" name="anthropic_active" {% if p and p.is_active %}checked{% endif %}> Active</label></div>
+  </div></div>
+  {% endwith %}
+
+  {# OpenAI #}
+  {% with p=ai_providers.openai %}
+  <div class="panel"><div class="panel-head"><span class="panel-title">🟢 OpenAI</span><span class="badge {% if p and p.is_active %}badge-green{% else %}badge-gray{% endif %}">{% if p and p.is_active %}Active{% else %}Off{% endif %}</span></div><div class="panel-body">
+    <div class="fg"><label>API Key</label><input class="finput" type="password" name="openai_key" placeholder="{% if p and p.api_key %}••••••••{% else %}sk-…{% endif %}"></div>
+    <div class="fg"><label>Model</label><input class="finput" name="openai_model" value="{{ p.model_name|default:'gpt-4o' }}" placeholder="gpt-4o"></div>
+    <div class="fg"><label class="fcheck"><input type="checkbox" name="openai_active" {% if p and p.is_active %}checked{% endif %}> Active</label></div>
+  </div></div>
+  {% endwith %}
+
+  {# Stability AI #}
+  {% with p=ai_providers.stability %}
+  <div class="panel"><div class="panel-head"><span class="panel-title">🎨 Stability AI</span><span class="badge {% if p and p.is_active %}badge-green{% else %}badge-gray{% endif %}">{% if p and p.is_active %}Active{% else %}Off{% endif %}</span></div><div class="panel-body">
+    <div class="fg"><label>API Key</label><input class="finput" type="password" name="stability_key" placeholder="{% if p and p.api_key %}••••••••{% else %}sk-…{% endif %}"></div>
+    <div class="fg"><label>Model</label><input class="finput" name="stability_model" value="{{ p.model_name|default:'stable-diffusion-xl-1024-v1-0' }}" placeholder="stable-diffusion-xl-1024-v1-0"></div>
+    <div class="fg"><label class="fcheck"><input type="checkbox" name="stability_active" {% if p and p.is_active %}checked{% endif %}> Active</label></div>
+  </div></div>
+  {% endwith %}
+
+</div>
+<button type="submit" class="btn btn-primary">💾 Save AI Settings</button>
+</form>
+</div>
+
+{% endblock %}
+{% block extra_scripts %}
+<script>
+const encToPort = {tls:'587', ssl:'465', none:'25'};
+function updatePort(enc) {
+  document.getElementById('email-port').value = encToPort[enc] || '587';
+}
+function handleEmailBackend(val) {
+  const smtpFields = document.getElementById('smtp-fields');
+  const apiField   = document.getElementById('api-key-field');
+  const apiLabel   = document.getElementById('api-key-label');
+  if (val === 'sendgrid') {
+    smtpFields.style.display = 'none'; apiField.style.display = 'block';
+    apiLabel.textContent = '— SendGrid API key';
+    document.getElementById('email-host').value = 'smtp.sendgrid.net';
+    document.getElementById('email-port').value = '587';
+  } else if (val === 'mailgun') {
+    smtpFields.style.display = 'block'; apiField.style.display = 'none';
+    document.getElementById('email-host').value = 'smtp.mailgun.org';
+  } else if (val === 'ses') {
+    smtpFields.style.display = 'block'; apiField.style.display = 'none';
+    document.getElementById('email-host').value = 'email-smtp.us-east-1.amazonaws.com';
+  } else if (val === 'console') {
+    smtpFields.style.display = 'none'; apiField.style.display = 'none';
+  } else {
+    smtpFields.style.display = 'block'; apiField.style.display = 'none';
+  }
+}
+handleEmailBackend(document.getElementById('email-backend').value);
+</script>
+{% endblock %}

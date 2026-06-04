@@ -1,0 +1,41 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Menus{% endblock %}
+{% block topbar_title %}📋 Menu Manager{% endblock %}
+{% block content %}
+<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;">
+  {% for location, label in menu_locations %}{% empty %}
+  {% for menu in menus %}
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">{{ menu.name }}</span>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="status-badge {% if menu.is_active %}s-approved{% else %}s-draft{% endif %}">{{ menu.location }}</span>
+        <a href="/admin-panel/cms/menus/{{ menu.location }}/" class="btn btn-ghost btn-sm">Edit</a>
+      </div>
+    </div>
+    <div class="panel-body">
+      {% for item in menu.items.all|slice:":6" %}
+        <div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px;display:flex;align-items:center;gap:8px;">
+          {% if item.icon %}<span>{{ item.icon }}</span>{% endif %}
+          <span>{{ item.label }}</span>
+          <span style="color:var(--text2);font-size:11px;margin-left:auto;font-family:monospace;">{{ item.url }}</span>
+        </div>
+      {% empty %}
+        <p style="color:var(--text2);font-size:13px;">No items. <a href="/admin-panel/cms/menus/{{ menu.location }}/" style="color:var(--accent);">Add items →</a></p>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+  {% for val, label in menu_loc_choices %}{% empty %}
+  {% for val, label in primary_menus %}{% empty %}
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">Primary Navigation</span><a href="/admin-panel/cms/menus/primary/" class="btn btn-primary btn-sm">Edit</a></div>
+    <div class="panel-body"><p style="color:var(--text2);font-size:13px;">Configure the main site navigation.</p></div>
+  </div>
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">Footer Menu</span><a href="/admin-panel/cms/menus/footer/" class="btn btn-primary btn-sm">Edit</a></div>
+    <div class="panel-body"><p style="color:var(--text2);font-size:13px;">Configure footer links.</p></div>
+  </div>
+  {% endfor %}{% endfor %}{% endfor %}
+</div>
+{% endblock %}

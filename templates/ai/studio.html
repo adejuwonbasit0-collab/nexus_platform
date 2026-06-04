@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+{% block title %}AI Studio{% endblock %}
+{% block extra_head %}
+<style>
+.gen-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:16px; }
+.gen-img { width:100%; aspect-ratio:1; object-fit:cover; border-radius:var(--r); cursor:pointer; transition:transform 0.2s; }
+.gen-img:hover { transform:scale(1.02); }
+</style>
+{% endblock %}
+{% block content %}
+<div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:40px 0;">
+  <div class="container" style="text-align:center;">
+    <div style="font-size:3rem;margin-bottom:12px;">✨</div>
+    <h1 style="font-family:'Syne',sans-serif;font-size:2.5rem;font-weight:800;margin-bottom:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">AI Image Studio</h1>
+    <p style="color:var(--text2);font-size:1rem;">Describe anything and watch AI bring it to life</p>
+  </div>
+</div>
+
+<div class="container" style="padding-top:40px;padding-bottom:60px;">
+  <div style="max-width:800px;margin:0 auto;">
+    <!-- Generator Card -->
+    <div class="card" style="padding:32px;margin-bottom:40px;">
+      <div style="display:flex;gap:12px;align-items:flex-end;">
+        <div style="flex:1;">
+          <label class="form-label">Describe your image</label>
+          <textarea id="prompt-input" class="form-textarea" placeholder="A majestic dragon soaring over a neon-lit cyberpunk city at dusk, ultra-detailed, 8K..." style="min-height:80px;" onkeydown="if(event.ctrlKey&&event.key==='Enter')generateImage()"></textarea>
+        </div>
+        <button onclick="generateImage()" id="gen-btn" class="btn btn-primary btn-lg" style="white-space:nowrap;height:48px;">
+          <span id="gen-text">✨ Generate</span>
+        </button>
+      </div>
+      
+      <!-- Suggestions -->
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;">
+        <span style="font-size:0.78rem;color:var(--text2);align-self:center;">Try:</span>
+
+        <button onclick="document.getElementById('prompt-input').value='A glowing forest with bioluminescent mushrooms at midnight'" class="tag" style="cursor:pointer;background:none;border:1px solid var(--border);font-size:0.75rem;padding:4px 10px;">🌲 Glowing forest</button>
+        <button onclick="document.getElementById('prompt-input').value='Futuristic Tokyo neon-lit street in the rain'" class="tag" style="cursor:pointer;background:none;border:1px solid var(--border);font-size:0.75rem;padding:4px 10px;">🏙 Cyberpunk city</button>
+        <button onclick="document.getElementById('prompt-input').value='Abstract geometric art in gold and black'" class="tag" style="cursor:pointer;background:none;border:1px solid var(--border);font-size:0.75rem;padding:4px 10px;">🎨 Abstract art</button>
+        <button onclick="document.getElementById('prompt-input').value='Portrait of a futuristic cyberpunk warrior'" class="tag" style="cursor:pointer;background:none;border:1px solid var(--border);font-size:0.75rem;padding:4px 10px;">⚔️ Warrior portrait</button>
+      </div>
+      
+      <!-- Result -->
+      <div id="result-area" style="display:none;margin-top:24px;padding-top:24px;border-top:1px solid var(--border);">
+        <div id="loading-state" style="text-align:center;padding:40px;">
+          <div class="spinner" style="width:40px;height:40px;border-width:3px;margin:0 auto 16px;"></div>
+          <div style="color:var(--text2);">Generating your image...</div>
+        </div>
+        <div id="image-result" style="display:none;">
+          <img id="generated-img" style="width:100%;max-width:512px;border-radius:var(--r);display:block;margin:0 auto 20px;" alt="Generated">
+          <div id="demo-notice" style="display:none;text-align:center;margin-bottom:16px;color:var(--gold);font-size:0.85rem;">⚠ Demo mode — connect an OpenAI API key for real AI generation</div>
+          <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+            <a id="download-btn" href="#" download="nexus-ai-image.jpg" class="btn btn-primary">⬇ Download</a>
+            <button onclick="saveToGallery()" class="btn btn-outline">📁 Save to Gallery</button>
+            <button onclick="generateImage()" class="btn btn-ghost">🔄 Regenerate</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- History -->
+    {% if user_images %}
+    <div>
+      <div class="section-header"><div class="section-title">🖼 Your <span>Generated Images</span></div></div>
+      <div class="gen-grid">
+        {% for img in user_images %}
+        <div style="position:relative;group">
+          <img src="{{ img.image_url }}" class="gen-img" alt="{{ img.prompt }}" title="{{ img.prompt }}" onclick="showImageModal('{{ img.image_url }}', '{{ img.prompt|escapejs }}')">
+          <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,0.8));padding:12px 10px 8px;border-radius:0 0 var(--r) var(--r);opacity:0;transition:opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0">
+            <p style="font-size:0.72rem;color:#fff;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{{ img.prompt }}</p>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:40px;color:var(--text2);">
+      <div style="font-size:2rem;margin-bottom:8px;">🎨</div>
+      <div>Your generated images will appear here</div>
+      {% if not user.is_authenticated %}<p style="font-size:0.85rem;margin-top:8px;"><a href="/auth/register/" style="color:var(--accent);">Sign up</a> to save your creations</p>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Image Modal -->
+<div id="img-modal" class="modal-overlay" onclick="this.classList.remove('active')">
+  <div style="max-width:600px;width:90%;position:relative;" onclick="event.stopPropagation()">
+    <img id="modal-img" style="width:100%;border-radius:var(--r);">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:0 0 var(--r) var(--r);padding:16px;">
+      <p id="modal-prompt" style="font-size:0.85rem;color:var(--text2);"></p>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <a id="modal-download" href="#" download class="btn btn-primary btn-sm">⬇ Download</a>
+        <button onclick="document.getElementById('img-modal').classList.remove('active')" class="btn btn-ghost btn-sm">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+let currentImageUrl = '';
+let currentPrompt = '';
+
+async function generateImage() {
+  const prompt = document.getElementById('prompt-input').value.trim();
+  if (!prompt) { showToast('Please enter a prompt', 'error'); return; }
+  
+  const btn = document.getElementById('gen-btn');
+  const text = document.getElementById('gen-text');
+  btn.disabled = true;
+  text.textContent = 'Generating...';
+  
+  document.getElementById('result-area').style.display = 'block';
+  document.getElementById('loading-state').style.display = 'block';
+  document.getElementById('image-result').style.display = 'none';
+  
+  const fd = new FormData();
+  fd.append('prompt', prompt);
+  fd.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+  
+  try {
+    const r = await fetch('/ai/generate/', {method:'POST', body:fd});
+    const d = await r.json();
+    
+    if (d.success) {
+      currentImageUrl = d.image_url;
+      currentPrompt = prompt;
+      
+      const img = document.getElementById('generated-img');
+      img.src = d.image_url;
+      img.onload = () => {
+        document.getElementById('loading-state').style.display = 'none';
+        document.getElementById('image-result').style.display = 'block';
+        if (d.demo) document.getElementById('demo-notice').style.display = 'block';
+        document.getElementById('download-btn').href = d.image_url;
+      };
+      showToast('Image generated!');
+    } else {
+      document.getElementById('loading-state').innerHTML = `<p style="color:var(--accent2);">Error: ${d.error}</p>`;
+      showToast(d.error, 'error');
+    }
+  } catch(e) {
+    document.getElementById('loading-state').innerHTML = '<p style="color:var(--accent2);">Failed to generate. Please try again.</p>';
+    showToast('Generation failed', 'error');
+  }
+  
+  btn.disabled = false;
+  text.textContent = '✨ Generate';
+}
+
+function saveToGallery() {
+  showToast('Image saved to gallery!');
+}
+
+function showImageModal(url, prompt) {
+  document.getElementById('modal-img').src = url;
+  document.getElementById('modal-prompt').textContent = prompt;
+  document.getElementById('modal-download').href = url;
+  document.getElementById('img-modal').classList.add('active');
+}
+</script>
+{% endblock %}

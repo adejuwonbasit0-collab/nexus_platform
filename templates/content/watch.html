@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}{{ episode.title }}{% endblock %}
+{% block head %}
+<style>
+.video-wrap { background:#000; width:100%; aspect-ratio:16/9; position:relative; }
+video { width:100%; height:100%; display:block; }
+</style>
+{% endblock %}
+{% block content %}
+<div style="background:#000;border-bottom:1px solid var(--border);">
+  <div class="container" style="padding:0;">
+    <div class="video-wrap">
+      <video controls autoplay preload="auto">
+        <source src="/stream/video/{{ episode.pk }}/" type="video/mp4">
+        Your browser doesn't support HTML5 video.
+      </video>
+    </div>
+  </div>
+</div>
+<div class="container" style="padding-top:28px;padding-bottom:60px;">
+  <div style="display:grid;grid-template-columns:1fr 340px;gap:32px;">
+    <div>
+      <div class="card" style="padding:24px;">
+        <div style="font-size:0.8rem;color:var(--text2);margin-bottom:8px;">
+          <a href="/series/{{ episode.season.series.pk }}/" style="color:var(--accent);text-decoration:none;">{{ episode.season.series.title }}</a>
+          › Season {{ episode.season.number }} › Episode {{ episode.number }}
+        </div>
+        <h1 style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;margin-bottom:16px;">{{ episode.title }}</h1>
+        <p style="color:var(--text2);line-height:1.8;">{{ episode.description }}</p>
+        <div style="margin-top:16px;font-size:0.82rem;color:var(--text2);">👁 {{ episode.views }} views • {{ episode.created_at|date:"M d, Y" }}</div>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="padding:20px;">
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.9rem;margin-bottom:16px;">More Episodes</div>
+        {% for ep in episode.season.episodes.all %}
+        <a href="/watch/{{ ep.pk }}/" style="text-decoration:none;display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);{% if ep.pk == episode.pk %}opacity:0.5;pointer-events:none;{% endif %}">
+          {% if ep.thumbnail %}<img src="{{ ep.thumbnail.url }}" style="width:60px;height:36px;object-fit:cover;border-radius:4px;flex-shrink:0;">
+          {% else %}<div style="width:60px;height:36px;background:var(--bg3);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">▶</div>{% endif %}
+          <div style="min-width:0;"><div style="font-size:0.8rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">E{{ ep.number }}: {{ ep.title }}</div></div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

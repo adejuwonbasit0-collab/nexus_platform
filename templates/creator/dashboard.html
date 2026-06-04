@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+{% block title %}Creator Studio — NEXUS{% endblock %}
+{% block content %}
+<div class="wrap" style="padding-top:32px;padding-bottom:60px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px;">
+    <div>
+      <h1 style="font-size:22px;font-weight:800;">Creator Studio</h1>
+      <p style="color:var(--tx2);font-size:14px;margin-top:3px;">Welcome back, {{ user.username }}</p>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:28px;">
+    <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:12px;padding:18px 20px;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx2);margin-bottom:8px;">Total Uploads</div>
+      <div style="font-size:26px;font-weight:700;">{{ stats.total_uploads }}</div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:12px;padding:18px 20px;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx2);margin-bottom:8px;">Approved</div>
+      <div style="font-size:26px;font-weight:700;color:#22c55e;">{{ stats.approved }}</div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:12px;padding:18px 20px;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx2);margin-bottom:8px;">Pending Review</div>
+      <div style="font-size:26px;font-weight:700;color:#f59e0b;">{{ stats.pending }}</div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:12px;padding:18px 20px;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx2);margin-bottom:8px;">Total Views</div>
+      <div style="font-size:26px;font-weight:700;">{{ stats.total_views }}</div>
+    </div>
+    {% if wallet %}
+    <div style="background:linear-gradient(135deg,rgba(124,92,252,.2),rgba(255,77,109,.1));border:1px solid rgba(124,92,252,.3);border-radius:12px;padding:18px 20px;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.7);margin-bottom:8px;">Wallet</div>
+      <div style="font-size:22px;font-weight:700;">{{ wallet.currency }} {{ wallet.balance }}</div>
+      <a href="/creator/withdraw/" style="font-size:12px;color:rgba(255,255,255,.7);margin-top:6px;display:block;">Withdraw →</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Tabs -->
+  <div style="display:flex;gap:4px;background:var(--bg2);border:1px solid var(--bd);border-radius:10px;padding:4px;margin-bottom:20px;width:fit-content;">
+    <button class="ctab-btn active" onclick="switchCreatorTab('mycontent',this)">📁 My Content</button>
+    <button class="ctab-btn" onclick="switchCreatorTab('upload',this)">⬆ Upload New</button>
+    {% if wallet %}<button class="ctab-btn" onclick="switchCreatorTab('earnings',this)">💰 Earnings</button>{% endif %}
+  </div>
+
+  <!-- My Content Tab -->
+  <div class="ctab-panel active" data-ctab="mycontent">
+    {% if content %}
+    <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:12px;overflow:hidden;">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead><tr style="border-bottom:1px solid var(--bd);">
+          <th style="padding:11px 16px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx2);">Title</th>
+          <th style="padding:11px 16px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx2);">Type</th>
+          <th style="padding:11px 16px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx2);">Status</th>
+          <th style="padding:11px 16px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx2);">Views</th>
+          <th style="padding:11px 16px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx2);">Date</th>
+          <th style="padding:11px 16px;"></th>
+        </tr></thead>
+        <tbody>
+        {% for c in content %}
+        <tr style="border-bottom:1px solid rgba(255,255,255,.04);">
+          <td style="padding:11px 16px;font-weight:500;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ c.title }}</td>
+          <td style="padding:11px 16px;"><span style="background:rgba(124,92,252,.15);border:1px solid rgba(124,92,252,.2);color:#a78bfa;border-radius:20px;padding:2px 9px;font-size:10px;text-transform:uppercase;">{{ c.content_type }}</span></td>
+          <td style="padding:11px 16px;">
+            <span style="border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;text-transform:uppercase;
+              {% if c.status == 'approved' %}background:rgba(34,197,94,.1);color:#22c55e;border:1px solid rgba(34,197,94,.2);
+              {% elif c.status == 'pending' %}background:rgba(245,158,11,.1);color:#f59e0b;border:1px solid rgba(245,158,11,.2);
+              {% else %}background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.2);{% endif %}">
+              {% if c.status == 'pending' %}⏳ {% elif c.status == 'approved' %}✅ {% else %}❌ {% endif %}{{ c.status }}
+            </span>
+          </td>
+          <td style="padding:11px 16px;color:var(--tx2);">{{ c.views }}</td>
+          <td style="padding:11px 16px;color:var(--tx2);font-size:11px;">{{ c.created_at|date:"M d, Y" }}</td>
+          <td style="padding:11px 16px;">
+            <div style="display:flex;gap:6px;">
+              <a href="/creator/edit/{{ c.pk }}/" class="btn btn-ghost btn-xs">✏ Edit</a>
+              <form method="post" action="/creator/delete/{{ c.pk }}/" onsubmit="return confirm('Delete this content?')">{% csrf_token %}
+                <button style="background:none;border:none;color:var(--tx2);cursor:pointer;font-size:13px;padding:4px 8px;border-radius:6px;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--tx2)'">🗑</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:60px;color:var(--tx2);">
+      <div style="font-size:40px;margin-bottom:12px;">📭</div>
+      <h3 style="margin-bottom:8px;">No uploads yet</h3>
+      <p style="font-size:13px;">Use the "Upload New" tab to submit your first piece of content.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Upload Tab -->
+  <div class="ctab-panel" data-ctab="upload">
+    <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:14px;padding:28px;max-width:680px;">
+      <h2 style="font-size:16px;font-weight:700;margin-bottom:20px;">⬆ Submit New Content</h2>
+      <form method="post" action="/creator/upload/" enctype="multipart/form-data">{% csrf_token %}
+        <div style="display:grid;gap:16px;">
+          <div>
+            <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx2);margin-bottom:6px;">Content Type *</label>
+            <select style="width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:10px 13px;color:var(--tx);font-size:14px;" name="content_type" required>
+              <option value="">Select type…</option>
+              <option value="video">🎬 Video</option>
+              <option value="music">🎵 Music</option>
+              <option value="image">🖼 Image</option>
+              <option value="blog">📝 Blog Post</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx2);margin-bottom:6px;">Title *</label>
+            <input style="width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:10px 13px;color:var(--tx);font-size:14px;outline:none;" name="title" required placeholder="Your content title">
+          </div>
+          <div>
+            <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx2);margin-bottom:6px;">Description</label>
+            <textarea style="width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:10px 13px;color:var(--tx);font-size:14px;outline:none;min-height:90px;resize:vertical;" name="description" placeholder="Describe your content…"></textarea>
+          </div>
+          <div>
+            <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx2);margin-bottom:6px;">Access Tier</label>
+            <select style="width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:10px 13px;color:var(--tx);font-size:14px;" name="tier">
+              <option value="free">Free</option>
+              <option value="premium">Premium</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx2);margin-bottom:6px;">File <span style="color:var(--tx3);font-weight:400;">(not required for Blog posts)</span></label>
+            <input style="width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:10px 13px;color:var(--tx);font-size:13px;" type="file" name="file">
+          </div>
+          <div>
+            <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx2);margin-bottom:6px;">Thumbnail Image</label>
+            <input style="width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:10px 13px;color:var(--tx);font-size:13px;" type="file" name="thumbnail" accept="image/*">
+          </div>
+        </div>
+        <div style="margin-top:8px;padding:12px;background:rgba(124,92,252,.07);border:1px solid rgba(124,92,252,.15);border-radius:8px;font-size:12px;color:var(--tx2);">
+          ℹ️ All submissions go through admin approval before they go live. You'll be notified when approved or rejected.
+        </div>
+        <button type="submit" class="btn btn-primary" style="margin-top:18px;">Submit for Review</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Earnings Tab -->
+  {% if wallet %}
+  <div class="ctab-panel" data-ctab="earnings">
+    <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:14px;padding:24px;max-width:600px;">
+      <h2 style="font-size:16px;font-weight:700;margin-bottom:16px;">💰 Recent Earnings</h2>
+      {% if recent_earnings %}
+      {% for e in recent_earnings %}
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px;">
+        <span style="color:var(--tx2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:300px;">{{ e.reason|default:'Earning' }}</span>
+        <span style="color:#22c55e;font-weight:600;flex-shrink:0;">+{{ e.amount }}</span>
+      </div>
+      {% endfor %}
+      {% else %}
+      <p style="color:var(--tx2);">No earnings yet.</p>
+      {% endif %}
+      {% if wallet %}
+      <div style="margin-top:18px;display:flex;gap:10px;">
+        <a href="/creator/withdraw/" class="btn btn-primary">💸 Withdraw Funds</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<style>
+.ctab-btn{padding:7px 14px;border-radius:7px;font-size:13px;font-weight:500;background:none;border:none;color:var(--tx2);cursor:pointer;transition:all .15s;}
+.ctab-btn:hover{color:var(--tx);background:rgba(255,255,255,.05)}
+.ctab-btn.active{background:var(--ac);color:#fff}
+.ctab-panel{display:none}.ctab-panel.active{display:block}
+</style>
+<script>
+function switchCreatorTab(id, btn) {
+  document.querySelectorAll('[data-ctab]').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.ctab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-ctab="${id}"]`).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+{% endblock %}

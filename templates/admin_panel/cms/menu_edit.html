@@ -1,0 +1,56 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Edit Menu{% endblock %}
+{% block topbar_title %}📋 Edit: {{ menu.name }}{% endblock %}
+{% block content %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">Menu Items</span></div>
+    <div class="panel-body">
+      {% for item in items %}
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);">
+          {% if item.icon %}<span style="font-size:16px;">{{ item.icon }}</span>{% endif %}
+          <div style="flex:1;"><div style="font-weight:500;font-size:13px;">{{ item.label }}</div><div style="font-size:11px;color:var(--text2);font-family:monospace;">{{ item.url }}</div></div>
+          <form method="post">{% csrf_token %}<input type="hidden" name="action" value="delete_item"><input type="hidden" name="item_pk" value="{{ item.pk }}"><button class="btn btn-ghost btn-sm" style="color:#e74c3c;">×</button></form>
+        </div>
+        {% for child in item.children.all %}
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 0 8px 20px;border-bottom:1px solid rgba(255,255,255,.03);">
+            <span style="color:var(--text2);">↳</span>
+            <div style="flex:1;font-size:12px;color:var(--text2);">{{ child.label }}</div>
+            <form method="post">{% csrf_token %}<input type="hidden" name="action" value="delete_item"><input type="hidden" name="item_pk" value="{{ child.pk }}"><button class="btn btn-ghost btn-sm" style="color:#e74c3c;font-size:11px;">×</button></form>
+          </div>
+        {% endfor %}
+      {% empty %}
+        <div class="empty-state" style="padding:32px;"><div class="empty-icon">📋</div><h3>No items yet</h3></div>
+      {% endfor %}
+    </div>
+  </div>
+  <div>
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">Add Menu Item</span></div>
+      <div class="panel-body">
+        <form method="post">{% csrf_token %}
+          <input type="hidden" name="action" value="add_item">
+          <div class="form-group"><label class="form-label">Label</label><input class="form-control" name="label" required placeholder="e.g. Movies"></div>
+          <div class="form-group"><label class="form-label">URL</label><input class="form-control" name="url" required placeholder="/movies/"></div>
+          <div class="form-group"><label class="form-label">Icon <span class="form-hint">Emoji or icon class</span></label><input class="form-control" name="icon" placeholder="🎬"></div>
+          <div class="form-group"><label class="form-check"><input type="checkbox" name="open_new_tab"> Open in new tab</label></div>
+          <div class="form-group"><label class="form-check"><input type="checkbox" name="requires_login"> Requires login</label></div>
+          <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">Add Item</button>
+        </form>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:16px;">
+      <div class="panel-header"><span class="panel-title">Menu Settings</span></div>
+      <div class="panel-body">
+        <form method="post">{% csrf_token %}
+          <input type="hidden" name="action" value="toggle">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:13px;">Menu is <strong>{% if menu.is_active %}active{% else %}inactive{% endif %}</strong></span>
+            <button type="submit" class="btn btn-outline btn-sm">Toggle</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

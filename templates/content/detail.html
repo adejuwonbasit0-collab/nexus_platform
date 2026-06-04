@@ -1,0 +1,316 @@
+{% extends 'base.html' %}
+{% block title %}{{ content.title }} — NEXUS{% endblock %}
+{% block extra_head %}
+<style>
+.detail-hero{
+  position:relative;background:var(--bg2);
+  border-bottom:1px solid var(--bd);overflow:hidden;
+}
+.detail-hero-bg{
+  position:absolute;inset:0;
+  background-size:cover;background-position:center;
+  opacity:.08;filter:blur(18px);transform:scale(1.1);
+}
+.comment-item{
+  display:flex;gap:12px;padding:16px 0;
+  border-bottom:1px solid var(--bd);
+}
+.comment-item:last-child{border-bottom:none}
+.comment-avatar{
+  width:36px;height:36px;border-radius:50%;
+  background:linear-gradient(135deg,var(--ac),var(--ac2));
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:700;flex-shrink:0;
+}
+.share-modal{
+  display:none;position:fixed;inset:0;z-index:9999;
+  background:rgba(0,0,0,.6);backdrop-filter:blur(8px);
+  align-items:center;justify-content:center;
+}
+.share-modal.open{display:flex}
+</style>
+{% endblock %}
+{% block content %}
+
+<div class="detail-hero">
+  {% if content.thumbnail %}<div class="detail-hero-bg" style="background-image:url('{{ content.thumbnail.url }}');"></div>{% endif %}
+  <div class="container" style="position:relative;z-index:1;padding-top:56px;padding-bottom:56px;">
+    <div style="display:flex;gap:36px;align-items:flex-start;flex-wrap:wrap;">
+
+      {# Thumbnail #}
+      <div style="width:280px;flex-shrink:0;border-radius:16px;overflow:hidden;box-shadow:0 16px 48px rgba(0,0,0,.6);border:1px solid var(--bd2);">
+        {% if content.thumbnail %}<img src="{{ content.thumbnail.url }}" alt="{{ content.title }}" style="width:100%;display:block;">
+        {% else %}<div style="aspect-ratio:16/9;background:linear-gradient(135deg,rgba(124,92,252,.2),rgba(255,77,109,.1));display:flex;align-items:center;justify-content:center;font-size:64px;">{% if content.content_type == 'video' %}🎬{% elif content.content_type == 'music' %}🎵{% else %}📄{% endif %}</div>{% endif %}
+      </div>
+
+      {# Info #}
+      <div style="flex:1;min-width:280px;">
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+          <span class="badge badge-purple" style="font-size:11px;">{{ content.content_type|upper }}</span>
+          {% if content.tier == 'premium' %}<span class="tier-premium">Premium</span>{% else %}<span class="tier-free">Free</span>{% endif %}
+          {% if content.is_featured %}<span class="badge badge-yellow" style="font-size:11px;">⭐ Featured</span>{% endif %}
+        </div>
+        <h1 style="font-family:'Syne',sans-serif;font-size:clamp(24px,4vw,36px);font-weight:800;line-height:1.15;margin-bottom:12px;">{{ content.title }}</h1>
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;font-size:13px;color:var(--tx2);flex-wrap:wrap;">
+          <span>By <a href="/auth/profile/{{ content.creator.username }}/" style="color:var(--ac);font-weight:600;">{{ content.creator.username }}</a></span>
+          <span>{{ content.created_at|date:"M d, Y" }}</span>
+          <span>👁 {{ content.views }} views</span>
+        </div>
+        {% if content.description %}<p style="font-size:15px;color:var(--tx2);line-height:1.7;max-width:600px;margin-bottom:22px;">{{ content.description|truncatewords:60 }}</p>{% endif %}
+
+        {# Action buttons #}
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px;">
+          {% if content.file %}
+          <a href="/content/{{ content.pk }}/download/" class="btn btn-primary">⬇ Download</a>
+          {% endif %}
+          {% if content.content_type == 'video' %}
+          <a href="#player" class="btn btn-primary">▶ Watch Now</a>
+          {% endif %}
+        </div>
+
+        {# Engagement bar #}
+        <div class="engage-bar" style="padding:14px 20px;background:rgba(255,255,255,.04);border:1px solid var(--bd);border-radius:12px;display:inline-flex;flex-wrap:wrap;gap:8px;">
+          <button
+            class="engage-btn {% if user.is_authenticated and content.pk in liked_ids %}liked{% endif %}"
+            id="like-btn-{{ content.pk }}"
+            onclick="toggleLike({{ content.pk }}, this)"
+            data-liked="{% if user.is_authenticated and content.pk in liked_ids %}true{% else %}false{% endif %}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="{% if user.is_authenticated and content.pk in liked_ids %}#ef4444{% else %}none{% endif %}" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            <span id="like-count-{{ content.pk }}">{{ content.likes_count }}</span> Likes
+          </button>
+
+          <button class="engage-btn" onclick="document.getElementById('comment-input').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('comment-input').focus();">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span id="comment-count">{{ comments|length }}</span> Comments
+          </button>
+
+          <button class="engage-btn" onclick="document.getElementById('shareModal').classList.add('open')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            Share
+          </button>
+
+          <button class="engage-btn" onclick="copyLink()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            Copy Link
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container" style="padding-top:48px;padding-bottom:80px;">
+  <div style="display:grid;grid-template-columns:1fr 340px;gap:32px;align-items:start;">
+
+    {# Main content column #}
+    <div>
+      {# Description / full #}
+      {% if content.description %}
+      <div class="card" style="padding:28px;margin-bottom:24px;">
+        <h3 style="font-size:16px;font-weight:700;margin-bottom:14px;">About this content</h3>
+        <div style="font-size:14px;color:var(--tx2);line-height:1.8;white-space:pre-wrap;">{{ content.description }}</div>
+      </div>
+      {% endif %}
+
+      {# Comments section #}
+      <div id="comments">
+        <h3 style="font-size:18px;font-weight:700;margin-bottom:20px;">💬 Comments <span style="font-size:14px;color:var(--tx2);font-weight:400;">(<span id="cc">{{ comments|length }}</span>)</span></h3>
+
+        {# Add comment form #}
+        {% if user.is_authenticated %}
+        <div style="display:flex;gap:12px;margin-bottom:24px;" id="comment-form-row">
+          <div class="comment-avatar">{{ user.username|slice:':1'|upper }}</div>
+          <div style="flex:1;">
+            <textarea
+              id="comment-input"
+              class="form-input"
+              rows="3"
+              placeholder="Share your thoughts…"
+              style="resize:none;"></textarea>
+            <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+              <button onclick="submitComment({{ content.pk }})" class="btn btn-primary btn-sm">Post Comment</button>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <div style="background:rgba(124,92,252,.07);border:1px solid rgba(124,92,252,.2);border-radius:12px;padding:16px 20px;margin-bottom:24px;text-align:center;">
+          <a href="/auth/login/?next={{ request.path }}" style="color:var(--ac);font-weight:600;">Sign in</a> to leave a comment
+        </div>
+        {% endif %}
+
+        {# Comment list #}
+        <div id="comment-list">
+          {% for c in comments %}
+          <div class="comment-item">
+            <div class="comment-avatar">{{ c.user.username|slice:':1'|upper }}</div>
+            <div style="flex:1;">
+              <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:5px;">
+                <span style="font-size:13px;font-weight:600;">{{ c.user.username }}</span>
+                <span style="font-size:11px;color:var(--tx3);">{{ c.created_at|timesince }} ago</span>
+              </div>
+              <div style="font-size:14px;color:var(--tx2);line-height:1.65;">{{ c.text }}</div>
+            </div>
+          </div>
+          {% empty %}
+          <div id="no-comments" class="empty" style="padding:40px;">
+            <div class="empty-icon">💬</div>
+            <h3>No comments yet</h3>
+            <p>Be the first to share your thoughts!</p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    {# Sidebar #}
+    <div>
+      <div class="card" style="padding:20px;margin-bottom:20px;">
+        <h4 style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx2);margin-bottom:16px;">Content Details</h4>
+        <div style="display:flex;flex-direction:column;gap:11px;font-size:13px;">
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--tx2);">Type</span><span style="font-weight:500;text-transform:capitalize;">{{ content.content_type }}</span></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--tx2);">Tier</span><span class="{% if content.tier == 'premium' %}tier-premium{% else %}tier-free{% endif %}">{{ content.tier }}</span></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--tx2);">Views</span><span>{{ content.views }}</span></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--tx2);">Likes</span><span id="sidebar-likes">{{ content.likes_count }}</span></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--tx2);">Uploaded</span><span>{{ content.created_at|date:"M d, Y" }}</span></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--tx2);">Creator</span><a href="/auth/profile/{{ content.creator.username }}/" style="color:var(--ac);font-weight:500;">{{ content.creator.username }}</a></div>
+        </div>
+      </div>
+
+      {# Share card #}
+      <div class="card" style="padding:20px;">
+        <h4 style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx2);margin-bottom:14px;">Share This</h4>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <button onclick="shareToTwitter()" class="btn btn-ghost btn-sm" style="justify-content:flex-start;gap:10px;">
+            <span style="font-size:15px;">𝕏</span> Share on X / Twitter
+          </button>
+          <button onclick="shareToWhatsApp()" class="btn btn-ghost btn-sm" style="justify-content:flex-start;gap:10px;">
+            <span style="font-size:15px;">💬</span> Share on WhatsApp
+          </button>
+          <button onclick="shareToFacebook()" class="btn btn-ghost btn-sm" style="justify-content:flex-start;gap:10px;">
+            <span style="font-size:15px;">📘</span> Share on Facebook
+          </button>
+          <button onclick="copyLink()" class="btn btn-ghost btn-sm" style="justify-content:flex-start;gap:10px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            Copy Link
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# Share Modal #}
+<div id="shareModal" class="share-modal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:20px;padding:32px;width:440px;max-width:95vw;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;">
+      <h3 style="font-size:17px;font-weight:700;">Share Content</h3>
+      <button onclick="document.getElementById('shareModal').classList.remove('open')" style="background:none;border:none;color:var(--tx2);font-size:24px;cursor:pointer;">×</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;">
+      <button onclick="shareToTwitter()" class="btn btn-outline" style="justify-content:center;gap:8px;"><span style="font-size:16px;">𝕏</span> Twitter</button>
+      <button onclick="shareToWhatsApp()" class="btn btn-outline" style="justify-content:center;gap:8px;"><span style="font-size:16px;">💬</span> WhatsApp</button>
+      <button onclick="shareToFacebook()" class="btn btn-outline" style="justify-content:center;gap:8px;"><span style="font-size:16px;">📘</span> Facebook</button>
+      <button onclick="shareToTelegram()" class="btn btn-outline" style="justify-content:center;gap:8px;"><span style="font-size:16px;">✈️</span> Telegram</button>
+    </div>
+    <div style="background:var(--bg3);border:1px solid var(--bd);border-radius:10px;padding:12px 14px;display:flex;gap:10px;align-items:center;">
+      <input id="share-url-input" value="{{ request.build_absolute_uri }}" readonly style="flex:1;background:none;border:none;outline:none;color:var(--tx);font-size:13px;">
+      <button onclick="copyLink()" class="btn btn-primary btn-xs">Copy</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+const CONTENT_URL = "{{ request.build_absolute_uri }}";
+const CONTENT_TITLE = "{{ content.title|escapejs }}";
+
+/* ── Like ── */
+async function toggleLike(pk, btn) {
+  {% if not user.is_authenticated %}
+  showToast('Sign in to like content', 'w');
+  return;
+  {% endif %}
+  const fd = new FormData();
+  fd.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+  try {
+    const r = await fetch(`/content/${pk}/like/`, {method:'POST', body:fd});
+    const d = await r.json();
+    document.getElementById(`like-count-${pk}`).textContent = d.count;
+    document.getElementById('sidebar-likes').textContent = d.count;
+    btn.classList.toggle('liked', d.liked);
+    const heart = btn.querySelector('svg');
+    if (heart) heart.setAttribute('fill', d.liked ? '#ef4444' : 'none');
+    showToast(d.liked ? '❤️ Liked!' : 'Unliked', d.liked ? 's' : 'i');
+  } catch(e) { showToast('Error liking content', 'e'); }
+}
+
+/* ── Comment ── */
+async function submitComment(pk) {
+  const inp = document.getElementById('comment-input');
+  const text = inp.value.trim();
+  if (!text) { showToast('Please write something first', 'w'); return; }
+
+  const fd = new FormData();
+  fd.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+  fd.append('text', text);
+
+  try {
+    const r = await fetch(`/content/${pk}/comment/`, {method:'POST', body:fd});
+    const d = await r.json();
+    if (d.success) {
+      inp.value = '';
+      const noComments = document.getElementById('no-comments');
+      if (noComments) noComments.remove();
+
+      const list = document.getElementById('comment-list');
+      const div = document.createElement('div');
+      div.className = 'comment-item';
+      div.innerHTML = `
+        <div class="comment-avatar">${d.username[0].toUpperCase()}</div>
+        <div style="flex:1;">
+          <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:5px;">
+            <span style="font-size:13px;font-weight:600;">${d.username}</span>
+            <span style="font-size:11px;color:var(--tx3);">just now</span>
+          </div>
+          <div style="font-size:14px;color:var(--tx2);line-height:1.65;">${d.text}</div>
+        </div>`;
+      list.prepend(div);
+
+      // Update count
+      const cc = document.getElementById('cc');
+      cc.textContent = parseInt(cc.textContent) + 1;
+      const countEl = document.getElementById('comment-count');
+      countEl.textContent = parseInt(countEl.textContent) + 1;
+
+      showToast('Comment posted!', 's');
+    }
+  } catch(e) { showToast('Error posting comment', 'e'); }
+}
+
+/* ── Share ── */
+function copyLink() {
+  navigator.clipboard.writeText(CONTENT_URL)
+    .then(() => showToast('Link copied to clipboard!', 's'))
+    .catch(() => {
+      document.getElementById('share-url-input').select();
+      document.execCommand('copy');
+      showToast('Link copied!', 's');
+    });
+  document.getElementById('shareModal').classList.remove('open');
+}
+
+function shareToTwitter() {
+  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(CONTENT_TITLE)}&url=${encodeURIComponent(CONTENT_URL)}`, '_blank');
+}
+function shareToWhatsApp() {
+  window.open(`https://wa.me/?text=${encodeURIComponent(CONTENT_TITLE + ' ' + CONTENT_URL)}`, '_blank');
+}
+function shareToFacebook() {
+  window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(CONTENT_URL)}`, '_blank');
+}
+function shareToTelegram() {
+  window.open(`https://t.me/share/url?url=${encodeURIComponent(CONTENT_URL)}&text=${encodeURIComponent(CONTENT_TITLE)}`, '_blank');
+}
+</script>
+{% endblock %}

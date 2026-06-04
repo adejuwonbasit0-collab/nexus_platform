@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ maintenance.title }}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#080810;color:#e8e8f0;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;text-align:center;}
+    h1{font-size:48px;font-weight:800;background:linear-gradient(135deg,#6c47ff,#ff4778);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:16px;}
+    p{color:#8888aa;max-width:480px;margin:0 auto 24px;font-size:16px;line-height:1.6;}
+    .icon{font-size:72px;margin-bottom:24px;}
+    {% if maintenance.estimated_return %}.eta{background:rgba(108,71,255,.1);border:1px solid rgba(108,71,255,.2);border-radius:12px;padding:16px 24px;display:inline-block;margin-top:8px;font-size:14px;}{% endif %}
+  </style>
+</head>
+<body>
+  <div>
+    <div class="icon">🔧</div>
+    <h1>{{ maintenance.title }}</h1>
+    <p>{{ maintenance.message }}</p>
+    {% if maintenance.estimated_return %}
+    <div class="eta">
+      <strong>Estimated Return:</strong> {{ maintenance.estimated_return|date:"F d, Y — H:i" }} UTC
+    </div>
+    {% endif %}
+  </div>
+</body>
+</html>

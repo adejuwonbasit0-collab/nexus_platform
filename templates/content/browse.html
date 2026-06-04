@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}Browse{% endblock %}
+{% block content %}
+<div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:32px 0;">
+  <div class="container">
+    <h1 style="font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;margin-bottom:8px;">Browse Content</h1>
+    <p style="color:var(--text2);">Discover images, videos, music, and articles</p>
+  </div>
+</div>
+<div class="container" style="padding-top:32px;padding-bottom:60px;">
+  <!-- Filters -->
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px;align-items:center;">
+    <form method="get" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;flex:1;">
+      <input type="text" name="q" value="{{ q }}" placeholder="Search..." class="form-input" style="max-width:280px;">
+      <select name="type" class="form-select" style="width:auto;" onchange="this.form.submit()">
+        <option value="">All Types</option>
+        <option value="image" {% if active_type == 'image' %}selected{% endif %}>Images</option>
+        <option value="video" {% if active_type == 'video' %}selected{% endif %}>Videos</option>
+        <option value="music" {% if active_type == 'music' %}selected{% endif %}>Music</option>
+        <option value="blog" {% if active_type == 'blog' %}selected{% endif %}>Blog</option>
+      </select>
+      <select name="tier" class="form-select" style="width:auto;" onchange="this.form.submit()">
+        <option value="">All Tiers</option>
+        <option value="free">Free</option>
+        <option value="premium">Premium</option>
+      </select>
+      <select name="category" class="form-select" style="width:auto;" onchange="this.form.submit()">
+        <option value="">All Categories</option>
+        {% for cat in categories %}<option value="{{ cat.slug }}">{{ cat.name }}</option>{% endfor %}
+      </select>
+      <button type="submit" class="btn btn-primary btn-sm">Search</button>
+    </form>
+  </div>
+  
+  {% if q %}<p style="color:var(--text2);margin-bottom:20px;font-size:0.9rem;">{{ items.count }} results for "<strong style="color:var(--text);">{{ q }}</strong>"</p>{% endif %}
+  
+  <div class="grid-4">
+    {% for item in items %}
+    <a href="/content/{{ item.pk }}/" class="card" style="text-decoration:none;">
+      <div class="thumb-wrap">
+        {% if item.thumbnail %}<img src="{{ item.thumbnail.url }}" class="card-img" loading="lazy">
+        {% elif item.file and item.content_type == 'image' %}<img src="{{ item.file.url }}" class="card-img" loading="lazy">
+        {% else %}<div class="card-img img-placeholder">{% if item.content_type == 'image' %}🖼{% elif item.content_type == 'video' %}🎬{% elif item.content_type == 'music' %}🎵{% else %}📝{% endif %}</div>{% endif %}
+        <span class="card-badge badge-{{ item.tier }}">{{ item.tier|capfirst }}</span>
+        {% if item.content_type == 'video' or item.content_type == 'music' %}<div class="play-overlay"><div class="play-btn">▶</div></div>{% endif %}
+      </div>
+      <div class="card-body">
+        <div class="card-title">{{ item.title }}</div>
+        <div class="card-meta">
+          <span>{{ item.get_content_type_display }}</span>
+          <span>👁 {{ item.views }}</span>
+          <span>♥ {{ item.likes_count }}</span>
+        </div>
+      </div>
+    </a>
+    {% empty %}
+    <div style="grid-column:1/-1;text-align:center;padding:80px 0;color:var(--text2);">
+      <div style="font-size:3rem;margin-bottom:16px;">🔍</div>
+      <div style="font-size:1.1rem;">No content found</div>
+      <p style="font-size:0.85rem;margin-top:8px;">Try different filters or <a href="/browse/" style="color:var(--accent);">clear all</a></p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Browse Movies{% endblock %}
+{% block content %}
+<div style="background:#0a0a0a;min-height:100vh;color:#fff;">
+<div style="background:#111;border-bottom:1px solid rgba(255,255,255,0.07);padding:28px 0;">
+  <div class="container">
+    <h1 style="font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;margin-bottom:6px;">🎬 Browse Movies</h1>
+    <form method="get" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;">
+      <input type="text" name="q" value="{{ q }}" placeholder="Search movies…"
+        style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px 14px;color:#fff;font-family:'Inter',sans-serif;font-size:0.85rem;outline:none;width:220px;">
+      <select name="genre" class="form-select" style="width:auto;background:#1a1a1a;border-color:rgba(255,255,255,0.12);color:#fff;" onchange="this.form.submit()">
+        <option value="">All Genres</option>
+        {% for g in genres %}<option value="{{ g.slug }}" {% if active_genre == g.slug %}selected{% endif %}>{{ g.name }}</option>{% endfor %}
+      </select>
+      <select name="year" class="form-select" style="width:auto;background:#1a1a1a;border-color:rgba(255,255,255,0.12);color:#fff;" onchange="this.form.submit()">
+        <option value="">Any Year</option>
+        {% for y in years %}<option value="{{ y }}">{{ y }}</option>{% endfor %}
+      </select>
+      <select name="sort" class="form-select" style="width:auto;background:#1a1a1a;border-color:rgba(255,255,255,0.12);color:#fff;" onchange="this.form.submit()">
+        <option value="-created_at">Newest</option>
+        <option value="-views_count">Most Viewed</option>
+        <option value="-downloads_count">Most Downloaded</option>
+      </select>
+      <button type="submit" class="btn btn-sm" style="background:#e50914;color:#fff;">Search</button>
+    </form>
+  </div>
+</div>
+<div class="container" style="padding:32px 20px 60px;">
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px;">
+    {% for m in movies %}
+    <a href="/movies/film/{{ m.slug }}/" style="text-decoration:none;">
+      <div style="border-radius:10px;overflow:hidden;background:#111;transition:transform 0.25s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='translateY(0)'">
+        <div style="position:relative;">
+          {% if m.thumbnail %}<img src="{{ m.thumbnail.url }}" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;">
+          {% else %}<div style="width:100%;aspect-ratio:16/9;background:#1a0808;display:flex;align-items:center;justify-content:center;font-size:2rem;">🎬</div>{% endif %}
+          {% if m.is_premium %}<span style="position:absolute;top:7px;right:7px;background:rgba(245,166,35,0.92);color:var(--tx);padding:2px 8px;border-radius:20px;font-size:0.65rem;font-weight:700;">⭐ PRO</span>{% endif %}
+          <div style="position:absolute;bottom:7px;left:7px;background:rgba(0,0,0,0.75);color:#fff;padding:2px 7px;border-radius:5px;font-size:0.65rem;font-weight:600;">{{ m.quality }}</div>
+        </div>
+        <div style="padding:10px 12px;">
+          <div style="font-weight:600;font-size:0.85rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;">{{ m.title }}</div>
+          <div style="font-size:0.72rem;color:rgba(255,255,255,0.4);display:flex;gap:10px;"><span>{{ m.release_year }}</span><span>👁 {{ m.views_count }}</span></div>
+        </div>
+      </div>
+    </a>
+    {% empty %}
+    <div style="grid-column:1/-1;text-align:center;padding:80px 0;color:rgba(255,255,255,0.3);">
+      <div style="font-size:3rem;margin-bottom:12px;">🎬</div><div>No movies found</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+</div>
+{% endblock %}

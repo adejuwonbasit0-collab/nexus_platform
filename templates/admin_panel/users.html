@@ -1,0 +1,59 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Users{% endblock %}
+{% block topbar_title %}Users{% endblock %}
+{% block content %}
+<div class="panel" style="margin-bottom:14px;">
+  <div class="panel-body" style="padding:12px 18px;">
+    <form method="get" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+      <div class="fg" style="margin:0;flex:2;min-width:160px;"><input class="finput" name="q" value="{{ filter_q }}" placeholder="Username or email…" style="padding:8px 12px;"></div>
+      <div class="fg" style="margin:0;min-width:130px;">
+        <select class="finput" name="role" style="padding:8px 12px;">
+          <option value="">All roles</option>
+          {% for v,l in roles %}<option value="{{ v }}" {% if filter_role == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
+      <a href="/admin-panel/users/" class="btn btn-ghost btn-sm">Clear</a>
+    </form>
+  </div>
+</div>
+<div class="panel">
+  <div class="panel-head">
+    <span class="panel-title">Users <span style="color:var(--tx2);font-size:13px;font-weight:400;">({{ page.paginator.count }})</span></span>
+  </div>
+  <div class="table-wrap borderless"><table class="dt">
+    <thead><tr><th>User</th><th>Email</th><th>Role</th><th>Status</th><th>Premium</th><th>Joined</th><th></th></tr></thead>
+    <tbody>
+    {% for u in page.object_list %}
+    <tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:32px;height:32px;border-radius:50%;background:var(--ac);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;overflow:hidden;flex-shrink:0;">
+            {% if u.avatar %}<img src="{{ u.avatar.url }}" style="width:100%;height:100%;object-fit:cover;">{% else %}{{ u.username|slice:':1'|upper }}{% endif %}
+          </div>
+          <a href="/admin-panel/users/{{ u.pk }}/" style="color:var(--ac);font-weight:500;font-size:13px;">{{ u.username }}</a>
+        </div>
+      </td>
+      <td style="font-size:12px;color:var(--tx2);">{{ u.email }}</td>
+      <td><span class="badge {% if u.role == 'admin' %}badge-red{% elif u.role == 'creator' %}badge-purple{% else %}badge-gray{% endif %}" style="font-size:10px;">{{ u.role }}</span></td>
+      <td><span class="badge {% if u.is_active %}badge-green{% else %}badge-red{% endif %}" style="font-size:10px;">{% if u.is_active %}Active{% else %}Inactive{% endif %}</span></td>
+      <td style="font-size:12px;">{% if u.is_premium %}⭐{% else %}—{% endif %}</td>
+      <td style="font-size:11px;color:var(--tx2);">{{ u.date_joined|date:"M d, Y" }}</td>
+      <td><a href="/admin-panel/users/{{ u.pk }}/" class="btn btn-ghost btn-xs">View →</a></td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="7"><div class="empty" style="padding:40px;"><div class="empty-icon">👥</div><h3>No users found</h3></div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% if page.paginator.num_pages > 1 %}
+  <div class="panel-body" style="padding-top:0;">
+    <div class="pager">
+      {% if page.has_previous %}<a href="?page={{ page.previous_page_number }}&q={{ filter_q }}&role={{ filter_role }}">‹</a>{% endif %}
+      <span class="current">{{ page.number }}</span><span style="color:var(--tx2);">/ {{ page.paginator.num_pages }}</span>
+      {% if page.has_next %}<a href="?page={{ page.next_page_number }}&q={{ filter_q }}&role={{ filter_role }}">›</a>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

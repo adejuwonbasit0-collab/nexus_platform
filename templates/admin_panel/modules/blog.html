@@ -1,0 +1,112 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Blog{% endblock %}
+{% block topbar_title %}📝 Blog Management{% endblock %}
+{% block content %}
+
+<div class="tab-bar">
+  <button class="tab-btn active" data-group="blog" data-id="posts" onclick="switchTab('blog','posts',this)">📝 Posts ({{ page.paginator.count }})</button>
+  <button class="tab-btn" data-group="blog" data-id="create" onclick="switchTab('blog','create',this)">+ New Post</button>
+</div>
+
+{# POSTS #}
+<div class="tab-panel active" data-group="blog" data-id="posts">
+<div class="panel" style="margin-bottom:12px;"><div class="panel-body" style="padding:12px 16px;">
+  <form method="get" style="display:flex;gap:10px;">
+    <input class="finput" name="q" value="{{ q }}" placeholder="Search posts..." style="flex:1;padding:8px 12px;">
+    <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+    {% if q %}<a href="/admin-panel/blog/" class="btn btn-ghost btn-sm">Clear</a>{% endif %}
+  </form>
+</div></div>
+
+<div class="table-wrap"><table class="dt">
+  <thead><tr><th style="width:70px;">Image</th><th>Title</th><th>Author</th><th>Category</th><th>Views</th><th>Status</th><th>Actions</th></tr></thead>
+  <tbody>
+  {% for post in page.object_list %}
+  <tr>
+    <td>
+      {% if post.featured_img %}<img src="{{ post.featured_img.url }}" style="width:60px;height:40px;object-fit:cover;border-radius:5px;">
+      {% else %}<div style="width:60px;height:40px;background:rgba(0,212,170,.08);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:18px;">📝</div>{% endif %}
+    </td>
+    <td>
+      <div style="font-weight:600;font-size:13px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ post.title }}</div>
+      {% if post.is_featured %}<span class="badge badge-blue" style="font-size:9px;">Featured</span>{% endif %}
+      {% if post.is_ai_generated %}<span class="badge badge-purple" style="font-size:9px;">AI</span>{% endif %}
+    </td>
+    <td style="font-size:12px;"><a href="/admin-panel/users/{{ post.author.pk }}/" style="color:var(--accent);">{{ post.author.username }}</a></td>
+    <td style="font-size:12px;color:var(--text2);">{{ post.category.name|default:'—' }}</td>
+    <td style="font-size:12px;color:var(--text2);">{{ post.views_count }}</td>
+    <td>
+      <button id="bpub-{{ post.pk }}" onclick="blogToggle('toggle_status',{{ post.pk }},'bpub-{{ post.pk }}')" class="badge {% if post.status == 'published' %}badge-green{% else %}badge-gray{% endif %}" style="border:none;cursor:pointer;font-size:10px;">{{ post.status }}</button>
+    </td>
+    <td>
+      <div style="display:flex;gap:4px;">
+        <a href="/blog/post/{{ post.slug }}/" target="_blank" class="btn btn-ghost btn-xs">View</a>
+        <button id="bfeat-{{ post.pk }}" onclick="blogToggle('toggle_featured',{{ post.pk }},'bfeat-{{ post.pk }}')" class="btn btn-ghost btn-xs">{% if post.is_featured %}★{% else %}☆{% endif %}</button>
+        <a href="/blog/edit/{{ post.pk }}/" class="btn btn-ghost btn-xs">Edit</a>
+        <form method="post" style="display:inline;" onsubmit="return confirm('Delete post?')"><input type="hidden" name="action" value="delete"><input type="hidden" name="pk" value="{{ post.pk }}">{% csrf_token %}
+          <button class="btn btn-danger btn-xs">Del</button>
+        </form>
+      </div>
+    </td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="7"><div class="empty" style="padding:40px;"><div class="empty-icon">📝</div><h3>No posts yet</h3></div></td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% if page.paginator.num_pages > 1 %}
+<div class="pager">
+  {% if page.has_previous %}<a href="?page={{ page.previous_page_number }}&q={{ q }}">‹</a>{% endif %}
+  <span class="current">{{ page.number }}</span><span style="color:var(--text2);">/ {{ page.paginator.num_pages }}</span>
+  {% if page.has_next %}<a href="?page={{ page.next_page_number }}&q={{ q }}">›</a>{% endif %}
+</div>
+{% endif %}
+</div>
+
+{# CREATE POST #}
+<div class="tab-panel" data-group="blog" data-id="create">
+<div class="panel"><div class="panel-head"><span class="panel-title">Write New Post</span></div><div class="panel-body">
+<form method="post" enctype="multipart/form-data"><input type="hidden" name="action" value="create">{% csrf_token %}
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;">
+    <div>
+      <div class="fg"><label>Title *</label><input class="finput" name="title" required placeholder="Post title..."></div>
+      <div class="fg"><label>Excerpt <span class="hint" style="font-weight:400;letter-spacing:0;">Short summary shown in listings</span></label><textarea class="finput" name="excerpt" rows="2" placeholder="Brief summary..."></textarea></div>
+      <div class="fg"><label>Content</label><textarea class="finput code" name="content" style="min-height:280px;" placeholder="Full post content (HTML supported)..."></textarea></div>
+    </div>
+    <div>
+      <div class="fg"><label>Featured Image</label><input class="finput" type="file" name="featured_img" accept="image/*"></div>
+      <div class="fg"><label>Category</label><select class="finput" name="category_pk"><option value="">No category</option>{% for c in categories %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}</select></div>
+      <div class="fg"><label>Status</label><select class="finput" name="status"><option value="draft">Draft</option><option value="published">Published</option></select></div>
+      <div class="fg"><label class="fcheck"><input type="checkbox" name="is_featured"> Mark as Featured</label></div>
+    </div>
+  </div>
+  <button type="submit" class="btn btn-primary" style="margin-top:4px;">📝 Publish Post</button>
+</form>
+</div></div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+function blogToggle(action, pk, btnId) {
+  const btn = document.getElementById(btnId);
+  const fd = new FormData();
+  fd.append('action', action);
+  fd.append('pk', pk);
+  fd.append('csrfmiddlewaretoken', (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '');
+  fetch(window.location.pathname, {method:'POST', body:fd})
+    .then(r => r.json())
+    .then(data => {
+      if (action === 'toggle_status') {
+        const pub = data.status === 'published';
+        btn.textContent = data.status;
+        btn.classList.toggle('badge-green', pub);
+        btn.classList.toggle('badge-gray', !pub);
+      } else {
+        const feat = data.featured;
+        btn.textContent = feat ? '★' : '☆';
+      }
+    }).catch(() => window.location.reload());
+}
+</script>
+{% endblock %}

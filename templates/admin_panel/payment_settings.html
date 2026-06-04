@@ -1,0 +1,63 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Payment Settings{% endblock %}
+{% block topbar_title %}💳 Payment Settings{% endblock %}
+{% block content %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+  <div>
+    <div class="panel" style="margin-bottom:20px;">
+      <div class="panel-header"><span class="panel-title">Payment Gateway Config</span></div>
+      <div class="panel-body">
+        <div class="alert alert-info" style="font-size:13px;margin-bottom:16px;">🔒 Secret keys should be set as environment variables (PAYSTACK_SECRET_KEY, STRIPE_SECRET_KEY) for security. Only public keys are stored here.</div>
+        <form method="post">{% csrf_token %}
+          <input type="hidden" name="action" value="payment">
+          <div class="form-group"><label class="form-label">Paystack Public Key</label><input class="form-control" name="public_key" value="{{ cfg.public_key|default:'' }}" placeholder="pk_live_..."></div>
+          <div class="form-group"><label class="form-label">Currency</label>
+            <select class="form-control" name="currency">
+              <option value="NGN" {% if cfg.currency == 'NGN' %}selected{% endif %}>NGN (Nigerian Naira)</option>
+              <option value="USD" {% if cfg.currency == 'USD' %}selected{% endif %}>USD (US Dollar)</option>
+              <option value="GHS" {% if cfg.currency == 'GHS' %}selected{% endif %}>GHS (Ghanaian Cedi)</option>
+              <option value="KES" {% if cfg.currency == 'KES' %}selected{% endif %}>KES (Kenyan Shilling)</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">💾 Save</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">Subscription Plans</span></div>
+      <div class="panel-body">
+        <form method="post" style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border);">{% csrf_token %}
+          <input type="hidden" name="action" value="create_plan">
+          <div class="form-group"><label class="form-label">Plan Name</label><input class="form-control" name="plan_name" placeholder="e.g. Pro, Premium"></div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Price</label><input class="form-control" type="number" name="plan_price" step="0.01" min="0"></div>
+            <div class="form-group"><label class="form-label">Interval</label>
+              <select class="form-control" name="plan_interval">
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+                <option value="lifetime">Lifetime</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group"><label class="form-label">Features <span class="form-hint">One per line</span></label><textarea class="form-control" name="features" rows="4" placeholder="Unlimited downloads&#10;HD streaming&#10;Ad-free experience"></textarea></div>
+          <div class="form-group"><label class="form-check"><input type="checkbox" name="plan_featured"> Mark as featured plan</label></div>
+          <button type="submit" class="btn btn-primary btn-sm" style="width:100%;justify-content:center;">+ Add Plan</button>
+        </form>
+
+        {% for plan in plans %}
+        <div style="border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:14px;">
+          {% if plan.is_featured %}<span style="background:rgba(108,71,255,.15);color:var(--accent);border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;">FEATURED</span>{% endif %}
+          <div style="flex:1;"><div style="font-weight:600;font-size:14px;">{{ plan.name }}</div><div style="font-size:12px;color:var(--text2);">{{ plan.currency }} {{ plan.price }}/{{ plan.interval }}</div></div>
+          <form method="post" onsubmit="return confirm('Delete this plan?')">{% csrf_token %}<input type="hidden" name="action" value="delete_plan"><input type="hidden" name="plan_pk" value="{{ plan.pk }}"><button class="btn btn-ghost btn-sm" style="color:#e74c3c;">Delete</button></form>
+        </div>
+        {% empty %}
+        <p style="color:var(--text2);font-size:13px;text-align:center;padding:20px;">No plans yet. Create your first subscription plan.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

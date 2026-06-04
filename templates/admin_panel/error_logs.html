@@ -1,0 +1,49 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Error Logs{% endblock %}
+{% block topbar_title %}🔴 Error Logs{% endblock %}
+{% block content %}
+<div class="panel" style="margin-bottom:16px;">
+  <div class="panel-body" style="padding:14px 20px;">
+    <form method="get" style="display:flex;gap:12px;align-items:flex-end;">
+      <div class="form-group" style="margin:0;min-width:140px;"><label class="form-label">Level</label>
+        <select class="form-control" name="level">
+          <option value="">All levels</option>
+          {% for val, label in levels %}<option value="{{ val }}" {% if filter_level == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary">Filter</button>
+      <a href="/admin-panel/observability/error-logs/" class="btn btn-ghost">Clear</a>
+    </form>
+  </div>
+</div>
+<div class="panel">
+  <div class="table-wrap" style="border:none;border-radius:0;">
+    <table class="data-table">
+      <thead><tr><th>Level</th><th>Message</th><th>Path</th><th>User</th><th>IP</th><th>Time</th></tr></thead>
+      <tbody>
+      {% for err in page.object_list %}
+      <tr>
+        <td><span class="status-badge {% if err.level == 'critical' or err.level == 'error' %}s-rejected{% elif err.level == 'warning' %}s-pending{% else %}s-draft{% endif %}">{{ err.level }}</span></td>
+        <td style="font-size:12px;max-width:280px;overflow:hidden;text-overflow:ellipsis;">{{ err.message }}</td>
+        <td style="font-family:monospace;font-size:11px;color:var(--text2);">{{ err.path|default:'—'|truncatechars:30 }}</td>
+        <td style="font-size:12px;">{{ err.user.username|default:'—' }}</td>
+        <td style="font-family:monospace;font-size:11px;color:var(--text2);">{{ err.ip_address|default:'—' }}</td>
+        <td style="font-size:12px;color:var(--text2);">{{ err.occurred_at|date:"M d H:i" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" style="text-align:center;padding:32px;color:#27ae60;">✅ No error logs found.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if page.paginator.num_pages > 1 %}
+  <div class="panel-body" style="padding-top:0;">
+    <div class="pagination">
+      {% if page.has_previous %}<a href="?page={{ page.previous_page_number }}&level={{ filter_level }}" class="page-btn">‹</a>{% endif %}
+      <span style="font-size:13px;color:var(--text2);padding:0 8px;">{{ page.number }} / {{ page.paginator.num_pages }}</span>
+      {% if page.has_next %}<a href="?page={{ page.next_page_number }}&level={{ filter_level }}" class="page-btn">›</a>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

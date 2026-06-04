@@ -1,0 +1,251 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}System Health{% endblock %}
+{% block topbar_title %}System Health{% endblock %}
+{% block content %}
+
+<div class="tab-bar">
+  <button class="tab-btn {% if active_tab == 'health' %}active{% endif %}" data-group="sys" data-id="health" onclick="switchTab('sys','health',this)">🏥 Live Health</button>
+  <button class="tab-btn {% if active_tab == 'audit' %}active{% endif %}" data-group="sys" data-id="audit" onclick="switchTab('sys','audit',this)">📋 Audit Logs</button>
+  <button class="tab-btn {% if active_tab == 'errors' %}active{% endif %}" data-group="sys" data-id="errors" onclick="switchTab('sys','errors',this)">🔴 Error Logs</button>
+  <button class="tab-btn {% if active_tab == 'alerts' %}active{% endif %}" data-group="sys" data-id="alerts" onclick="switchTab('sys','alerts',this)">🛡 Security Alerts {% if sys_stats.open_alerts > 0 %}<span class="badge badge-red" style="font-size:10px;padding:1px 6px;margin-left:2px;">{{ sys_stats.open_alerts }}</span>{% endif %}</button>
+</div>
+
+{# ══════════════ LIVE HEALTH ══════════════ #}
+<div class="tab-panel {% if active_tab == 'health' %}active{% endif %}" data-group="sys" data-id="health">
+
+<div class="stats-row" style="grid-template-columns:repeat(4,1fr);">
+  <div class="stat-card {% if sys_stats.errors_24h > 0 %}red{% else %}green{% endif %}">
+    <div class="stat-label">Errors (24h)</div>
+    <div class="stat-value" style="{% if sys_stats.errors_24h > 0 %}color:var(--red){% else %}color:var(--green){% endif %}">{{ sys_stats.errors_24h }}</div>
+    <div class="stat-sub"><a href="?tab=errors" style="color:inherit;">View error logs →</a></div>
+  </div>
+  <div class="stat-card {% if sys_stats.open_alerts > 0 %}red{% else %}green{% endif %}">
+    <div class="stat-label">Open Alerts</div>
+    <div class="stat-value" style="{% if sys_stats.open_alerts > 0 %}color:var(--red){% else %}color:var(--green){% endif %}">{{ sys_stats.open_alerts }}</div>
+    <div class="stat-sub"><a href="?tab=alerts" style="color:inherit;">View alerts →</a></div>
+  </div>
+  <div class="stat-card accent">
+    <div class="stat-label">Admin Actions Today</div>
+    <div class="stat-value">{{ sys_stats.audit_today }}</div>
+    <div class="stat-sub"><a href="?tab=audit" style="color:var(--accent);">View audit log →</a></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Health Snapshots</div>
+    <div class="stat-value">{{ sys_stats.snapshots }}</div>
+    <div class="stat-sub">recorded total</div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:20px;" id="health-cards">
+  {% for key, data in health.items %}{% if key != 'overall' %}
+  <div class="panel" style="margin-bottom:0;" id="hcard-{{ key }}">
+    <div class="panel-body" style="padding:16px 18px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <span class="dot dot-{% if data.status == 'healthy' %}green{% elif data.status == 'degraded' %}yellow{% elif data.status == 'unhealthy' %}red{% else %}gray{% endif %}"></span>
+        <span style="font-size:13px;font-weight:600;text-transform:capitalize;">{{ key }}</span>
+        <span class="badge {% if data.status == 'healthy' %}badge-green{% elif data.status == 'degraded' %}badge-yellow{% elif data.status == 'unhealthy' %}badge-red{% else %}badge-gray{% endif %}" style="margin-left:auto;font-size:10px;">{{ data.status }}</span>
+      </div>
+      {% if data.latency_ms %}<div style="font-size:12px;color:var(--text2);">Latency: <strong>{{ data.latency_ms }}ms</strong></div>{% endif %}
+      {% if data.detail %}<div style="font-size:12px;color:var(--text2);margin-top:4px;">{{ data.detail }}</div>{% endif %}
+      {% if data.error %}<div style="font-size:12px;color:var(--red);margin-top:4px;">{{ data.error }}</div>{% endif %}
+    </div>
+  </div>
+  {% endif %}{% endfor %}
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+  <div class="panel"><div class="panel-head">
+    <span class="panel-title">⚡ Actions</span>
+  </div><div class="panel-body" style="display:flex;flex-direction:column;gap:10px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:rgba(255,255,255,.03);border-radius:8px;">
+      <div><div style="font-weight:500;font-size:13px;">Clear All Caches</div><div style="font-size:12px;color:var(--text2);">Forces fresh data on next request</div></div>
+      <form method="post" action="/admin-panel/system/clear-cache/">{% csrf_token %}<button class="btn btn-secondary btn-sm">🗑 Clear Cache</button></form>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:rgba(255,255,255,.03);border-radius:8px;">
+      <div><div style="font-weight:500;font-size:13px;">Live Health Check</div><div style="font-size:12px;color:var(--text2);">Re-run all health probes now</div></div>
+      <button class="btn btn-secondary btn-sm" onclick="refreshHealth()">🔄 Refresh</button>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:rgba(255,255,255,.03);border-radius:8px;">
+      <div><div style="font-weight:500;font-size:13px;">Health API</div><div style="font-size:12px;color:var(--text2);">JSON endpoint for monitoring tools</div></div>
+      <a href="/admin-panel/system/health-api/" target="_blank" class="btn btn-ghost btn-sm">↗ Open</a>
+    </div>
+  </div></div>
+
+  <div class="panel"><div class="panel-head"><span class="panel-title">📊 Latency Monitor</span><span style="font-size:11px;color:var(--text2);" id="latency-updated">—</span></div>
+  <div class="panel-body">
+    <canvas id="latencyChart" height="120"></canvas>
+  </div></div>
+</div>
+</div>
+
+{# ══════════════ AUDIT LOGS ══════════════ #}
+<div class="tab-panel {% if active_tab == 'audit' %}active{% endif %}" data-group="sys" data-id="audit">
+<div class="panel" style="margin-bottom:14px;"><div class="panel-body" style="padding:12px 16px;">
+  <form method="get" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+    <input type="hidden" name="tab" value="audit">
+    <div class="fg" style="margin:0;flex:1;min-width:150px;"><label>Action</label>
+      <select class="finput" name="action_filter">
+        <option value="">All actions</option>
+        {% for v,l in audit_actions %}<option value="{{ v }}" {% if action_filter == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
+    <a href="?tab=audit" class="btn btn-ghost btn-sm">Clear</a>
+  </form>
+</div></div>
+<div class="table-wrap">
+<table class="dt">
+  <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Description</th><th>IP</th></tr></thead>
+  <tbody>
+  {% for log in audit_page.object_list %}
+  <tr>
+    <td style="font-size:11px;color:var(--text2);white-space:nowrap;">{{ log.timestamp|date:"M d H:i:s" }}</td>
+    <td>{% if log.user %}<a href="/admin-panel/users/{{ log.user.pk }}/" style="color:var(--accent);font-size:13px;">{{ log.user.username }}</a>{% else %}<span style="color:var(--text3);">—</span>{% endif %}</td>
+    <td><span class="badge {% if log.action == 'login' %}badge-green{% elif log.action in 'delete,reject,login_failed' %}badge-red{% else %}badge-gray{% endif %}" style="font-size:10px;">{{ log.action }}</span></td>
+    <td style="font-size:12px;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ log.description }}</td>
+    <td style="font-family:monospace;font-size:11px;color:var(--text2);">{{ log.ip_address|default:'—' }}</td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text2);">No audit log entries found.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% if audit_page.paginator.num_pages > 1 %}
+<div class="pager">
+  {% if audit_page.has_previous %}<a href="?tab=audit&apage={{ audit_page.previous_page_number }}&action_filter={{ action_filter }}">‹</a>{% endif %}
+  <span class="current">{{ audit_page.number }}</span>
+  <span>of {{ audit_page.paginator.num_pages }}</span>
+  {% if audit_page.has_next %}<a href="?tab=audit&apage={{ audit_page.next_page_number }}&action_filter={{ action_filter }}">›</a>{% endif %}
+</div>
+{% endif %}
+</div>
+
+{# ══════════════ ERROR LOGS ══════════════ #}
+<div class="tab-panel {% if active_tab == 'errors' %}active{% endif %}" data-group="sys" data-id="errors">
+<div class="panel" style="margin-bottom:14px;"><div class="panel-body" style="padding:12px 16px;">
+  <form method="get" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+    <input type="hidden" name="tab" value="errors">
+    <div class="fg" style="margin:0;min-width:140px;"><label>Level</label>
+      <select class="finput" name="level_filter">
+        <option value="">All levels</option>
+        {% for v,l in error_levels %}<option value="{{ v }}" {% if level_filter == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
+    <a href="?tab=errors" class="btn btn-ghost btn-sm">Clear</a>
+  </form>
+</div></div>
+<div class="table-wrap">
+<table class="dt">
+  <thead><tr><th>Level</th><th>Message</th><th>Path</th><th>User</th><th>Time</th></tr></thead>
+  <tbody>
+  {% for err in error_page.object_list %}
+  <tr>
+    <td><span class="badge {% if err.level == 'critical' or err.level == 'error' %}badge-red{% elif err.level == 'warning' %}badge-yellow{% else %}badge-gray{% endif %}" style="font-size:10px;">{{ err.level }}</span></td>
+    <td style="font-size:12px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ err.message }}</td>
+    <td style="font-family:monospace;font-size:11px;color:var(--text2);">{{ err.path|default:'—'|truncatechars:30 }}</td>
+    <td style="font-size:12px;color:var(--text2);">{{ err.user.username|default:'—' }}</td>
+    <td style="font-size:11px;color:var(--text2);white-space:nowrap;">{{ err.occurred_at|date:"M d H:i" }}</td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="5" style="text-align:center;padding:32px;color:var(--green);">✅ No error logs found.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% if error_page.paginator.num_pages > 1 %}
+<div class="pager">
+  {% if error_page.has_previous %}<a href="?tab=errors&epage={{ error_page.previous_page_number }}&level_filter={{ level_filter }}">‹</a>{% endif %}
+  <span class="current">{{ error_page.number }}</span>
+  <span>of {{ error_page.paginator.num_pages }}</span>
+  {% if error_page.has_next %}<a href="?tab=errors&epage={{ error_page.next_page_number }}&level_filter={{ level_filter }}">›</a>{% endif %}
+</div>
+{% endif %}
+</div>
+
+{# ══════════════ SECURITY ALERTS ══════════════ #}
+<div class="tab-panel {% if active_tab == 'alerts' %}active{% endif %}" data-group="sys" data-id="alerts">
+{% if open_alerts %}
+<div class="alert alert-warning"><span class="alert-icon">⚠️</span><strong>{{ open_alerts|length }} unresolved alert{{ open_alerts|length|pluralize }}</strong> — review and resolve below.</div>
+{% else %}
+<div class="alert alert-success"><span class="alert-icon">✅</span>No open security alerts. Platform is secure.</div>
+{% endif %}
+
+{% if open_alerts %}
+<div class="panel" style="margin-bottom:16px;"><div class="panel-head"><span class="panel-title" style="color:var(--red);">🔴 Open Alerts</span></div>
+<div class="table-wrap borderless"><table class="dt">
+  <thead><tr><th>Type</th><th>Severity</th><th>Description</th><th>IP</th><th>User</th><th>Time</th><th></th></tr></thead>
+  <tbody>
+  {% for a in open_alerts %}
+  <tr>
+    <td style="font-size:12px;font-weight:500;">{{ a.get_alert_type_display }}</td>
+    <td><span class="badge {% if a.severity == 'critical' or a.severity == 'high' %}badge-red{% elif a.severity == 'medium' %}badge-yellow{% else %}badge-blue{% endif %}" style="font-size:10px;">{{ a.severity }}</span></td>
+    <td style="font-size:12px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ a.description }}</td>
+    <td style="font-family:monospace;font-size:11px;color:var(--text2);">{{ a.ip_address|default:'—' }}</td>
+    <td>{% if a.user %}<a href="/admin-panel/users/{{ a.user.pk }}/" style="color:var(--accent);font-size:12px;">{{ a.user.username }}</a>{% else %}<span style="color:var(--text3);">—</span>{% endif %}</td>
+    <td style="font-size:11px;color:var(--text2);white-space:nowrap;">{{ a.created_at|timesince }} ago</td>
+    <td><form method="post" action="/admin-panel/system/alert/{{ a.pk }}/resolve/">{% csrf_token %}<button class="btn btn-success btn-xs">Resolve</button></form></td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table></div></div>
+{% endif %}
+
+{% if closed_alerts %}
+<div class="panel"><div class="panel-head"><span class="panel-title">✅ Recently Resolved</span></div>
+<div class="table-wrap borderless"><table class="dt">
+  <thead><tr><th>Type</th><th>Description</th><th>Resolved By</th><th>Resolved At</th></tr></thead>
+  <tbody>
+  {% for a in closed_alerts %}
+  <tr>
+    <td style="font-size:12px;">{{ a.get_alert_type_display }}</td>
+    <td style="font-size:12px;color:var(--text2);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ a.description }}</td>
+    <td style="font-size:12px;">{{ a.resolved_by.username|default:'—' }}</td>
+    <td style="font-size:11px;color:var(--text2);">{{ a.resolved_at|date:"M d, Y H:i" }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table></div></div>
+{% endif %}
+</div>
+
+{% endblock %}
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// Latency chart
+const latencyCtx = document.getElementById('latencyChart');
+if (latencyCtx) {
+  const latencyData = { labels: [], datasets: [{ label:'DB Latency (ms)', data: [], borderColor:'#7c5cfc', backgroundColor:'rgba(124,92,252,.1)', fill:true, tension:.4, pointRadius:2 }] };
+  const latencyChart = new Chart(latencyCtx, { type:'line', data: latencyData, options: { responsive:true, plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:'#8888aa',font:{size:10}},grid:{color:'rgba(255,255,255,.05)'}}, y:{ticks:{color:'#8888aa',font:{size:10}},grid:{color:'rgba(255,255,255,.05)'}} } } });
+
+  async function refreshHealth() {
+    try {
+      const r = await fetch('/admin-panel/system/health-api/');
+      const d = await r.json();
+      // Update health cards
+      for (const [key, data] of Object.entries(d)) {
+        if (key === 'overall') continue;
+        const card = document.getElementById('hcard-' + key);
+        if (card) {
+          const dot = card.querySelector('.dot');
+          if (dot) { dot.className = 'dot dot-' + (data.status === 'healthy' ? 'green' : data.status === 'degraded' ? 'yellow' : data.status === 'unhealthy' ? 'red' : 'gray'); }
+        }
+        // Update latency chart
+        if (data.latency_ms) {
+          const now = new Date().toLocaleTimeString();
+          latencyData.labels.push(now);
+          latencyData.datasets[0].data.push(data.latency_ms);
+          if (latencyData.labels.length > 20) { latencyData.labels.shift(); latencyData.datasets[0].data.shift(); }
+          latencyChart.update();
+          document.getElementById('latency-updated').textContent = 'Updated ' + now;
+        }
+      }
+    } catch(e) { console.error('Health refresh failed', e); }
+  }
+  refreshHealth();
+  setInterval(refreshHealth, 30000); // auto-refresh every 30s
+}
+</script>
+{% endblock %}

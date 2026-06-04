@@ -1,0 +1,46 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}{{ action }} Page{% endblock %}
+{% block topbar_title %}{{ action }} Static Page{% endblock %}
+{% block content %}
+<div style="max-width:900px;">
+<form method="post">{% csrf_token %}
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;">
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">Page Content</span></div>
+      <div class="panel-body">
+        <div class="form-group"><label class="form-label">Title</label><input class="form-control" name="title" value="{{ page.title|default:'' }}" required></div>
+        <div class="form-group"><label class="form-label">Slug <span class="form-hint">URL-friendly identifier</span></label><input class="form-control" name="slug" value="{{ page.slug|default:'' }}" placeholder="e.g. about, privacy-policy"></div>
+        <div class="form-group"><label class="form-label">Content <span class="form-hint">HTML is supported</span></label><textarea class="form-control" name="content" style="min-height:300px;font-family:monospace;font-size:12px;">{{ page.content|default:'' }}</textarea></div>
+        <div class="form-group"><label class="form-label">Excerpt <span class="form-hint">Short description</span></label><textarea class="form-control" name="excerpt" rows="2">{{ page.excerpt|default:'' }}</textarea></div>
+      </div>
+    </div>
+    <div>
+      <div class="panel" style="margin-bottom:16px;">
+        <div class="panel-header"><span class="panel-title">Settings</span></div>
+        <div class="panel-body">
+          <div class="form-group"><label class="form-label">Status</label>
+            <select class="form-control" name="status">
+              <option value="draft"     {% if page.status == 'draft'     %}selected{% endif %}>Draft</option>
+              <option value="published" {% if page.status == 'published' %}selected{% endif %}>Published</option>
+            </select>
+          </div>
+          <div class="form-group"><label class="form-check"><input type="checkbox" name="show_in_footer" {% if page.show_in_footer %}checked{% endif %}> Show in footer</label></div>
+          <div class="form-group"><label class="form-check"><input type="checkbox" name="show_in_nav" {% if page.show_in_nav %}checked{% endif %}> Show in nav</label></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">SEO</span></div>
+        <div class="panel-body">
+          <div class="form-group"><label class="form-label">Meta Title</label><input class="form-control" name="meta_title" value="{{ page.meta_title|default:'' }}"></div>
+          <div class="form-group"><label class="form-label">Meta Description</label><textarea class="form-control" name="meta_description" rows="3">{{ page.meta_description|default:'' }}</textarea></div>
+        </div>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:10px;">
+        <button type="submit" class="btn btn-primary" style="flex:1;justify-content:center;">💾 Save</button>
+        <a href="/admin-panel/cms/pages/" class="btn btn-ghost">Cancel</a>
+      </div>
+    </div>
+  </div>
+</form>
+</div>
+{% endblock %}

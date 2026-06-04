@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% block title %}{{ album.title }} — {{ album.artist.name }}{% endblock %}
+{% block head %}<style>body{background:#0a0d12;}.track-row{display:flex;align-items:center;gap:12px;padding:10px 14px;background:#111;border-radius:8px;cursor:pointer;transition:background 0.18s;}.track-row:hover{background:#171717;}#player-bar{display:none;position:fixed;bottom:0;left:0;right:0;z-index:500;background:rgba(12,15,20,0.97);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.08);padding:10px 24px;align-items:center;gap:16px;}</style>{% endblock %}
+{% block content %}
+<div style="background:#0a0d12;min-height:100vh;color:#fff;padding-bottom:80px;">
+
+<!-- Album Hero -->
+<div style="background:linear-gradient(to bottom,#0d1520,#0a0d12);padding:52px 0 40px;border-bottom:1px solid rgba(255,255,255,0.05);">
+  <div class="container" style="display:flex;gap:36px;align-items:flex-end;">
+    {% if album.cover_image %}<img src="{{ album.cover_image.url }}" style="width:200px;height:200px;border-radius:10px;object-fit:cover;box-shadow:0 24px 60px rgba(0,0,0,0.6);flex-shrink:0;">
+    {% else %}<div style="width:200px;height:200px;border-radius:10px;background:linear-gradient(135deg,#0a2010,#1db954);display:flex;align-items:center;justify-content:center;font-size:4rem;flex-shrink:0;">💿</div>{% endif %}
+    <div style="flex:1;padding-bottom:4px;">
+      <div style="font-size:0.72rem;color:#1db954;font-weight:600;letter-spacing:1px;margin-bottom:6px;">{{ album.get_album_type_display|upper }}</div>
+      <h1 style="font-family:'Syne',sans-serif;font-size:clamp(1.6rem,3vw,2.6rem);font-weight:800;color:#fff;margin-bottom:8px;">{{ album.title }}</h1>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        {% if album.artist.photo %}<img src="{{ album.artist.photo.url }}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;">{% endif %}
+        <a href="/music/artist/{{ album.artist.slug }}/" style="color:#1db954;text-decoration:none;font-weight:500;">{{ album.artist.name }}</a>
+      </div>
+      <div style="display:flex;gap:16px;font-size:0.78rem;color:rgba(255,255,255,0.4);">
+        <span>{{ album.release_year }}</span>
+        <span>{{ tracks.count }} Track{{ tracks.count|pluralize }}</span>
+        {% if album.genre %}<span>{{ album.genre.name }}</span>{% endif %}
+        {% if album.label %}<span>🏷 {{ album.label }}</span>{% endif %}
+        <span>▶ {{ album.plays_count }} plays</span>
+      </div>
+    </div>
+  </div>
+  {% if album.description %}
+  <div class="container" style="margin-top:18px;max-width:700px;">
+    <p style="color:rgba(255,255,255,0.5);font-size:0.86rem;line-height:1.8;">{{ album.description }}</p>
+  </div>
+  {% endif %}
+</div>
+
+<div class="container" style="padding:32px 20px 60px;display:grid;grid-template-columns:1fr 300px;gap:28px;">
+  <!-- Tracklist -->
+  <div>
+    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.96rem;color:#fff;margin-bottom:16px;">Tracks</div>
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      {% for t in tracks %}
+      <div class="track-row" onclick="window.location='/music/track/{{ t.slug }}/'">
+        <span style="width:24px;text-align:right;font-size:0.8rem;color:rgba(255,255,255,0.3);flex-shrink:0;">{{ forloop.counter }}</span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:500;font-size:0.86rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ t.title }}{% if t.featured_artists.all %} <span style="color:rgba(255,255,255,0.35);font-size:0.7rem;">ft. {% for fa in t.featured_artists.all %}{{ fa.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>{% endif %}</div>
+          {% if t.produced_by %}<div style="font-size:0.72rem;color:rgba(255,255,255,0.3);">Prod. {{ t.produced_by }}</div>{% endif %}
+        </div>
+        <span style="font-size:0.72rem;color:rgba(255,255,255,0.3);">{{ t.duration_str }}</span>
+        <span style="font-size:0.72rem;color:rgba(255,255,255,0.3);">▶ {{ t.plays_count }}</span>
+        <a href="/music/track/{{ t.slug }}/" onclick="event.stopPropagation()" style="font-size:0.7rem;color:rgba(255,255,255,0.3);text-decoration:none;">Details</a>
+        <a href="/music/download/{{ t.pk }}/" onclick="event.stopPropagation()" class="btn btn-sm" style="background:rgba(29,185,84,0.12);color:#1db954;border:1px solid rgba(29,185,84,0.2);">⬇</a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div>
+    <div style="background:#111;border-radius:10px;padding:18px;margin-bottom:16px;">
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.88rem;color:#fff;margin-bottom:14px;">About the Artist</div>
+      <a href="/music/artist/{{ album.artist.slug }}/" style="text-decoration:none;display:flex;gap:12px;align-items:center;margin-bottom:10px;">
+        {% if album.artist.photo %}<img src="{{ album.artist.photo.url }}" style="width:46px;height:46px;border-radius:50%;object-fit:cover;">
+        {% else %}<div style="width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#0a2010,#1db954);display:flex;align-items:center;justify-content:center;font-size:1.1rem;">🎤</div>{% endif %}
+        <div><div style="font-weight:600;color:#fff;font-size:0.86rem;">{{ album.artist.name }}</div><div style="font-size:0.72rem;color:#1db954;">View Profile →</div></div>
+      </a>
+    </div>
+    {% if more_albums %}
+    <div style="background:#111;border-radius:10px;padding:18px;">
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.88rem;color:#fff;margin-bottom:14px;">More Albums</div>
+      {% for a in more_albums %}
+      <a href="/music/album/{{ a.slug }}/" style="text-decoration:none;display:flex;gap:10px;align-items:center;margin-bottom:10px;">
+        {% if a.cover_image %}<img src="{{ a.cover_image.url }}" style="width:46px;height:46px;border-radius:6px;object-fit:cover;">
+        {% else %}<div style="width:46px;height:46px;border-radius:6px;background:#0a2010;display:flex;align-items:center;justify-content:center;font-size:1rem;">💿</div>{% endif %}
+        <div><div style="font-size:0.82rem;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;">{{ a.title }}</div><div style="font-size:0.72rem;color:rgba(255,255,255,0.4);">{{ a.get_album_type_display }} · {{ a.release_year }}</div></div>
+      </a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Player Bar -->
+<div id="player-bar">
+  <div id="pb-cover" style="width:48px;height:48px;border-radius:6px;background:linear-gradient(135deg,#0a2010,#1db954);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">🎵</div>
+  <div style="min-width:0;width:200px;"><div id="pb-title" style="font-weight:600;font-size:0.86rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">—</div><div style="font-size:0.72rem;color:#1db954;">{{ album.artist.name }}</div></div>
+  <audio id="main-player" style="flex:2;max-width:440px;accent-color:#1db954;" controls></audio>
+  {% if branding and branding.show_on_player and branding.logo %}<div style="opacity:0.55;"><img src="{{ branding.logo.url }}" style="height:24px;width:auto;"></div>{% endif %}
+</div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function playTrack(url,title,artist,cover){
+  if(!url){showToast('No audio file','error');return;}
+  const bar=document.getElementById('player-bar');const main=document.getElementById('main-player');
+  document.getElementById('pb-title').textContent=title;
+  const cw=document.getElementById('pb-cover');
+  if(cover)cw.innerHTML=`<img src="${cover}" style="width:48px;height:48px;border-radius:6px;object-fit:cover;">`;
+  main.src=url;bar.style.display='flex';main.play();showToast('▶ '+title);
+}
+</script>
+{% endblock %}

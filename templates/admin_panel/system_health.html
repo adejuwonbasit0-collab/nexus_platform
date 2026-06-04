@@ -1,0 +1,102 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}System Health{% endblock %}
+{% block topbar_title %}🏥 System Health{% endblock %}
+{% block content %}
+<div class="stat-grid">
+  {% for key, label, icon in health_checks %}{% empty %}
+  {% for k, v in metrics.items %}
+  {% if k != 'overall' %}
+  <div class="stat-card">
+    <div class="stat-label">{{ k|title }}</div>
+    <div style="display:flex;align-items:center;gap:10px;margin:8px 0;">
+      <span class="health-dot health-{{ v.status|default:'unknown' }}"></span>
+      <span style="font-size:18px;font-weight:700;">{{ v.status|default:'unknown'|title }}</span>
+    </div>
+    <div style="font-size:12px;color:var(--text2);">
+      {% if v.latency_ms %}{{ v.latency_ms }}ms{% endif %}
+      {% if v.detail %}{{ v.detail }}{% endif %}
+      {% if v.error %}<span style="color:#e74c3c;">{{ v.error }}</span>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+  {% endfor %}
+  {% endfor %}
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:8px;">
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">🔴 Active Security Alerts</span>
+      <a href="/admin-panel/observability/security-alerts/" class="btn btn-ghost btn-sm">View All</a>
+    </div>
+    <div style="padding:0;">
+      {% if active_alerts %}
+        <div class="table-wrap" style="border:none;border-radius:0;">
+          <table class="data-table">
+            <thead><tr><th>Type</th><th>Severity</th><th>IP</th><th>Time</th><th></th></tr></thead>
+            <tbody>
+            {% for alert in active_alerts %}
+            <tr>
+              <td>{{ alert.get_alert_type_display }}</td>
+              <td><span class="status-badge {% if alert.severity == 'critical' %}s-rejected{% elif alert.severity == 'high' %}s-processing{% else %}s-pending{% endif %}">{{ alert.severity }}</span></td>
+              <td style="font-family:monospace;font-size:12px;">{{ alert.ip_address|default:'—' }}</td>
+              <td style="font-size:12px;color:var(--text2);">{{ alert.created_at|timesince }} ago</td>
+              <td>
+                <form method="post" action="/admin-panel/observability/security-alerts/{{ alert.pk }}/resolve/">{% csrf_token %}
+                  <button class="btn btn-success btn-sm">Resolve</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state" style="padding:24px;"><div class="empty-icon">🛡️</div><h3>No active alerts</h3></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">🔴 Recent Errors</span>
+      <a href="/admin-panel/observability/error-logs/" class="btn btn-ghost btn-sm">View All</a>
+    </div>
+    <div style="padding:0;">
+      {% if recent_errors %}
+        <div class="table-wrap" style="border:none;border-radius:0;">
+          <table class="data-table">
+            <thead><tr><th>Level</th><th>Message</th><th>Time</th></tr></thead>
+            <tbody>
+            {% for err in recent_errors %}
+            <tr>
+              <td><span class="status-badge {% if err.level == 'critical' or err.level == 'error' %}s-rejected{% else %}s-pending{% endif %}">{{ err.level }}</span></td>
+              <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;">{{ err.message }}</td>
+              <td style="font-size:12px;color:var(--text2);">{{ err.occurred_at|timesince }} ago</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state" style="padding:24px;"><div class="empty-icon">✅</div><h3>No errors</h3></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="panel" style="margin-top:20px;">
+  <div class="panel-header">
+    <span class="panel-title">📊 Platform Stats (24h)</span>
+    <form method="post" action="/admin-panel/observability/health/snapshot/">{% csrf_token %}
+      <button class="btn btn-outline btn-sm">📸 Capture Snapshot</button>
+    </form>
+  </div>
+  <div class="panel-body" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
+    <div style="text-align:center;"><div style="font-size:22px;font-weight:700;">{{ stats.active_today }}</div><div style="font-size:12px;color:var(--text2);">Active Users (24h)</div></div>
+    <div style="text-align:center;"><div style="font-size:22px;font-weight:700;">{{ stats.audit_today }}</div><div style="font-size:12px;color:var(--text2);">Admin Actions Today</div></div>
+    <div style="text-align:center;"><div style="font-size:22px;font-weight:700;color:{% if stats.errors_24h > 0 %}#e74c3c{% else %}#27ae60{% endif %};">{{ stats.errors_24h }}</div><div style="font-size:12px;color:var(--text2);">Errors (24h)</div></div>
+    <div style="text-align:center;"><div style="font-size:22px;font-weight:700;color:{% if stats.alerts_open > 0 %}#f1c40f{% else %}#27ae60{% endif %};">{{ stats.alerts_open }}</div><div style="font-size:12px;color:var(--text2);">Open Alerts</div></div>
+  </div>
+</div>
+{% endblock %}

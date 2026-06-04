@@ -1,0 +1,148 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Automation{% endblock %}
+{% block topbar_title %}Automation Center{% endblock %}
+{% block content %}
+
+<div class="stats-row" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">
+  <div class="stat-card accent"><div class="stat-label">Active Jobs</div><div class="stat-value">{{ stats.active_jobs }}</div></div>
+  <div class="stat-card"><div class="stat-label">Active Workflows</div><div class="stat-value">{{ stats.active_workflows }}</div></div>
+  <div class="stat-card"><div class="stat-label">Total Runs</div><div class="stat-value">{{ stats.total_runs }}</div></div>
+  <div class="stat-card {% if stats.failed_runs > 0 %}red{% endif %}"><div class="stat-label">Failed Runs</div><div class="stat-value" style="{% if stats.failed_runs > 0 %}color:var(--red){% endif %}">{{ stats.failed_runs }}</div></div>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn {% if active_tab == 'jobs' %}active{% endif %}" data-group="auto" data-id="jobs" onclick="switchTab('auto','jobs',this)">🗓 Scheduled Jobs</button>
+  <button class="tab-btn {% if active_tab == 'workflows' %}active{% endif %}" data-group="auto" data-id="workflows" onclick="switchTab('auto','workflows',this)">⚡ Workflows</button>
+  <button class="tab-btn {% if active_tab == 'runs' %}active{% endif %}" data-group="auto" data-id="runs" onclick="switchTab('auto','runs',this)">📋 Run History</button>
+</div>
+
+{# ══════════════ JOBS ══════════════ #}
+<div class="tab-panel {% if active_tab == 'jobs' %}active{% endif %}" data-group="auto" data-id="jobs">
+<div class="section-head">
+  <h2>Scheduled Jobs</h2>
+  <button onclick="document.getElementById('job-form').style.display=document.getElementById('job-form').style.display==='none'?'block':'none'" class="btn btn-primary btn-sm">+ Create Job</button>
+</div>
+<div id="job-form" style="display:none;" class="panel"><div class="panel-head"><span class="panel-title">New Scheduled Job</span></div><div class="panel-body">
+<form method="post"><input type="hidden" name="_action" value="job_create">{% csrf_token %}
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+  <div class="fg"><label>Job Name</label><input class="finput" name="name" required placeholder="Update trending scores"></div>
+  <div class="fg"><label>Task Path</label><input class="finput" name="task_name" required placeholder="music.tasks.update_trends"></div>
+  <div class="fg"><label>Interval</label>
+    <select class="finput" name="interval" onchange="document.getElementById('cron-field').style.display=this.value==='custom'?'block':'none'">
+      {% for v,l in intervals %}<option value="{{ v }}">{{ l }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="fg" id="cron-field" style="display:none;"><label>Cron Expression</label><input class="finput" name="cron_expr" placeholder="0 2 * * *" style="font-family:monospace;"></div>
+  <div class="fg" style="grid-column:span {% if cron_field_visible %}1{% else %}2{% endif %}"><label>Description</label><input class="finput" name="description" placeholder="What does this job do?"></div>
+</div>
+<button type="submit" class="btn btn-primary btn-sm" style="margin-top:8px;">Create Job</button>
+</form>
+</div></div>
+
+{% if jobs %}
+<div class="table-wrap"><table class="dt">
+  <thead><tr><th>Job</th><th>Task</th><th>Interval</th><th>Runs</th><th>Last Run</th><th>Status</th><th>Actions</th></tr></thead>
+  <tbody>
+  {% for j in jobs %}
+  <tr>
+    <td style="font-weight:500;">{{ j.name }}{% if j.description %}<br><span style="font-size:11px;color:var(--text2);">{{ j.description|truncatechars:40 }}</span>{% endif %}</td>
+    <td><code style="font-size:11px;color:var(--text2);">{{ j.task_name }}</code></td>
+    <td style="font-size:12px;">{{ j.get_interval_display }}</td>
+    <td style="font-size:12px;color:var(--text2);">{{ j.run_count }}{% if j.error_count %} <span style="color:var(--red);">({{ j.error_count }} err)</span>{% endif %}</td>
+    <td style="font-size:12px;color:var(--text2);">{{ j.last_run|date:"M d H:i"|default:'Never' }}</td>
+    <td><span class="badge {% if j.status == 'active' %}badge-green{% elif j.status == 'paused' %}badge-yellow{% else %}badge-red{% endif %}" style="font-size:10px;">{{ j.status }}</span></td>
+    <td style="display:flex;gap:6px;">
+      <button onclick="ajaxToggle('/admin-panel/automation/job/{{ j.pk }}/toggle/','{{ csrf_token }}',d=>{this.closest('tr').querySelector('.badge').textContent=d.status;this.textContent=d.status==='active'?'Pause':'Resume'})" class="btn btn-ghost btn-xs">{% if j.status == 'active' %}Pause{% else %}Resume{% endif %}</button>
+      <form method="post" action="/admin-panel/automation/job/{{ j.pk }}/delete/" onsubmit="return confirm('Delete?')">{% csrf_token %}<button class="btn btn-danger btn-xs">Del</button></form>
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% else %}
+<div class="empty"><div class="empty-icon">🗓</div><h3>No scheduled jobs</h3><p>Create jobs for tasks like updating trends, sending emails, cleanup, and more.</p></div>
+{% endif %}
+</div>
+
+{# ══════════════ WORKFLOWS ══════════════ #}
+<div class="tab-panel {% if active_tab == 'workflows' %}active{% endif %}" data-group="auto" data-id="workflows">
+<div class="section-head">
+  <h2>Workflows</h2>
+  <button onclick="document.getElementById('wf-create-form').style.display=document.getElementById('wf-create-form').style.display==='none'?'block':'none'" class="btn btn-primary btn-sm">+ New Workflow</button>
+</div>
+<div id="wf-create-form" style="display:none;" class="panel"><div class="panel-head"><span class="panel-title">Create Workflow</span></div><div class="panel-body">
+<form method="post"><input type="hidden" name="_action" value="wf_create">{% csrf_token %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+  <div class="fg"><label>Name</label><input class="finput" name="name" required placeholder="Welcome Email Sequence"></div>
+  <div class="fg"><label>Trigger Event</label>
+    <select class="finput" name="trigger_event">{% for v,l in trigger_events %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select>
+  </div>
+  <div class="fg" style="grid-column:span 2"><label>Description</label><input class="finput" name="description" placeholder="What does this workflow do?"></div>
+  <div class="fg"><label class="fcheck"><input type="checkbox" name="is_active" checked> Active</label></div>
+</div>
+<button type="submit" class="btn btn-primary btn-sm" style="margin-top:8px;">Create Workflow</button>
+</form>
+</div></div>
+
+{% if workflows %}
+{% for wf in workflows %}
+<div class="panel">
+  <div class="panel-head">
+    <span class="panel-title">{{ wf.name }}</span>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="badge {% if wf.is_active %}badge-green{% else %}badge-gray{% endif %}" style="font-size:10px;">{{ wf.get_trigger_event_display }}</span>
+      <span style="font-size:12px;color:var(--text2);">{{ wf.run_count }} runs</span>
+      <button onclick="ajaxToggle('/admin-panel/automation/wf/{{ wf.pk }}/toggle/','{{ csrf_token }}',d=>{location.reload()})" class="btn btn-ghost btn-xs">{% if wf.is_active %}Pause{% else %}Activate{% endif %}</button>
+      <form method="post" action="/admin-panel/automation/wf/{{ wf.pk }}/test/" style="display:inline;">{% csrf_token %}<button class="btn btn-secondary btn-xs">🧪 Test</button></form>
+      <form method="post" action="/admin-panel/automation/wf/{{ wf.pk }}/delete/" onsubmit="return confirm('Delete?')" style="display:inline;">{% csrf_token %}<button class="btn btn-danger btn-xs">Delete</button></form>
+    </div>
+  </div>
+  <div class="panel-body">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+      {% for a in wf.actions.all %}
+      <div style="background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.2);border-radius:6px;padding:5px 10px;font-size:12px;">
+        Step {{ a.order }}: {{ a.get_action_type_display }}
+        <form method="post" style="display:inline;"><input type="hidden" name="_action" value="wf_delete_action"><input type="hidden" name="action_pk" value="{{ a.pk }">{% csrf_token %}<button style="background:none;border:none;color:var(--red);cursor:pointer;font-size:11px;margin-left:4px;">×</button></form>
+      </div>
+      {% empty %}
+      <span style="font-size:12px;color:var(--text2);">No actions yet — add below</span>
+      {% endfor %}
+    </div>
+    <form method="post" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+      <input type="hidden" name="_action" value="wf_add_action"><input type="hidden" name="wf_pk" value="{{ wf.pk }}">{% csrf_token %}
+      <div class="fg" style="margin:0;min-width:180px;"><label style="font-size:10px;margin-bottom:4px;">Action Type</label><select class="finput" name="action_type" style="padding:6px 10px;font-size:12px;">{% for v,l in action_types %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+      <div class="fg" style="margin:0;flex:1;min-width:200px;"><label style="font-size:10px;margin-bottom:4px;">Config (JSON)</label><input class="finput" name="config" value="{}" placeholder='{"subject":"Hello","body":"Hi {{username}}"}' style="padding:6px 10px;font-size:12px;font-family:monospace;"></div>
+      <button type="submit" class="btn btn-primary btn-sm">+ Add Step</button>
+    </form>
+  </div>
+</div>
+{% endfor %}
+{% else %}
+<div class="empty"><div class="empty-icon">⚡</div><h3>No workflows</h3><p>Build automated sequences triggered by platform events.</p></div>
+{% endif %}
+</div>
+
+{# ══════════════ RUN HISTORY ══════════════ #}
+<div class="tab-panel {% if active_tab == 'runs' %}active{% endif %}" data-group="auto" data-id="runs">
+{% if recent_runs %}
+<div class="table-wrap"><table class="dt">
+  <thead><tr><th>Workflow</th><th>Status</th><th>Trigger</th><th>Started</th><th>Duration</th><th>Error</th></tr></thead>
+  <tbody>
+  {% for run in recent_runs %}
+  <tr>
+    <td style="font-weight:500;font-size:13px;">{{ run.workflow.name }}</td>
+    <td><span class="badge {% if run.status == 'completed' %}badge-green{% elif run.status == 'running' %}badge-blue{% else %}badge-red{% endif %}" style="font-size:10px;">{{ run.status }}</span></td>
+    <td style="font-size:11px;color:var(--text2);">{{ run.workflow.get_trigger_event_display }}</td>
+    <td style="font-size:11px;color:var(--text2);white-space:nowrap;">{{ run.started_at|date:"M d H:i" }}</td>
+    <td style="font-size:11px;color:var(--text2);">{% if run.finished_at %}{{ run.started_at|timesince:run.finished_at }}{% else %}—{% endif %}</td>
+    <td style="font-size:11px;color:var(--red);">{{ run.error|default:'—'|truncatechars:40 }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% else %}
+<div class="empty"><div class="empty-icon">📋</div><h3>No runs yet</h3><p>Workflow runs will appear here.</p></div>
+{% endif %}
+</div>
+
+{% endblock %}

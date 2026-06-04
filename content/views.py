@@ -1,0 +1,283 @@
+"""
+content/views.py  – upgraded
+Changes vs original:
+  • download_content: login_required enforced, validation added
+  • browse / images_gallery: tag filter added
+  • creator-facing helpers for tag saving on upload now handled in core/views.py
+  • stream_video: existing logic kept intact
+  • All other views kept identical
+"""
+import mimetypes
+import os
+
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.db.models import Q
+from django.http import FileResponse, JsonResponse, StreamingHttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
+
+from .models import (
+    Category, Comment, Content, Download, Episode,
+    Like, Series, Tag, View,
+)
+
+
+def home(request):
+    featured       = Content.objects.filter(status='approved', featured=True)[:8]
+    recent_images  = Content.objects.filter(status='approved', content_type='image')[:12]
+    recent_videos  = Content.objects.filter(status='approved', content_type='video')[:8]
+    recent_music   = Content.objects.filter(status='approved', content_type='music')[:8]
+    recent_blogs   = Content.objects.filter(status='approved', content_type='blog')[:6]
+    series_list    = Series.objects.filter(status='approved')[:6]
+    categories     = Category.objects.all()
+    return render(request, 'home.html', {
+        'featured':      featured,
+        'recent_images': recent_images,
+        'recent_videos': recent_videos,
+        'recent_music':  recent_music,
+        'recent_blogs':  recent_blogs,
+        'series_list':   series_list,
+        'categories':    categories,
+    })
+
+
+def content_detail(request, pk):
+    obj = get_object_or_404(Content, pk=pk, status='approved')
+    # Track view (deduplicate by session key to avoid page-refresh spam)
+    session_key = f'viewed_{pk}'
+    if not request.session.get(session_key):
+        View.objects.create(
+            content=obj,
+            user=request.user if request.user.is_authenticated else None,
+            ip_address=request.META.get('REMOTE_ADDR'),
+        )
+        obj.views += 1
+        obj.save(update_fields=['views'])
+        request.session[session_key] = True
+
+    comments   = obj.comments.order_by('-created_at')[:20]
+    related    = Content.objects.filter(
+        content_type=obj.content_type, status='approved'
+    ).exclude(pk=pk)[:6]
+    user_liked = (
+        Like.objects.filter(user=request.user, content=obj).exists()
+        if request.user.is_authenticated else False
+    )
+
+    # Paystack public key for premium purchase button
+    from monetization.models import PaymentSettings
+    payment_cfg = PaymentSettings.get_active()
+
+    return render(request, 'content/detail.html', {
+        'obj':         obj,
+        'comments':    comments,
+        'related':     related,
+        'user_liked':  user_liked,
+        'payment_cfg': payment_cfg,
+    })
+
+
+def series_detail(request, pk):
+    series   = get_object_or_404(Series, pk=pk, status='approved')
+    seasons  = series.seasons.prefetch_related('episodes').order_by('number')
+    comments = series.comments.order_by('-created_at')[:20]
+    return render(request, 'content/series_detail.html', {
+        'series': series, 'seasons': seasons, 'comments': comments,
+    })
+
+
+def episode_watch(request, pk):
+    episode = get_object_or_404(Episode, pk=pk)
+    episode.views += 1
+    episode.save(update_fields=['views'])
+    return render(request, 'content/watch.html', {'episode': episode})
+
+
+def stream_video(request, pk):
+    """HTTP Range-request streaming – unchanged from original."""
+    try:
+        obj       = Content.objects.get(pk=pk, status='approved', content_type='video')
+        file_path = obj.file.path
+    except Content.DoesNotExist:
+        episode   = get_object_or_404(Episode, pk=pk)
+        file_path = episode.file.path
+
+    file_size    = os.path.getsize(file_path)
+    content_type, _ = mimetypes.guess_type(file_path)
+    content_type = content_type or 'video/mp4'
+
+    range_header = request.META.get('HTTP_RANGE', '').strip()
+    if range_header:
+        parts      = range_header.replace('bytes=', '').split('-')
+        first_byte = int(parts[0]) if parts[0] else 0
+        last_byte  = int(parts[1]) if parts[1] else file_size - 1
+        chunk_size = (last_byte - first_byte) + 1
+
+        def stream_chunk():
+            with open(file_path, 'rb') as f:
+                f.seek(first_byte)
+                remaining = chunk_size
+                while remaining > 0:
+                    chunk = f.read(min(8192, remaining))
+                    if not chunk:
+                        break
+                    yield chunk
+                    remaining -= len(chunk)
+
+        response = StreamingHttpResponse(stream_chunk(), status=206, content_type=content_type)
+        response['Content-Range']  = f'bytes {first_byte}-{last_byte}/{file_size}'
+        response['Content-Length'] = chunk_size
+        response['Accept-Ranges']  = 'bytes'
+        return response
+
+    return FileResponse(open(file_path, 'rb'), content_type=content_type)
+
+
+def browse(request):
+    content_type = request.GET.get('type', '')
+    tier         = request.GET.get('tier', '')
+    category     = request.GET.get('category', '')
+    tag          = request.GET.get('tag', '')
+    q            = request.GET.get('q', '')
+
+    items = Content.objects.filter(status='approved')
+    if content_type: items = items.filter(content_type=content_type)
+    if tier:         items = items.filter(tier=tier)
+    if category:     items = items.filter(category__slug=category)
+    if tag:          items = items.filter(tags__name__iexact=tag)
+    if q:
+        items = items.filter(
+            Q(title__icontains=q)
+            | Q(description__icontains=q)
+            | Q(tags__name__icontains=q)
+        ).distinct()
+
+    categories = Category.objects.all()
+    all_tags   = Tag.objects.all()[:30]
+    return render(request, 'content/browse.html', {
+        'items':       items,
+        'categories':  categories,
+        'all_tags':    all_tags,
+        'q':           q,
+        'active_type': content_type,
+        'active_tag':  tag,
+    })
+
+
+@login_required
+def download_content(request, pk):
+    """Only logged-in users can download. Tracks every download."""
+    obj = get_object_or_404(Content, pk=pk, status='approved')
+
+    if not obj.file:
+        messages.error(request, 'This content has no downloadable file.')
+        return redirect('content_detail', pk=pk)
+
+    if obj.tier == 'premium':
+        # Check if user has a completed payment for this content
+        from monetization.models import Payment
+        paid = Payment.objects.filter(
+            user=request.user, content=obj, status='completed'
+        ).exists()
+        is_creator_or_admin = (
+            request.user.is_creator() or
+            request.user.pk == obj.creator_id
+        )
+        if not paid and not is_creator_or_admin:
+            messages.error(request, 'This is premium content. Please purchase to download.')
+            return redirect('content_detail', pk=pk)
+
+    Download.objects.create(
+        content=obj, user=request.user,
+        ip_address=request.META.get('REMOTE_ADDR'),
+    )
+    obj.downloads_count += 1
+    obj.save(update_fields=['downloads_count'])
+
+    # Creator earnings for download
+    try:
+        from monetization.models import CommissionSettings, Earning
+        commission = CommissionSettings.objects.get(
+            content_type=obj.content_type, action='download'
+        )
+        Earning.objects.create(
+            creator=obj.creator, content=obj,
+            amount=commission.amount, reason='Download commission',
+        )
+        obj.creator.total_earnings += commission.amount
+        obj.creator.save(update_fields=['total_earnings'])
+    except Exception:
+        pass
+
+    return FileResponse(
+        open(obj.file.path, 'rb'),
+        as_attachment=True,
+        filename=os.path.basename(obj.file.name),
+    )
+
+
+@require_POST
+@login_required
+def toggle_like(request, pk):
+    obj  = get_object_or_404(Content, pk=pk)
+    like, created = Like.objects.get_or_create(user=request.user, content=obj)
+    if not created:
+        like.delete()
+        obj.likes_count = max(0, obj.likes_count - 1)
+        liked = False
+    else:
+        obj.likes_count += 1
+        liked = True
+    obj.save(update_fields=['likes_count'])
+    return JsonResponse({'liked': liked, 'count': obj.likes_count})
+
+
+@require_POST
+@login_required
+def add_comment(request, pk):
+    obj  = get_object_or_404(Content, pk=pk)
+    text = request.POST.get('text', '').strip()
+    if text:
+        comment = Comment.objects.create(user=request.user, content=obj, text=text)
+        return JsonResponse({
+            'success':  True,
+            'username': request.user.username,
+            'text':     comment.text,
+            'id':       comment.id,
+        })
+    return JsonResponse({'success': False})
+
+
+def blogs(request):
+    q     = request.GET.get('q', '')
+    posts = Content.objects.filter(status='approved', content_type='blog').order_by('-created_at')
+    if q:
+        posts = posts.filter(Q(title__icontains=q) | Q(description__icontains=q))
+    return render(request, 'content/blogs.html', {'posts': posts, 'q': q})
+
+
+def images_gallery(request):
+    tier = request.GET.get('tier', '')
+    tag  = request.GET.get('tag', '')
+    q    = request.GET.get('q', '')
+    items = Content.objects.filter(status='approved', content_type='image').order_by('-created_at')
+    if tier: items = items.filter(tier=tier)
+    if tag:  items = items.filter(tags__name__iexact=tag)
+    if q:    items = items.filter(Q(title__icontains=q) | Q(description__icontains=q)).distinct()
+    all_tags = Tag.objects.all()[:30]
+    return render(request, 'content/gallery.html', {
+        'items': items, 'all_tags': all_tags,
+        'active_tag': tag, 'active_tier': tier,
+    })
+
+
+def music_library(request):
+    tracks = Content.objects.filter(status='approved', content_type='music').order_by('-created_at')
+    return render(request, 'content/music.html', {'tracks': tracks})
+
+
+def movies_page(request):
+    movies      = Content.objects.filter(status='approved', content_type='video').order_by('-created_at')
+    series_list = Series.objects.filter(status='approved')
+    return render(request, 'content/movies.html', {'movies': movies, 'series_list': series_list})

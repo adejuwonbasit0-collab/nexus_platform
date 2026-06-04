@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% block title %}{{ post.title }}{% endblock %}
+{% block head %}<style>
+.post-content{font-size:1rem;line-height:1.9;color:#3c3835;}
+.post-content h2,.post-content h3{font-family:'Syne',sans-serif;font-weight:700;color:#1c1917;margin:28px 0 12px;}
+.post-content h2{font-size:1.4rem;} .post-content h3{font-size:1.1rem;}
+.post-content p{margin-bottom:18px;}
+.post-content ul,.post-content ol{margin:12px 0 18px 24px;} .post-content li{margin-bottom:6px;}
+.post-content blockquote{border-left:4px solid #d97706;padding:14px 20px;background:#fef3c7;border-radius:0 8px 8px 0;margin:20px 0;color:#78350f;font-style:italic;}
+.post-content code{background:#f5f5f0;padding:2px 7px;border-radius:4px;font-size:0.88em;}
+.post-content pre{background:#1c1917;color:#e7e5e4;padding:20px;border-radius:10px;overflow-x:auto;margin:20px 0;}
+</style>{% endblock %}
+{% block content %}
+<div style="background:#fafaf8;min-height:100vh;color:#1c1917;">
+{% if post.featured_img %}<div style="max-height:420px;overflow:hidden;"><img src="{{ post.featured_img.url }}" style="width:100%;object-fit:cover;display:block;max-height:420px;"></div>{% endif %}
+<div class="container" style="max-width:820px;padding:36px 20px 60px;">
+  <!-- Meta -->
+  <div style="margin-bottom:24px;">
+    {% if post.category %}<a href="/blog/browse/?cat={{ post.category.slug }}" style="display:inline-block;background:#fef3c7;color:#d97706;border:1px solid #fde68a;padding:3px 12px;border-radius:20px;font-size:0.74rem;font-weight:600;text-decoration:none;margin-bottom:14px;">{{ post.category.name }}</a>{% endif %}
+    <h1 style="font-family:'Syne',sans-serif;font-size:clamp(1.5rem,3vw,2.2rem);font-weight:800;color:#1c1917;line-height:1.25;margin-bottom:14px;">{{ post.title }}</h1>
+    <div style="display:flex;align-items:center;gap:14px;font-size:0.8rem;color:#a8a29e;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:7px;">
+        <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#d97706,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;color:#fff;">{{ post.author.username.0|upper }}</div>
+        <span style="color:#57534e;font-weight:500;">{{ post.author.username }}</span>
+      </div>
+      <span>{{ post.created_at|date:"F j, Y" }}</span>
+      <span>👁 {{ post.views_count }} views</span>
+      <span>♥ {{ post.likes_count }}</span>
+      {% if post.is_ai_generated %}<span style="background:#fef3c7;color:#d97706;border:1px solid #fde68a;padding:2px 8px;border-radius:20px;font-size:0.7rem;">✨ AI Generated</span>{% endif %}
+    </div>
+  </div>
+
+  <div style="height:1px;background:#e2ddd7;margin-bottom:28px;"></div>
+
+  <!-- Content -->
+  <div class="post-content">{{ post.content|safe }}</div>
+
+  <!-- Tags -->
+  {% if post.tags.all %}
+  <div style="margin:28px 0;padding-top:20px;border-top:1px solid #e2ddd7;display:flex;gap:7px;flex-wrap:wrap;">
+    {% for t in post.tags.all %}<a href="/blog/browse/?tag={{ t.slug }}" style="padding:4px 12px;border-radius:20px;background:#f5f5f0;color:#57534e;text-decoration:none;font-size:0.76rem;border:1px solid #e2ddd7;">#{{ t.name }}</a>{% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Actions -->
+  <div style="display:flex;gap:10px;padding:20px 0;border-top:1px solid #e2ddd7;border-bottom:1px solid #e2ddd7;margin-bottom:32px;">
+    <button onclick="toggleLike({{ post.pk }})" id="like-btn" class="btn" style="background:{% if user_liked %}#d97706{% else %}#f5f5f0{% endif %};color:{% if user_liked %}#fff{% else %}#57534e{% endif %};border:1px solid {% if user_liked %}#d97706{% else %}#e2ddd7{% endif %};">
+      ♥ <span id="like-count">{{ post.likes_count }}</span> Likes
+    </button>
+    {% if user.is_authenticated and user == post.author %}
+    <a href="/blog/edit/{{ post.pk }}/" class="btn" style="background:#f5f5f0;color:#57534e;border:1px solid #e2ddd7;">✏ Edit Post</a>
+    {% endif %}
+  </div>
+
+  <!-- Related -->
+  {% if related %}
+  <div style="margin-bottom:32px;">
+    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;color:#1c1917;margin-bottom:16px;">Related Articles</div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;">
+      {% for r in related %}
+      <a href="/blog/post/{{ r.slug }}/" style="text-decoration:none;display:flex;gap:12px;background:var(--bg2);border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+        {% if r.featured_img %}<img src="{{ r.featured_img.url }}" style="width:80px;height:64px;object-fit:cover;flex-shrink:0;">{% endif %}
+        <div style="padding:10px 10px 10px 0;"><div style="font-size:0.82rem;font-weight:600;color:#1c1917;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{{ r.title }}</div></div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Comments -->
+  <div style="background:var(--bg2);border-radius:12px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
+    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;color:#1c1917;margin-bottom:20px;">💬 {{ post.comments.count }} Comment{{ post.comments.count|pluralize }}</div>
+    {% if user.is_authenticated %}
+    <div style="display:flex;gap:10px;margin-bottom:24px;">
+      <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#d97706,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;color:#fff;flex-shrink:0;">{{ user.username.0|upper }}</div>
+      <div style="flex:1;">
+        <input id="comment-input" type="text" placeholder="Write a thoughtful comment…" style="width:100%;background:#f5f5f0;border:1px solid #e2ddd7;border-radius:8px;padding:9px 14px;color:#1c1917;font-family:'Inter',sans-serif;font-size:0.86rem;outline:none;margin-bottom:8px;">
+        <button onclick="postComment({{ post.pk }})" class="btn btn-sm" style="background:#d97706;color:#fff;">Post Comment</button>
+      </div>
+    </div>
+    {% else %}
+    <p style="color:#a8a29e;font-size:0.84rem;margin-bottom:20px;"><a href="/auth/login/" style="color:#d97706;">Sign in</a> to comment.</p>
+    {% endif %}
+    <div id="comments-list">
+      {% for c in comments %}
+      <div style="display:flex;gap:12px;padding:14px 0;border-bottom:1px solid #f0ede8;">
+        <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#d97706,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;color:#fff;flex-shrink:0;">{{ c.user.username.0|upper }}</div>
+        <div><div style="font-weight:600;font-size:0.84rem;color:#1c1917;margin-bottom:4px;">{{ c.user.username }} <span style="font-weight:400;color:#a8a29e;font-size:0.76rem;">{{ c.created_at|timesince }} ago</span></div><div style="font-size:0.86rem;color:#57534e;line-height:1.6;">{{ c.text }}</div>
+          {% for r in c.replies.all %}<div style="margin-top:8px;padding-left:14px;border-left:2px solid #fde68a;"><div style="font-weight:600;font-size:0.78rem;color:#d97706;">{{ r.user.username }}</div><div style="font-size:0.82rem;color:#57534e;">{{ r.text }}</div></div>{% endfor %}
+        </div>
+      </div>
+      {% empty %}<p style="color:#a8a29e;font-size:0.84rem;text-align:center;padding:20px 0;">No comments yet. Start the discussion!</p>{% endfor %}
+    </div>
+  </div>
+</div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+async function toggleLike(pk){const btn=document.getElementById('like-btn');const count=document.getElementById('like-count');const fd=new FormData();fd.append('csrfmiddlewaretoken',getCookie('csrftoken'));const r=await fetch(`/blog/like/${pk}/`,{method:'POST',body:fd});const d=await r.json();count.textContent=d.count;btn.style.background=d.liked?'#d97706':'#f5f5f0';btn.style.color=d.liked?'#fff':'#57534e';btn.style.borderColor=d.liked?'#d97706':'#e2ddd7';}
+async function postComment(pk){const inp=document.getElementById('comment-input');const text=inp.value.trim();if(!text)return;const fd=new FormData();fd.append('text',text);fd.append('csrfmiddlewaretoken',getCookie('csrftoken'));const r=await fetch(`/blog/comment/${pk}/`,{method:'POST',body:fd});const d=await r.json();if(d.ok){inp.value='';const list=document.getElementById('comments-list');const div=document.createElement('div');div.style.cssText='display:flex;gap:12px;padding:14px 0;border-bottom:1px solid #f0ede8;';div.innerHTML=`<div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#d97706,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;color:#fff;flex-shrink:0;">${d.username[0].toUpperCase()}</div><div><div style="font-weight:600;font-size:0.84rem;color:#1c1917;margin-bottom:4px;">${d.username}</div><div style="font-size:0.86rem;color:#57534e;">${d.text}</div></div>`;list.prepend(div);showToast('Comment posted!');}}
+function shareContent(title, path) {
+  const url = window.location.origin + path;
+  if (navigator.share) { navigator.share({title, url}).catch(()=>{}); return; }
+  navigator.clipboard.writeText(url).then(()=>showToast('Link copied!','s')).catch(()=>{});
+}
+</script>
+{% endblock %}

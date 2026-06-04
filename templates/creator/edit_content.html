@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Edit: {{ content.title }}{% endblock %}
+{% block content %}
+<div class="wrap" style="max-width:700px;padding-top:40px;padding-bottom:60px;">
+  <div style="margin-bottom:28px;">
+    <a href="/creator/" style="color:var(--tx2);font-size:13px;">← Back to Studio</a>
+    <h1 style="font-size:22px;font-weight:800;margin-top:10px;">Edit Content</h1>
+    <p style="color:var(--tx2);font-size:13px;">Editing will re-submit content for admin approval before going live.</p>
+  </div>
+  <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:14px;padding:28px;">
+    <form method="post" enctype="multipart/form-data">{% csrf_token %}
+      <div style="display:grid;gap:16px;">
+        <div>
+          <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx2);margin-bottom:6px;">Title *</label>
+          <input style="width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:10px 13px;color:var(--tx);font-size:14px;outline:none;" name="title" value="{{ content.title }}" required>
+        </div>
+        <div>
+          <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx2);margin-bottom:6px;">Description</label>
+          <textarea style="width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:10px 13px;color:var(--tx);font-size:14px;outline:none;min-height:100px;resize:vertical;" name="description">{{ content.description }}</textarea>
+        </div>
+        <div>
+          <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx2);margin-bottom:6px;">Access Tier</label>
+          <select style="width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:10px 13px;color:var(--tx);font-size:14px;" name="tier">
+            {% for val, label in tiers %}
+            <option value="{{ val }}" {% if content.tier == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx2);margin-bottom:6px;">Replace File <span style="color:var(--tx3);font-weight:400;">(leave blank to keep current)</span></label>
+          <input style="width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:10px 13px;color:var(--tx);font-size:13px;" type="file" name="file">
+        </div>
+        <div>
+          <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx2);margin-bottom:6px;">Replace Thumbnail</label>
+          <input style="width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:10px 13px;color:var(--tx);font-size:13px;" type="file" name="thumbnail" accept="image/*">
+          {% if content.thumbnail %}
+          <img src="{{ content.thumbnail.url }}" style="margin-top:10px;height:80px;border-radius:8px;object-fit:cover;">
+          {% endif %}
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:22px;">
+        <button type="submit" class="btn btn-primary">💾 Save & Re-submit</button>
+        <a href="/creator/" class="btn btn-ghost">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

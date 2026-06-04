@@ -1,0 +1,592 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Music{% endblock %}
+{% block topbar_title %}🎵 Music Management{% endblock %}
+{% block content %}
+
+<div class="tab-bar" style="display:flex;gap:4px;margin-bottom:20px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:4px;">
+  <button class="tab-btn {% if tab == 'tracks' or not tab %}active{% endif %}" onclick="switchMusicTab('tracks',this)">🎵 Tracks ({{ page.paginator.count }})</button>
+  <button class="tab-btn {% if tab == 'artists' %}active{% endif %}" onclick="switchMusicTab('artists',this)">👤 Artists</button>
+  <button class="tab-btn {% if tab == 'genres' %}active{% endif %}" onclick="switchMusicTab('genres',this)">🏷 Genres ({{ genres|length }})</button>
+  <button class="tab-btn {% if tab == 'albums' %}active{% endif %}" onclick="switchMusicTab('albums',this)">💿 Albums</button>
+  <button class="tab-btn {% if tab == 'add_track' %}active{% endif %}" onclick="switchMusicTab('add_track',this)">+ Add Track</button>
+  <button class="tab-btn {% if tab == 'add_artist' %}active{% endif %}" onclick="switchMusicTab('add_artist',this)">+ Add Artist</button>
+  <button class="tab-btn {% if tab == 'add_album' %}active{% endif %}" onclick="switchMusicTab('add_album',this)">+ Add Album</button>
+</div>
+
+{# ─────────────── TRACKS TAB ─────────────── #}
+<div class="tab-panel {% if tab == 'tracks' or not tab %}active{% endif %}" data-mtab="tracks">
+  <div class="panel" style="margin-bottom:12px;">
+    <div class="panel-body" style="padding:12px 16px;">
+      <form method="get" style="display:flex;gap:10px;align-items:flex-end;">
+        <input type="hidden" name="tab" value="tracks">
+        <div style="flex:1;"><input class="finput" name="q" value="{{ q }}" placeholder="Search tracks or artists…" style="width:100%;"></div>
+        <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+        {% if q %}<a href="?tab=tracks" class="btn btn-ghost btn-sm">Clear</a>{% endif %}
+      </form>
+    </div>
+  </div>
+
+  <div class="table-wrap"><table class="dt">
+    <thead><tr>
+      <th style="width:52px;">Cover</th>
+      <th>Title</th>
+      <th>Artist / Featured</th>
+      <th>Genre</th>
+      <th>Album</th>
+      <th>Plays</th>
+      <th>Status</th>
+      <th>Actions</th>
+    </tr></thead>
+    <tbody>
+    {% for track in page.object_list %}
+    <tr>
+      <td>
+        {% if track.cover_image %}<img src="{{ track.cover_image.url }}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;">
+        {% else %}<div style="width:40px;height:40px;background:rgba(124,92,252,.1);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:18px;">🎵</div>{% endif %}
+      </td>
+      <td>
+        <div style="font-weight:600;font-size:13px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ track.title }}</div>
+        {% if track.is_song_of_day %}<span class="badge badge-yellow" style="font-size:9px;">⭐ SOTD</span>{% endif %}
+        {% if track.is_premium %}<span class="badge badge-purple" style="font-size:9px;">PRO</span>{% endif %}
+      </td>
+      <td style="font-size:12px;">
+        <a href="/music/artist/{{ track.artist.slug }}/" style="color:var(--accent);" target="_blank">{{ track.artist.name }}</a>
+        {% with feats=track.featured_artists.all %}{% if feats %}
+        <div style="color:var(--text2);font-size:11px;margin-top:2px;">ft. {% for fa in feats %}{{ fa.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</div>
+        {% endif %}{% endwith %}
+      </td>
+      <td style="font-size:12px;color:var(--text2);">{{ track.genre.name|default:'—' }}</td>
+      <td style="font-size:12px;color:var(--text2);">{{ track.album.title|default:'—'|truncatechars:20 }}</td>
+      <td style="font-size:12px;color:var(--text2);">{{ track.plays_count }}</td>
+      <td>
+        <button id="tpub-{{ track.pk }}" onclick="adminToggle('toggle_publish',{{ track.pk }},'tpub-{{ track.pk }}','Live','Draft','badge-green','badge-gray')" class="badge {% if track.is_published %}badge-green{% else %}badge-gray{% endif %}" style="border:none;cursor:pointer;font-size:9px;">{% if track.is_published %}Live{% else %}Draft{% endif %}</button>
+        {% if track.is_featured %}<span class="badge badge-purple" style="font-size:9px;margin-left:3px;">Featured</span>{% endif %}
+      </td>
+      <td>
+        <div style="display:flex;gap:4px;">
+          <a href="/music/track/{{ track.slug }}/" target="_blank" class="btn btn-ghost btn-xs">View</a>
+          <button class="btn btn-ghost btn-xs" onclick="adminToggleSOTD({{ track.pk }})" title="Set as Song of Day">⭐</button>
+          <button id="tfeat-{{ track.pk }}" onclick="adminToggle('toggle_featured',{{ track.pk }},'tfeat-{{ track.pk }}','★','☆',null,null)" class="btn btn-ghost btn-xs">{% if track.is_featured %}★{% else %}☆{% endif %}</button>
+          <button class="btn btn-ghost btn-xs" onclick="openEditTrack({{ track.pk }},'{{ track.title|escapejs }}','{{ track.artist.pk }}','{{ track.artist.name|escapejs }}')">Edit</button>
+          <form method="post" style="display:inline;" onsubmit="return confirm('Delete this track?')">
+            <input type="hidden" name="action" value="delete_track">
+            <input type="hidden" name="pk" value="{{ track.pk }}">{% csrf_token %}
+            <button class="btn btn-danger btn-xs">Del</button>
+          </form>
+        </div>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="8"><div class="empty" style="padding:40px;"><div class="empty-icon">🎵</div><h3>No tracks yet</h3><p>Add your first track using the "+ Add Track" tab above.</p></div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+
+  {% if page.paginator.num_pages > 1 %}
+  <div class="pager">
+    {% if page.has_previous %}<a href="?tab=tracks&page={{ page.previous_page_number }}&q={{ q }}">‹ Prev</a>{% endif %}
+    <span class="current">{{ page.number }} / {{ page.paginator.num_pages }}</span>
+    {% if page.has_next %}<a href="?tab=tracks&page={{ page.next_page_number }}&q={{ q }}">Next ›</a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+
+{# ─────────────── ARTISTS TAB ─────────────── #}
+<div class="tab-panel {% if tab == 'artists' %}active{% endif %}" data-mtab="artists">
+  <div class="panel" style="margin-bottom:12px;">
+    <div class="panel-body" style="padding:12px 16px;">
+      <form method="get" style="display:flex;gap:10px;align-items:flex-end;">
+        <input type="hidden" name="tab" value="artists">
+        <div style="flex:1;"><input class="finput" name="aq" value="{{ artist_q }}" placeholder="Search artists by name or country…" style="width:100%;"></div>
+        <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+        {% if artist_q %}<a href="?tab=artists" class="btn btn-ghost btn-sm">Clear</a>{% endif %}
+      </form>
+    </div>
+  </div>
+
+  <div class="table-wrap"><table class="dt">
+    <thead><tr>
+      <th style="width:52px;"></th>
+      <th>Name</th>
+      <th>Country</th>
+      <th>Tracks</th>
+      <th>Status</th>
+      <th>Actions</th>
+    </tr></thead>
+    <tbody>
+    {% for a in artist_page.object_list %}
+    <tr>
+      <td>
+        {% if a.photo %}<img src="{{ a.photo.url }}" style="width:40px;height:40px;object-fit:cover;border-radius:50%;">
+        {% else %}<div style="width:40px;height:40px;background:rgba(124,92,252,.1);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;">👤</div>{% endif %}
+      </td>
+      <td>
+        <div style="font-weight:600;font-size:13px;">{{ a.name }}</div>
+        {% if a.bio %}<div style="font-size:11px;color:var(--text2);max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ a.bio }}</div>{% endif %}
+      </td>
+      <td style="font-size:12px;color:var(--text2);">{{ a.country|default:'—' }}</td>
+      <td style="font-size:12px;color:var(--text2);">{{ a.track_count }}</td>
+      <td>
+        <button id="averif-{{ a.pk }}" onclick="adminToggle('toggle_verified',{{ a.pk }},'averif-{{ a.pk }}','✓ Verified','Unverified','badge-green','badge-gray')" class="badge {% if a.is_verified %}badge-green{% else %}badge-gray{% endif %}" style="border:none;cursor:pointer;font-size:9px;">{% if a.is_verified %}✓ Verified{% else %}Unverified{% endif %}</button>
+      </td>
+      <td>
+        <div style="display:flex;gap:4px;">
+          <a href="/music/artist/{{ a.slug }}/" target="_blank" class="btn btn-ghost btn-xs">View</a>
+          <button class="btn btn-ghost btn-xs" onclick="openEditArtist({{ a.pk }},'{{ a.name|escapejs }}','{{ a.bio|escapejs }}','{{ a.country|escapejs }}','{{ a.website|escapejs }}','{{ a.social_instagram|escapejs }}','{{ a.social_twitter|escapejs }}','{{ a.social_youtube|escapejs }}',{{ a.is_verified|lower }})">Edit</button>
+          <form method="post" style="display:inline;" onsubmit="return confirm('Delete artist {{ a.name|escapejs }}? This will also delete their tracks!')">
+            <input type="hidden" name="action" value="delete_artist">
+            <input type="hidden" name="pk" value="{{ a.pk }}">{% csrf_token %}
+            <button class="btn btn-danger btn-xs">Del</button>
+          </form>
+        </div>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="6"><div class="empty" style="padding:40px;"><div class="empty-icon">👤</div><h3>No artists yet</h3><p>Create an artist using the "+ Add Artist" tab.</p></div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+
+{# ─────────────── GENRES TAB ─────────────── #}
+<div class="tab-panel {% if tab == 'genres' %}active{% endif %}" data-mtab="genres">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div class="panel">
+      <div class="panel-head"><span class="panel-title">+ New Genre</span></div>
+      <div class="panel-body">
+        <form method="post"><input type="hidden" name="action" value="create_genre">{% csrf_token %}
+          <div class="fg"><label>Name *</label><input class="finput" name="name" required placeholder="e.g. Afrobeats"></div>
+          <div class="fg"><label>Icon (emoji)</label><input class="finput" name="icon" value="🎵" placeholder="🎵"></div>
+          <button type="submit" class="btn btn-primary btn-sm">Create Genre</button>
+        </form>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><span class="panel-title">All Genres</span></div>
+      <div style="max-height:320px;overflow-y:auto;">
+        {% for genre in genres %}
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 18px;border-bottom:1px solid var(--border);">
+          <span style="font-size:18px;">{{ genre.icon|default:'🎵' }}</span>
+          <span style="flex:1;font-size:13px;font-weight:500;">{{ genre.name }}</span>
+          <form method="post" style="display:inline;" onsubmit="return confirm('Delete genre {{ genre.name|escapejs }}?')">
+            <input type="hidden" name="action" value="delete_genre">
+            <input type="hidden" name="pk" value="{{ genre.pk }}">{% csrf_token %}
+            <button class="btn btn-danger btn-xs">Del</button>
+          </form>
+        </div>
+        {% empty %}
+        <div class="empty" style="padding:32px;"><div class="empty-icon">🏷</div><h3>No genres yet</h3></div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ─────────────── ALBUMS TAB ─────────────── #}
+<div class="tab-panel {% if tab == 'albums' %}active{% endif %}" data-mtab="albums">
+  <div class="table-wrap"><table class="dt">
+    <thead><tr>
+      <th style="width:60px;">Cover</th>
+      <th>Album</th>
+      <th>Artist</th>
+      <th>Genre</th>
+      <th>Year</th>
+      <th>Tracks</th>
+      <th>Actions</th>
+    </tr></thead>
+    <tbody>
+    {% for album in albums %}
+    <tr>
+      <td>
+        {% if album.cover_image %}<img src="{{ album.cover_image.url }}" style="width:46px;height:46px;object-fit:cover;border-radius:8px;">
+        {% else %}<div style="width:46px;height:46px;background:rgba(124,92,252,.1);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;">💿</div>{% endif %}
+      </td>
+      <td>
+        <div style="font-weight:600;font-size:13px;">{{ album.title }}</div>
+        <div style="font-size:10px;color:var(--text2);text-transform:uppercase;">{{ album.album_type }}</div>
+      </td>
+      <td style="font-size:12px;"><a href="/music/artist/{{ album.artist.slug }}/" style="color:var(--accent);">{{ album.artist.name }}</a></td>
+      <td style="font-size:12px;color:var(--text2);">{{ album.genre.name|default:'—' }}</td>
+      <td style="font-size:12px;color:var(--text2);">{{ album.release_year }}</td>
+      <td style="font-size:12px;color:var(--text2);">{{ album.track_count }}</td>
+      <td>
+        <div style="display:flex;gap:4px;">
+          <a href="/music/album/{{ album.slug }}/" target="_blank" class="btn btn-ghost btn-xs">View</a>
+          <button class="btn btn-ghost btn-xs" onclick="openEditAlbum({{ album.pk }},'{{ album.title|escapejs }}','{{ album.artist.pk }}','{{ album.artist.name|escapejs }}',{{ album.release_year }},'{{ album.description|escapejs }}')">Edit</button>
+          <form method="post" style="display:inline;" onsubmit="return confirm('Delete album?')">
+            <input type="hidden" name="action" value="delete_album">
+            <input type="hidden" name="pk" value="{{ album.pk }}">{% csrf_token %}
+            <button class="btn btn-danger btn-xs">Del</button>
+          </form>
+        </div>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="7"><div class="empty" style="padding:40px;"><div class="empty-icon">💿</div><h3>No albums yet</h3><p>Create albums using the "+ Add Album" tab.</p></div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+
+{# ─────────────── ADD TRACK TAB ─────────────── #}
+<div class="tab-panel {% if tab == 'add_track' %}active{% endif %}" data-mtab="add_track">
+<div class="panel"><div class="panel-head"><span class="panel-title">🎵 Add New Track</span></div><div class="panel-body">
+<form method="post" enctype="multipart/form-data"><input type="hidden" name="action" value="create_track">{% csrf_token %}
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+    <div class="fg"><label>Track Title *</label><input class="finput" name="title" required placeholder="Song title"></div>
+    <div class="fg"><label>Release Year</label><input class="finput" type="number" name="release_year" value="2024" min="1900" max="2030"></div>
+    <div class="fg">
+      <label>Main Artist *</label>
+      <input class="finput" id="main-artist-input" placeholder="Search artist…" autocomplete="off" oninput="filterArtists(this.value,'main-artist-results','artist_pk')">
+      <input type="hidden" name="artist_pk" id="artist_pk">
+      <div id="main-artist-results" style="display:none;position:absolute;z-index:100;background:var(--bg3);border:1px solid var(--border);border-radius:8px;max-height:160px;overflow-y:auto;width:280px;"></div>
+    </div>
+    <div class="fg">
+      <label>Genre</label>
+      <select class="finput" name="genre_pk">
+        <option value="">No genre</option>
+        {% for g in genres %}<option value="{{ g.pk }}">{{ g.icon }} {{ g.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="fg">
+      <label>Album (optional)</label>
+      <input class="finput" id="album-input" placeholder="Search album…" autocomplete="off" oninput="filterAlbums(this.value)">
+      <input type="hidden" name="album_pk" id="album_pk">
+      <div id="album-results" style="display:none;position:absolute;z-index:100;background:var(--bg3);border:1px solid var(--border);border-radius:8px;max-height:160px;overflow-y:auto;width:280px;"></div>
+    </div>
+    <div class="fg">
+      <label>Featured Artists (optional)</label>
+      <input class="finput" id="feat-artist-input" placeholder="Search artist to add…" autocomplete="off" oninput="filterArtists(this.value,'feat-artist-results','')">
+      <div id="feat-artist-results" style="display:none;position:absolute;z-index:100;background:var(--bg3);border:1px solid var(--border);border-radius:8px;max-height:160px;overflow-y:auto;width:280px;"></div>
+      <div id="feat-artist-chips" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;"></div>
+    </div>
+    <div class="fg"><label>Audio File * <span style="color:var(--text2);font-weight:400;font-size:10px;">MP3, WAV, FLAC, AAC</span></label><input class="finput" type="file" name="audio_file" accept="audio/*" required></div>
+    <div class="fg"><label>Cover Image</label><input class="finput" type="file" name="cover_image" accept="image/*"></div>
+    <div class="fg"><label>Produced By</label><input class="finput" name="produced_by" placeholder="Producer name"></div>
+    <div class="fg"><label>Written By</label><input class="finput" name="written_by" placeholder="Songwriter(s)"></div>
+    <div class="fg"><label>Label</label><input class="finput" name="label" placeholder="Record label"></div>
+    <div class="fg" style="display:flex;flex-direction:column;gap:10px;">
+      <label class="fcheck"><input type="checkbox" name="is_published" checked> Published</label>
+      <label class="fcheck"><input type="checkbox" name="is_premium"> Premium</label>
+      <label class="fcheck"><input type="checkbox" name="is_featured"> Featured</label>
+    </div>
+    <div class="fg" style="grid-column:span 2;"><label>Lyrics</label><textarea class="finput" name="lyrics" rows="5" placeholder="Song lyrics…"></textarea></div>
+  </div>
+  <button type="submit" class="btn btn-primary" style="margin-top:12px;">🎵 Add Track</button>
+</form>
+</div></div>
+</div>
+
+{# ─────────────── ADD ARTIST TAB ─────────────── #}
+<div class="tab-panel {% if tab == 'add_artist' %}active{% endif %}" data-mtab="add_artist">
+  <div class="panel"><div class="panel-head"><span class="panel-title">👤 Create Artist Profile</span></div><div class="panel-body">
+    <form method="post" enctype="multipart/form-data"><input type="hidden" name="action" value="create_artist">{% csrf_token %}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="fg"><label>Artist Name *</label><input class="finput" name="name" required placeholder="Stage name or full name"></div>
+        <div class="fg"><label>Profile Photo</label><input class="finput" type="file" name="photo" accept="image/*"></div>
+        <div class="fg"><label>Country</label><input class="finput" name="country" placeholder="e.g. Nigeria"></div>
+        <div class="fg"><label>Website</label><input class="finput" type="url" name="website" placeholder="https://"></div>
+        <div class="fg"><label>Instagram URL</label><input class="finput" type="url" name="social_instagram" placeholder="https://instagram.com/…"></div>
+        <div class="fg"><label>Twitter / X URL</label><input class="finput" type="url" name="social_twitter" placeholder="https://twitter.com/…"></div>
+        <div class="fg"><label>YouTube URL</label><input class="finput" type="url" name="social_youtube" placeholder="https://youtube.com/…"></div>
+        <div class="fg" style="display:flex;align-items:flex-end;"><label class="fcheck"><input type="checkbox" name="is_verified"> Mark as Verified Artist</label></div>
+        <div class="fg" style="grid-column:span 2;"><label>Bio</label><textarea class="finput" name="bio" rows="4" placeholder="Artist biography…"></textarea></div>
+      </div>
+      <button type="submit" class="btn btn-primary" style="margin-top:12px;">Create Artist</button>
+    </form>
+  </div></div>
+</div>
+
+{# ─────────────── ADD ALBUM TAB ─────────────── #}
+<div class="tab-panel {% if tab == 'add_album' %}active{% endif %}" data-mtab="add_album">
+  <div class="panel"><div class="panel-head"><span class="panel-title">💿 Create Album</span></div><div class="panel-body">
+    <form method="post" enctype="multipart/form-data"><input type="hidden" name="action" value="create_album">{% csrf_token %}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="fg"><label>Album Title *</label><input class="finput" name="title" required placeholder="Album name"></div>
+        <div class="fg">
+          <label>Artist *</label>
+          <select class="finput" name="artist_pk" required>
+            <option value="">Select artist…</option>
+            {% for a in all_artists %}<option value="{{ a.pk }}">{{ a.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="fg">
+          <label>Genre</label>
+          <select class="finput" name="genre_pk">
+            <option value="">No genre</option>
+            {% for g in genres %}<option value="{{ g.pk }}">{{ g.icon }} {{ g.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="fg">
+          <label>Album Type</label>
+          <select class="finput" name="album_type">
+            <option value="album">Album</option>
+            <option value="ep">EP</option>
+            <option value="single">Single</option>
+            <option value="compilation">Compilation</option>
+            <option value="mixtape">Mixtape</option>
+          </select>
+        </div>
+        <div class="fg"><label>Release Year</label><input class="finput" type="number" name="release_year" value="2024" min="1900" max="2030"></div>
+        <div class="fg"><label>Label</label><input class="finput" name="label" placeholder="Record label"></div>
+        <div class="fg"><label>Cover Image</label><input class="finput" type="file" name="cover_image" accept="image/*"></div>
+        <div class="fg" style="display:flex;align-items:flex-end;"><label class="fcheck"><input type="checkbox" name="is_published" checked> Published</label></div>
+        <div class="fg" style="grid-column:span 2;"><label>Description</label><textarea class="finput" name="description" rows="3" placeholder="Album description…"></textarea></div>
+      </div>
+      <button type="submit" class="btn btn-primary" style="margin-top:12px;">💿 Create Album</button>
+    </form>
+  </div></div>
+</div>
+
+{# ─────────────── Edit Artist Modal ─────────────── #}
+<div id="edit-artist-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+  <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:28px;width:560px;max-width:95vw;max-height:90vh;overflow-y:auto;position:relative;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <h3 style="font-size:16px;font-weight:700;">✏️ Edit Artist</h3>
+      <button onclick="document.getElementById('edit-artist-modal').style.display='none'" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;">×</button>
+    </div>
+    <form method="post" enctype="multipart/form-data" id="edit-artist-form">
+      <input type="hidden" name="action" value="update_artist">
+      <input type="hidden" name="pk" id="ea-pk">{% csrf_token %}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="fg"><label>Name *</label><input class="finput" name="name" id="ea-name" required></div>
+        <div class="fg"><label>Country</label><input class="finput" name="country" id="ea-country"></div>
+        <div class="fg"><label>Website</label><input class="finput" type="url" name="website" id="ea-website"></div>
+        <div class="fg"><label>Instagram</label><input class="finput" type="url" name="social_instagram" id="ea-instagram"></div>
+        <div class="fg"><label>Twitter / X</label><input class="finput" type="url" name="social_twitter" id="ea-twitter"></div>
+        <div class="fg"><label>YouTube</label><input class="finput" type="url" name="social_youtube" id="ea-youtube"></div>
+        <div class="fg" style="grid-column:span 2;"><label>New Profile Photo</label><input class="finput" type="file" name="photo" accept="image/*"></div>
+        <div class="fg" style="grid-column:span 2;"><label>Bio</label><textarea class="finput" name="bio" id="ea-bio" rows="3"></textarea></div>
+        <div class="fg"><label class="fcheck"><input type="checkbox" name="is_verified" id="ea-verified"> Verified Artist</label></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px;">
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+        <button type="button" onclick="document.getElementById('edit-artist-modal').style.display='none'" class="btn btn-ghost">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ─────────────── Edit Album Modal ─────────────── #}
+<div id="edit-album-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+  <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:28px;width:500px;max-width:95vw;max-height:90vh;overflow-y:auto;position:relative;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <h3 style="font-size:16px;font-weight:700;">✏️ Edit Album</h3>
+      <button onclick="document.getElementById('edit-album-modal').style.display='none'" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;">×</button>
+    </div>
+    <form method="post" enctype="multipart/form-data" id="edit-album-form">
+      <input type="hidden" name="action" value="edit_album">
+      <input type="hidden" name="pk" id="eal-pk">{% csrf_token %}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="fg"><label>Title *</label><input class="finput" name="title" id="eal-title" required></div>
+        <div class="fg">
+          <label>Artist</label>
+          <select class="finput" name="artist_pk" id="eal-artist">
+            {% for a in all_artists %}<option value="{{ a.pk }}">{{ a.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="fg"><label>Release Year</label><input class="finput" type="number" name="release_year" id="eal-year" min="1900" max="2030"></div>
+        <div class="fg"><label>New Cover Image</label><input class="finput" type="file" name="cover_image" accept="image/*"></div>
+        <div class="fg" style="grid-column:span 2;"><label>Description</label><textarea class="finput" name="description" id="eal-desc" rows="3"></textarea></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px;">
+        <button type="submit" class="btn btn-primary">Save Album</button>
+        <button type="button" onclick="document.getElementById('edit-album-modal').style.display='none'" class="btn btn-ghost">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ─────────────── Edit Track Modal ─────────────── #}
+<div id="edit-track-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+  <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:28px;width:560px;max-width:95vw;max-height:90vh;overflow-y:auto;position:relative;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <h3 style="font-size:16px;font-weight:700;">✏️ Edit Track</h3>
+      <button onclick="document.getElementById('edit-track-modal').style.display='none'" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;">×</button>
+    </div>
+    <form method="post" enctype="multipart/form-data" id="edit-track-form">
+      <input type="hidden" name="action" value="update_track">
+      <input type="hidden" name="pk" id="et-pk">{% csrf_token %}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="fg"><label>Title *</label><input class="finput" name="title" id="et-title" required></div>
+        <div class="fg">
+          <label>Artist</label>
+          <select class="finput" name="artist_pk" id="et-artist">
+            {% for a in all_artists %}<option value="{{ a.pk }}">{{ a.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="fg">
+          <label>Genre</label>
+          <select class="finput" name="genre_pk">
+            <option value="">No genre</option>
+            {% for g in genres %}<option value="{{ g.pk }}">{{ g.icon }} {{ g.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="fg"><label>New Audio File</label><input class="finput" type="file" name="audio_file" accept="audio/*"></div>
+        <div class="fg"><label>New Cover Image</label><input class="finput" type="file" name="cover_image" accept="image/*"></div>
+        <div class="fg" style="display:flex;flex-direction:column;gap:8px;">
+          <label class="fcheck"><input type="checkbox" name="is_published" id="et-published"> Published</label>
+          <label class="fcheck"><input type="checkbox" name="is_premium" id="et-premium"> Premium</label>
+        </div>
+        <div class="fg" style="grid-column:span 2;"><label>Lyrics</label><textarea class="finput" name="lyrics" id="et-lyrics" rows="4"></textarea></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px;">
+        <button type="submit" class="btn btn-primary">Save Track</button>
+        <button type="button" onclick="document.getElementById('edit-track-modal').style.display='none'" class="btn btn-ghost">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# All artists JSON for JS autocomplete #}
+<script>
+const ALL_ARTISTS = [
+  {% for a in all_artists %}{"pk":{{ a.pk }},"name":"{{ a.name|escapejs }}"}{% if not forloop.last %},{% endif %}{% endfor %}
+];
+const ALL_ALBUMS = [
+  {% for album in albums %}{"pk":{{ album.pk }},"title":"{{ album.title|escapejs }}","artist":"{{ album.artist.name|escapejs }}"}{% if not forloop.last %},{% endif %}{% endfor %}
+];
+
+// ── AJAX toggle helper ────────────────────────────────────────────────────
+function adminToggle(action, pk, btnId, labelOn, labelOff, classOn, classOff) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  const fd = new FormData();
+  fd.append('action', action);
+  fd.append('pk', pk);
+  fd.append('csrfmiddlewaretoken', (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '');
+  fetch(window.location.pathname, {method: 'POST', body: fd})
+    .then(r => r.json())
+    .then(data => {
+      const isOn = Object.values(data)[0];
+      btn.textContent = isOn ? labelOn : labelOff;
+      if (classOn && classOff) {
+        btn.classList.toggle(classOn, isOn);
+        btn.classList.toggle(classOff, !isOn);
+      }
+    }).catch(() => window.location.reload());
+}
+
+function adminToggleSOTD(pk) {
+  if (!confirm('Set this track as Song of the Day?')) return;
+  const fd = new FormData();
+  fd.append('action', 'toggle_song_of_day');
+  fd.append('pk', pk);
+  fd.append('csrfmiddlewaretoken', (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '');
+  fetch(window.location.pathname, {method: 'POST', body: fd})
+    .then(() => window.location.reload());
+}
+
+// ── Tab switching ─────────────────────────────────────────────────────────
+function switchMusicTab(id, btn) {
+  document.querySelectorAll('[data-mtab]').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-mtab="${id}"]`).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── Artist autocomplete ───────────────────────────────────────────────────
+let featArtistPks = [];
+function filterArtists(val, resultsId, hiddenId) {
+  const box = document.getElementById(resultsId);
+  if (!val) { box.style.display='none'; return; }
+  const matches = ALL_ARTISTS.filter(a => a.name.toLowerCase().includes(val.toLowerCase())).slice(0,8);
+  if (!matches.length) { box.style.display='none'; return; }
+  box.innerHTML = matches.map(a => `<div style="padding:8px 12px;cursor:pointer;font-size:13px;" onmousedown="selectArtist(${a.pk},'${a.name.replace(/'/g,"\\'")}','${resultsId}','${hiddenId}')">${a.name}</div>`).join('');
+  const rect = box.previousElementSibling ? box.previousElementSibling.getBoundingClientRect() : {width:280};
+  box.style.width = (rect.width || 280) + 'px';
+  box.style.display='block';
+}
+
+function selectArtist(pk, name, resultsId, hiddenId) {
+  const box = document.getElementById(resultsId);
+  box.style.display = 'none';
+  if (hiddenId) {
+    document.getElementById(hiddenId).value = pk;
+    box.previousElementSibling.value = name;
+  } else {
+    // Featured artist — add chip
+    if (featArtistPks.includes(pk)) return;
+    featArtistPks.push(pk);
+    const chips = document.getElementById('feat-artist-chips');
+    const chip = document.createElement('div');
+    chip.style.cssText = 'display:inline-flex;align-items:center;gap:5px;background:rgba(124,92,252,.15);border:1px solid rgba(124,92,252,.3);border-radius:20px;padding:3px 10px;font-size:12px;';
+    chip.innerHTML = `<input type="hidden" name="featured_artist_pks" value="${pk}">${name}<span onclick="this.parentElement.remove();featArtistPks=featArtistPks.filter(x=>x!=${pk})" style="cursor:pointer;font-size:14px;line-height:1;">×</span>`;
+    chips.appendChild(chip);
+    document.getElementById('feat-artist-input').value = '';
+  }
+}
+
+function filterAlbums(val) {
+  const box = document.getElementById('album-results');
+  if (!val) { box.style.display='none'; return; }
+  const matches = ALL_ALBUMS.filter(a => a.title.toLowerCase().includes(val.toLowerCase()) || a.artist.toLowerCase().includes(val.toLowerCase())).slice(0,8);
+  if (!matches.length) { box.style.display='none'; return; }
+  box.innerHTML = matches.map(a => `<div style="padding:8px 12px;cursor:pointer;font-size:13px;" onmousedown="selectAlbum(${a.pk},'${a.title.replace(/'/g,"\\'")} — ${a.artist.replace(/'/g,"\\'")}','album_pk','')"><strong>${a.title}</strong> <span style="color:var(--text2);font-size:11px;">${a.artist}</span></div>`).join('');
+  box.style.display='block';
+}
+
+function selectAlbum(pk, label, hiddenId, inputEl) {
+  document.getElementById(hiddenId).value = pk;
+  document.getElementById('album-input').value = label;
+  document.getElementById('album-results').style.display = 'none';
+}
+
+// ── Edit artist modal ─────────────────────────────────────────────────────
+function openEditArtist(pk, name, bio, country, website, instagram, twitter, youtube, verified) {
+  document.getElementById('ea-pk').value = pk;
+  document.getElementById('ea-name').value = name;
+  document.getElementById('ea-bio').value = bio;
+  document.getElementById('ea-country').value = country;
+  document.getElementById('ea-website').value = website;
+  document.getElementById('ea-instagram').value = instagram;
+  document.getElementById('ea-twitter').value = twitter;
+  document.getElementById('ea-youtube').value = youtube;
+  document.getElementById('ea-verified').checked = verified;
+  const modal = document.getElementById('edit-artist-modal');
+  modal.style.display = 'flex';
+}
+
+// ── Edit album modal ──────────────────────────────────────────────────────
+function openEditAlbum(pk, title, artistPk, artistName, year, desc) {
+  document.getElementById('eal-pk').value = pk;
+  document.getElementById('eal-title').value = title;
+  document.getElementById('eal-year').value = year;
+  document.getElementById('eal-desc').value = desc;
+  const sel = document.getElementById('eal-artist');
+  if (sel) { for (let o of sel.options) { if (o.value == artistPk) { o.selected = true; break; } } }
+  document.getElementById('edit-album-modal').style.display = 'flex';
+}
+
+// ── Edit track modal ──────────────────────────────────────────────────────
+function openEditTrack(pk, title, artistPk, artistName) {
+  document.getElementById('et-pk').value = pk;
+  document.getElementById('et-title').value = title;
+  const sel = document.getElementById('et-artist');
+  if (sel) { for (let o of sel.options) { if (o.value == artistPk) { o.selected = true; break; } } }
+  document.getElementById('edit-track-modal').style.display = 'flex';
+}
+
+// Close dropdowns on outside click
+document.addEventListener('click', () => {
+  ['main-artist-results','feat-artist-results','album-results','album-artist-results'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+});
+</script>
+
+<style>
+.tab-btn{padding:7px 14px;border-radius:8px;font-size:13px;font-weight:500;background:none;border:none;color:var(--text2);cursor:pointer;transition:all .15s}
+.tab-btn:hover{color:var(--text);background:rgba(255,255,255,.05)}
+.tab-btn.active{background:var(--accent);color:#fff}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.finput{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:13px;outline:none;transition:border-color .15s}
+.finput:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,92,252,.12)}
+.fg{margin-bottom:12px}
+.fg label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);margin-bottom:5px}
+.fcheck{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text2)}
+.fcheck input{cursor:pointer;width:14px;height:14px;accent-color:var(--accent)}
+</style>
+
+{% endblock %}

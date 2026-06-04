@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block title %}Search — {{ q }}{% endblock %}
+{% block content %}
+<div style="background:var(--bg2);min-height:100vh;padding:40px 0 60px;">
+<div class="container">
+  <form method="get" style="display:flex;gap:10px;margin-bottom:32px;max-width:600px;">
+    <input name="q" value="{{ q }}" class="form-input" placeholder="Search movies, music, images, blog…" autofocus style="flex:1;">
+    <button type="submit" class="btn btn-primary">Search</button>
+  </form>
+  {% if q %}
+  <div style="color:var(--text2);font-size:0.86rem;margin-bottom:28px;">{{ total }} result{{ total|pluralize }} for "<strong style="color:var(--text);">{{ q }}</strong>"</div>
+
+  {% if movies %}
+  <div style="margin-bottom:36px;">
+    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;margin-bottom:16px;display:flex;align-items:center;gap:8px;">🎬 Movies <span style="font-size:0.76rem;color:var(--text2);font-weight:400;">({{ movies.count }})</span></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;">
+      {% for m in movies %}
+      <a href="/movies/film/{{ m.slug }}/" style="text-decoration:none;" class="card">
+        {% if m.thumbnail %}<img src="{{ m.thumbnail.url }}" class="card-img" loading="lazy">{% else %}<div class="card-img" style="background:#1a0808;display:flex;align-items:center;justify-content:center;font-size:2rem;">🎬</div>{% endif %}
+        <div class="card-body"><div class="card-title">{{ m.title }}</div><div class="card-meta"><span>{{ m.release_year }}</span></div></div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if tracks %}
+  <div style="margin-bottom:36px;">
+    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;margin-bottom:16px;">🎵 Music <span style="font-size:0.76rem;color:var(--text2);font-weight:400;">({{ tracks.count }})</span></div>
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      {% for t in tracks %}
+      <a href="/music/track/{{ t.slug }}/" style="text-decoration:none;" class="card" style="display:flex;gap:12px;align-items:center;padding:10px 14px;">
+        {% if t.cover_image %}<img src="{{ t.cover_image.url }}" style="width:42px;height:42px;border-radius:6px;object-fit:cover;flex-shrink:0;">{% else %}<div style="width:42px;height:42px;border-radius:6px;background:var(--bg3);display:flex;align-items:center;justify-content:center;flex-shrink:0;">🎵</div>{% endif %}
+        <div style="flex:1;"><div style="font-weight:500;font-size:0.86rem;">{{ t.title }}</div><div style="font-size:0.74rem;color:var(--text2);">{{ t.artist.name }}</div></div>
+        <a href="/music/download/{{ t.pk }}/" class="btn btn-ghost btn-sm" onclick="event.stopPropagation()">⬇ MP3</a>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if images %}
+  <div style="margin-bottom:36px;">
+    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;margin-bottom:16px;">🖼 Images <span style="font-size:0.76rem;color:var(--text2);font-weight:400;">({{ images.count }})</span></div>
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;">
+      {% for img in images %}
+      <a href="/images/view/{{ img.slug }}/" style="text-decoration:none;border-radius:8px;overflow:hidden;display:block;" class="card">
+        {% if img.image_file %}<img src="{{ img.image_file.url }}" style="width:100%;aspect-ratio:1;object-fit:cover;display:block;" loading="lazy">{% else %}<div style="width:100%;aspect-ratio:1;background:var(--bg3);display:flex;align-items:center;justify-content:center;">🖼</div>{% endif %}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if posts %}
+  <div>
+    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;margin-bottom:16px;">✍️ Blog <span style="font-size:0.76rem;color:var(--text2);font-weight:400;">({{ posts.count }})</span></div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      {% for p in posts %}
+      <a href="/blog/post/{{ p.slug }}/" style="text-decoration:none;" class="card" style="padding:14px 18px;display:flex;gap:14px;">
+        {% if p.featured_img %}<img src="{{ p.featured_img.url }}" style="width:80px;height:56px;object-fit:cover;border-radius:6px;flex-shrink:0;">{% endif %}
+        <div><div style="font-weight:600;font-size:0.9rem;margin-bottom:4px;">{{ p.title }}</div><div style="font-size:0.78rem;color:var(--text2);">{{ p.author.username }} · {{ p.created_at|date:"M d, Y" }}</div></div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if not movies and not tracks and not images and not posts %}
+  <div style="text-align:center;padding:80px 0;color:var(--text2);">
+    <div style="font-size:3rem;margin-bottom:12px;">🔍</div>
+    <div>No results found for "{{ q }}"</div>
+    <p style="font-size:0.84rem;margin-top:8px;">Try different keywords</p>
+  </div>
+  {% endif %}
+  {% endif %}
+</div>
+</div>
+{% endblock %}

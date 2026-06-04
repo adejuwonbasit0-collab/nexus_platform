@@ -1,0 +1,469 @@
+{% extends 'base.html' %}
+{% block title %}{% if global_seo %}{{ global_seo.meta_title }}{% else %}NEXUS — Premium Media Platform{% endif %}{% endblock %}
+{% block extra_head %}
+<style>
+/* ── Hero particle canvas ─────────────────────── */
+#hero-canvas{position:absolute;inset:0;pointer-events:none;opacity:.55}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:7px 20px;
+  background:rgba(124,92,252,.12);
+  border:1px solid rgba(124,92,252,.28);
+  border-radius:20px;font-size:12px;font-weight:700;
+  color:var(--ac);letter-spacing:.06em;text-transform:uppercase;
+  margin-bottom:28px;
+  animation:fadeUp .6s ease both;
+}
+.hero-title{
+  font-family:'Syne',sans-serif;
+  font-size:clamp(44px,8vw,84px);
+  font-weight:800;line-height:1.02;
+  letter-spacing:-3px;margin-bottom:24px;
+  animation:fadeUp .6s .1s ease both;
+}
+.hero-title .grad{
+  background:linear-gradient(135deg,var(--ac),var(--ac2),#ff8c42);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.hero-sub{
+  font-size:clamp(16px,2.2vw,20px);
+  color:var(--tx2);max-width:600px;margin:0 auto 42px;
+  line-height:1.7;
+  animation:fadeUp .6s .2s ease both;
+}
+.hero-cta{
+  display:flex;gap:14px;justify-content:center;flex-wrap:wrap;
+  animation:fadeUp .6s .3s ease both;
+}
+.hero-stats{
+  display:flex;gap:0;justify-content:center;
+  margin-top:64px;
+  border:1px solid var(--bd);
+  border-radius:14px;
+  overflow:hidden;
+  background:rgba(255,255,255,.03);
+  backdrop-filter:blur(16px);
+  max-width:500px;margin-left:auto;margin-right:auto;
+  animation:fadeUp .6s .4s ease both;
+}
+.hero-stat{
+  flex:1;padding:20px 24px;text-align:center;
+  border-right:1px solid var(--bd);
+}
+.hero-stat:last-child{border-right:none}
+.hero-stat-num{
+  font-family:'Syne',sans-serif;
+  font-size:28px;font-weight:800;
+  background:linear-gradient(135deg,var(--ac),var(--ac2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.hero-stat-label{font-size:12px;color:var(--tx2);margin-top:2px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+
+/* ── Premium content cards ────────────────────── */
+.pcard{
+  background:rgba(255,255,255,.03);
+  backdrop-filter:blur(12px);
+  border:1px solid var(--bd);
+  border-radius:16px;overflow:hidden;
+  transition:transform .25s,border-color .25s,box-shadow .25s;
+  box-shadow:0 4px 20px rgba(0,0,0,.3);
+  position:relative;
+}
+.pcard:hover{
+  transform:translateY(-6px);
+  border-color:rgba(124,92,252,.3);
+  box-shadow:0 20px 60px rgba(0,0,0,.5),0 0 0 1px rgba(124,92,252,.15),var(--glow);
+}
+.pcard-thumb{position:relative;overflow:hidden}
+.pcard-thumb img,.pcard-thumb .placeholder{
+  width:100%;display:block;
+  transition:transform .4s;
+}
+.pcard:hover .pcard-thumb img{transform:scale(1.06)}
+.pcard-overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(0,0,0,.8) 0%,rgba(0,0,0,.2) 40%,transparent 70%);
+  opacity:0;transition:opacity .25s;
+  display:flex;align-items:flex-end;padding:14px;
+}
+.pcard:hover .pcard-overlay{opacity:1}
+.pcard-body{padding:14px 16px 16px}
+
+/* ── Music list row ───────────────────────────── */
+.music-row{
+  display:flex;align-items:center;gap:16px;
+  padding:12px 20px;
+  border-bottom:1px solid var(--bd);
+  transition:background .15s;
+  border-radius:10px;
+  margin-bottom:2px;
+}
+.music-row:hover{background:rgba(255,255,255,.04)}
+.music-row:last-child{border-bottom:none}
+
+/* ── Section title bar ────────────────────────── */
+.stitle{
+  display:flex;align-items:baseline;
+  justify-content:space-between;
+  margin-bottom:22px;
+}
+.stitle h2{
+  font-family:'Syne',sans-serif;
+  font-size:22px;font-weight:800;
+}
+.stitle h2 span{
+  background:linear-gradient(135deg,var(--ac),var(--ac2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.stitle a{font-size:13px;color:var(--ac);font-weight:500}
+.stitle a:hover{text-decoration:underline}
+
+/* ── Blog card ────────────────────────────────── */
+.blog-card{
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--bd);border-radius:16px;overflow:hidden;
+  transition:transform .22s,border-color .22s,box-shadow .22s;
+  box-shadow:0 4px 16px rgba(0,0,0,.25);
+}
+.blog-card:hover{
+  transform:translateY(-4px);
+  border-color:rgba(0,212,170,.2);
+  box-shadow:0 16px 40px rgba(0,0,0,.4),0 0 0 1px rgba(0,212,170,.08);
+}
+</style>
+{% endblock %}
+{% block content %}
+
+{# ─── CMS-controlled sections ─── #}
+{% for section in cms_sections %}{% if section.is_visible %}
+  {% if section.section_type == 'hero' %}
+  <section style="position:relative;padding:130px 0 100px;overflow:hidden;{% if section.bg_color %}background:{{ section.bg_color }};{% else %}background:linear-gradient(160deg,rgba(124,92,252,.13) 0%,rgba(255,77,109,.07) 55%,transparent 100%);{% endif %}">
+    <canvas id="hero-canvas"></canvas>
+    {% if section.image %}<div style="position:absolute;inset:0;background:url('{{ section.image.url }}') center/cover;opacity:.1;"></div>{% endif %}
+    <div style="position:absolute;top:-20%;right:-8%;width:750px;height:750px;background:radial-gradient(circle,rgba(124,92,252,.11) 0%,transparent 65%);pointer-events:none;"></div>
+    <div class="container" style="position:relative;text-align:center;">
+      {% if section.title %}<h1 class="hero-title">{{ section.title }}</h1>{% endif %}
+      {% if section.subtitle %}<p class="hero-sub">{{ section.subtitle }}</p>{% endif %}
+      {% if section.cta_text or section.cta2_text %}
+      <div class="hero-cta">
+        {% if section.cta_text %}<a href="{{ section.cta_url }}" class="btn btn-primary" style="font-size:16px;padding:14px 36px;">{{ section.cta_text }}</a>{% endif %}
+        {% if section.cta2_text %}<a href="{{ section.cta2_url }}" class="btn btn-outline" style="font-size:16px;padding:14px 36px;">{{ section.cta2_text }}</a>{% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </section>
+
+  {% elif section.section_type == 'stats' %}
+  <section style="padding:52px 0;border-bottom:1px solid var(--bd);">
+    <div class="container">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:28px;text-align:center;">
+        <div><div class="hero-stat-num" style="font-size:36px;">{{ stats.total_content }}+</div><div class="hero-stat-label">Content Items</div></div>
+        <div><div class="hero-stat-num" style="font-size:36px;">{{ stats.total_creators }}+</div><div class="hero-stat-label">Creators</div></div>
+        <div><div class="hero-stat-num" style="font-size:36px;">{{ stats.total_members }}+</div><div class="hero-stat-label">Members</div></div>
+      </div>
+    </div>
+  </section>
+
+  {% elif section.section_type == 'cta' %}
+  <section style="padding:80px 0;background:linear-gradient(135deg,rgba(124,92,252,.1),rgba(255,77,109,.07));border-top:1px solid var(--bd);border-bottom:1px solid var(--bd);">
+    <div class="container" style="text-align:center;">
+      {% if section.title %}<h2 style="font-family:'Syne',sans-serif;font-size:clamp(28px,5vw,48px);font-weight:800;margin-bottom:14px;">{{ section.title }}</h2>{% endif %}
+      {% if section.subtitle %}<p style="color:var(--tx2);font-size:18px;max-width:560px;margin:0 auto 32px;">{{ section.subtitle }}</p>{% endif %}
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+        {% if section.cta_text %}<a href="{{ section.cta_url }}" class="btn btn-primary" style="padding:13px 32px;font-size:15px;">{{ section.cta_text }}</a>{% endif %}
+        {% if section.cta2_text %}<a href="{{ section.cta2_url }}" class="btn btn-outline" style="padding:13px 32px;font-size:15px;">{{ section.cta2_text }}</a>{% endif %}
+      </div>
+    </div>
+  </section>
+
+  {% elif section.section_type == 'custom' %}
+  <section style="padding:52px 0;"><div class="container">{{ section.content|safe }}</div></section>
+  {% endif %}
+{% endif %}{% empty %}
+
+{# ─── Default animated hero ─── #}
+<section style="padding:130px 0 100px;position:relative;overflow:hidden;background:linear-gradient(160deg,rgba(124,92,252,.12) 0%,rgba(255,77,109,.06) 55%,transparent 100%);">
+  <canvas id="hero-canvas"></canvas>
+  <div style="position:absolute;top:-30%;right:-8%;width:800px;height:800px;background:radial-gradient(circle,rgba(124,92,252,.09) 0%,transparent 65%);pointer-events:none;"></div>
+  <div style="position:absolute;bottom:-20%;left:-5%;width:600px;height:600px;background:radial-gradient(circle,rgba(255,77,109,.05) 0%,transparent 65%);pointer-events:none;"></div>
+  <div class="container" style="position:relative;text-align:center;">
+    <div class="hero-badge">🎬 Movies &nbsp;·&nbsp; 🎵 Music &nbsp;·&nbsp; 🖼 Gallery &nbsp;·&nbsp; ✨ AI Studio</div>
+    <h1 class="hero-title">The Premium<br><span class="grad">Creative Platform</span></h1>
+    <p class="hero-sub">Discover movies, music, art, and stories. Upload your work, build an audience, and get paid for what you create.</p>
+    <div class="hero-cta">
+      <a href="/auth/register/" class="btn btn-primary" style="font-size:16px;padding:15px 38px;">Get Started Free</a>
+      <a href="/content/browse/" class="btn btn-outline" style="font-size:16px;padding:15px 38px;">Browse Content</a>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="hero-stat-num">{{ stats.total_content }}+</div><div class="hero-stat-label">Content</div></div>
+      <div class="hero-stat"><div class="hero-stat-num">{{ stats.total_creators }}+</div><div class="hero-stat-label">Creators</div></div>
+      <div class="hero-stat"><div class="hero-stat-num">{{ stats.total_members }}+</div><div class="hero-stat-label">Members</div></div>
+    </div>
+  </div>
+</section>
+{% endfor %}
+
+{# ─── Featured content ─── #}
+{% if featured %}
+<section class="sec" style="padding-bottom:0;">
+  <div class="container">
+    <div class="stitle">
+      <h2>⭐ <span>Featured</span></h2>
+      <a href="/content/browse/">View all →</a>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px;">
+      {% for c in featured %}
+      <div class="pcard">
+        <div class="pcard-thumb" style="aspect-ratio:16/9;">
+          {% if c.thumbnail %}
+          <img src="{{ c.thumbnail.url }}" alt="{{ c.title }}">
+          {% else %}
+          <div class="placeholder" style="aspect-ratio:16/9;background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(255,77,109,.08));display:flex;align-items:center;justify-content:center;font-size:40px;">
+            {% if c.content_type == 'video' %}🎬{% elif c.content_type == 'music' %}🎵{% elif c.content_type == 'image' %}🖼{% else %}📝{% endif %}
+          </div>
+          {% endif %}
+          <div class="pcard-overlay">
+            <a href="/content/{{ c.pk }}/" class="btn btn-primary btn-sm">▶ Watch</a>
+          </div>
+        </div>
+        <div class="pcard-body">
+          <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px;"><a href="/content/{{ c.pk }}/" style="color:var(--tx);">{{ c.title }}</a></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--tx2);">
+            <span>{{ c.creator.username }}</span>
+            <span class="{% if c.tier == 'premium' %}tier-premium{% else %}tier-free{% endif %}">{{ c.tier }}</span>
+          </div>
+          <div class="engage-bar" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bd);">
+            <button class="engage-btn" onclick="toggleLike({{ c.pk }},this)" data-liked="false">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              <span class="lc">{{ c.likes_count }}</span>
+            </button>
+            <button class="engage-btn" onclick="focusComment({{ c.pk }})">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <span>{{ c.comments.count }}</span>
+            </button>
+            <button class="engage-btn" onclick="shareContent('{{ c.title|escapejs }}','/content/{{ c.pk }}/')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+              Share
+            </button>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{# ─── Movies ─── #}
+{% if movie_list %}
+<section class="sec" style="padding-bottom:0;">
+  <div class="container">
+    <div class="stitle">
+      <h2>🎬 <span>Movies & Series</span></h2>
+      <a href="/movies/">Browse all →</a>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:18px;">
+      {% for m in movie_list %}
+      <div class="pcard card-poster">
+        <div class="pcard-thumb" style="aspect-ratio:2/3;">
+          {% if m.thumbnail %}
+          <img src="{{ m.thumbnail.url }}" alt="{{ m.title }}">
+          {% else %}
+          <div class="placeholder" style="aspect-ratio:2/3;background:linear-gradient(160deg,rgba(124,92,252,.18),rgba(255,77,109,.1));display:flex;align-items:center;justify-content:center;font-size:48px;">🎬</div>
+          {% endif %}
+          <div class="pcard-overlay">
+            <a href="/movies/film/{{ m.slug }}/" class="btn btn-primary btn-sm">▶ Watch</a>
+          </div>
+        </div>
+        <div class="pcard-body">
+          <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><a href="/movies/film/{{ m.slug }}/" style="color:var(--tx);">{{ m.title }}</a></div>
+          <div style="font-size:11px;color:var(--tx2);margin-top:3px;">{{ m.release_year }}{% if m.quality %} · {{ m.quality }}{% endif %}</div>
+          <div class="engage-bar" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bd);gap:6px;">
+            <button class="engage-btn" style="padding:5px 10px;font-size:11px;" onclick="shareContent('{{ m.title|escapejs }}','/movies/film/{{ m.slug }}/')">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+              Share
+            </button>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{# ─── Music ─── #}
+{% if music_list %}
+<section class="sec" style="padding-bottom:0;">
+  <div class="container">
+    <div class="stitle">
+      <h2>🎵 <span>Trending Music</span></h2>
+      <a href="/music/">Browse all →</a>
+    </div>
+    <div style="background:rgba(255,255,255,.025);border:1px solid var(--bd);border-radius:16px;overflow:hidden;backdrop-filter:blur(12px);box-shadow:0 8px 32px rgba(0,0,0,.3);">
+      {% for track in music_list %}
+      <div class="music-row">
+        <span style="color:var(--tx3);font-size:13px;width:22px;text-align:right;flex-shrink:0;font-weight:600;">{{ forloop.counter }}</span>
+        <div style="width:46px;height:46px;border-radius:9px;overflow:hidden;flex-shrink:0;background:rgba(124,92,252,.1);display:flex;align-items:center;justify-content:center;">
+          {% if track.cover_image %}<img src="{{ track.cover_image.url }}" style="width:100%;height:100%;object-fit:cover;">{% else %}<span style="font-size:20px;">🎵</span>{% endif %}
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><a href="/music/track/{{ track.slug }}/" style="color:var(--tx);">{{ track.title }}</a></div>
+          <div style="font-size:12px;color:var(--tx2);">{{ track.artist.name }}</div>
+        </div>
+        <div style="font-size:12px;color:var(--tx3);flex-shrink:0;">{{ track.plays_count|default:0 }} plays</div>
+        {% if track.is_premium %}<span class="tier-premium" style="flex-shrink:0;">PRO</span>{% endif %}
+        <button class="engage-btn" style="padding:5px 10px;font-size:11px;flex-shrink:0;" onclick="shareContent('{{ track.title|escapejs }}','/music/track/{{ track.slug }}/')">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{# ─── Blog ─── #}
+{% if blog_list %}
+<section class="sec">
+  <div class="container">
+    <div class="stitle">
+      <h2>📝 <span>Latest Articles</span></h2>
+      <a href="/blog/">See all →</a>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:22px;">
+      {% for post in blog_list %}
+      <div class="blog-card">
+        <div style="aspect-ratio:16/9;overflow:hidden;background:var(--bg3);">
+          {% if post.featured_img %}<img src="{{ post.featured_img.url }}" alt="{{ post.title }}" style="width:100%;height:100%;object-fit:cover;transition:transform .35s;">
+          {% else %}<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:40px;background:rgba(0,212,170,.06);">📝</div>{% endif %}
+        </div>
+        <div style="padding:18px;">
+          <div style="font-size:14px;font-weight:600;margin-bottom:8px;line-height:1.45;"><a href="/blog/post/{{ post.slug }}/" style="color:var(--tx);">{{ post.title }}</a></div>
+          {% if post.excerpt %}<div style="font-size:13px;color:var(--tx2);line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{{ post.excerpt }}</div>{% endif %}
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--bd);">
+            <div style="font-size:11px;color:var(--tx2);">{{ post.author.username }} · {{ post.created_at|date:"M d, Y" }}</div>
+            <button class="engage-btn" style="padding:4px 10px;font-size:11px;" onclick="shareContent('{{ post.title|escapejs }}','/blog/post/{{ post.slug }}/')">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+              Share
+            </button>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{# ─── Join CTA ─── #}
+{% if not user.is_authenticated %}
+<section style="padding:90px 0;position:relative;overflow:hidden;">
+  <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(124,92,252,.1),rgba(255,77,109,.07));"></div>
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:800px;height:800px;background:radial-gradient(circle,rgba(124,92,252,.07) 0%,transparent 65%);pointer-events:none;"></div>
+  <div style="position:absolute;inset:0;border-top:1px solid var(--bd);border-bottom:1px solid var(--bd);"></div>
+  <div class="container" style="position:relative;text-align:center;">
+    <div style="font-size:48px;margin-bottom:20px;">🚀</div>
+    <h2 style="font-family:'Syne',sans-serif;font-size:clamp(28px,5vw,52px);font-weight:800;margin-bottom:16px;letter-spacing:-1px;">Ready to join?</h2>
+    <p style="color:var(--tx2);font-size:18px;margin-bottom:40px;max-width:480px;margin-left:auto;margin-right:auto;line-height:1.7;">Create your free account and start exploring — or become a creator and get paid for your work.</p>
+    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
+      <a href="/auth/register/" class="btn btn-primary" style="font-size:16px;padding:15px 38px;">Get Started — It's Free</a>
+      <a href="/auth/register/?role=creator" class="btn btn-outline" style="font-size:16px;padding:15px 38px;">Become a Creator</a>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% endblock %}
+{% block scripts %}
+<script>
+/* ── Hero particle animation ───────────────────────────────── */
+(function(){
+  const c = document.getElementById('hero-canvas');
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  let W, H, particles = [];
+  function resize(){ W = c.width = c.offsetWidth; H = c.height = c.offsetHeight; }
+  resize();
+  window.addEventListener('resize', resize);
+  for(let i=0;i<60;i++) particles.push({
+    x:Math.random()*1400, y:Math.random()*700,
+    vx:(Math.random()-.5)*.3, vy:(Math.random()-.5)*.3,
+    r:Math.random()*1.5+.5,
+    a:Math.random()*.6+.2,
+    hue:Math.random()>0.5?260:340
+  });
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    particles.forEach(p=>{
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0)p.x=W; if(p.x>W)p.x=0;
+      if(p.y<0)p.y=H; if(p.y>H)p.y=0;
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=`hsla(${p.hue},80%,70%,${p.a})`;
+      ctx.fill();
+    });
+    // Draw faint lines between close particles
+    for(let i=0;i<particles.length;i++){
+      for(let j=i+1;j<particles.length;j++){
+        const dx=particles[i].x-particles[j].x, dy=particles[i].y-particles[j].y;
+        const dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist<120){
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x,particles[i].y);
+          ctx.lineTo(particles[j].x,particles[j].y);
+          ctx.strokeStyle=`rgba(124,92,252,${0.07*(1-dist/120)})`;
+          ctx.lineWidth=0.6;
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ── Like toggle ───────────────────────────────────────────── */
+async function toggleLike(pk, btn){
+  {% if not user.is_authenticated %}
+  showToast('Sign in to like content','w');
+  return;
+  {% endif %}
+  const fd = new FormData();
+  fd.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+  try{
+    const r = await fetch(`/content/${pk}/like/`,{method:'POST',body:fd});
+    const d = await r.json();
+    btn.querySelector('.lc').textContent = d.count;
+    btn.dataset.liked = d.liked;
+    btn.classList.toggle('liked', d.liked);
+  }catch(e){ showToast('Error','e'); }
+}
+
+/* ── Focus comment ─────────────────────────────────────────── */
+function focusComment(pk){
+  const inp = document.getElementById(`ci-${pk}`);
+  if(inp){ inp.scrollIntoView({behavior:'smooth',block:'center'}); inp.focus(); return; }
+  window.location.href = `/content/${pk}/#comments`;
+}
+
+/* ── Share ─────────────────────────────────────────────────── */
+function shareContent(title, path){
+  const url = window.location.origin + path;
+  if(navigator.share){
+    navigator.share({title, url}).catch(()=>{});
+    return;
+  }
+  navigator.clipboard.writeText(url).then(()=>showToast('Link copied!','s')).catch(()=>{
+    // Fallback
+    const box = document.createElement('div');
+    box.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;';
+    box.innerHTML=`<div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:16px;padding:28px;width:400px;max-width:95vw;"><h3 style="margin-bottom:12px;font-size:15px;">Share</h3><input value="${url}" style="width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:9px 12px;color:var(--tx);font-size:13px;" onclick="this.select()"><div style="display:flex;gap:8px;margin-top:14px;"><button onclick="navigator.clipboard.writeText('${url}').then(()=>{showToast('Copied!');this.closest('[style]').remove();})" class="btn btn-primary btn-sm">Copy Link</button><button onclick="this.closest('[style]').remove()" class="btn btn-ghost btn-sm">Close</button></div></div>`;
+    document.body.appendChild(box);
+    box.querySelector('input').select();
+  });
+}
+</script>
+{% endblock %}

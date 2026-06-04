@@ -1,0 +1,107 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}User — {{ user_obj.username }}{% endblock %}
+{% block topbar_title %}👤 {{ user_obj.username }}{% endblock %}
+{% block content %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+  <div>
+    <!-- User Info -->
+    <div class="panel">
+      <div class="panel-head"><span class="panel-title">User Info</span></div>
+      <div class="panel-body">
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
+          <div style="width:54px;height:54px;border-radius:50%;background:var(--ac);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;overflow:hidden;flex-shrink:0;">
+            {% if user_obj.avatar %}<img src="{{ user_obj.avatar.url }}" style="width:100%;height:100%;object-fit:cover;">{% else %}{{ user_obj.username|slice:':1'|upper }}{% endif %}
+          </div>
+          <div>
+            <div style="font-size:17px;font-weight:700;">{{ user_obj.username }}</div>
+            <div style="color:var(--tx2);font-size:13px;">{{ user_obj.email }}</div>
+            <div style="color:var(--tx2);font-size:12px;">Joined {{ user_obj.date_joined|date:"F d, Y" }}</div>
+          </div>
+        </div>
+        {% if user_obj.bio %}<p style="font-size:13px;color:var(--tx2);margin-bottom:16px;line-height:1.6;">{{ user_obj.bio }}</p>{% endif %}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
+          <div style="background:var(--bg3);border-radius:8px;padding:12px;"><div style="color:var(--tx2);font-size:10px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Role</div><span class="badge {% if user_obj.role == 'admin' %}badge-red{% elif user_obj.role == 'creator' %}badge-purple{% else %}badge-gray{% endif %}">{{ user_obj.role }}</span></div>
+          <div style="background:var(--bg3);border-radius:8px;padding:12px;"><div style="color:var(--tx2);font-size:10px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Status</div><span class="badge {% if user_obj.is_active %}badge-green{% else %}badge-red{% endif %}">{% if user_obj.is_active %}Active{% else %}Inactive{% endif %}</span></div>
+          <div style="background:var(--bg3);border-radius:8px;padding:12px;"><div style="color:var(--tx2);font-size:10px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Premium</div><span style="font-weight:600;font-size:13px;">{% if user_obj.is_premium %}✅ Yes{% else %}No{% endif %}</span></div>
+          <div style="background:var(--bg3);border-radius:8px;padding:12px;"><div style="color:var(--tx2);font-size:10px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Content</div><span style="font-weight:600;font-size:13px;">{{ user_content|length }}</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin Actions -->
+    <div class="panel" style="margin-top:14px;">
+      <div class="panel-head"><span class="panel-title">Admin Actions</span></div>
+      <div class="panel-body" style="display:flex;flex-direction:column;gap:10px;">
+        <form method="post" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">{% csrf_token %}
+          <input type="hidden" name="action" value="update_role">
+          <div class="fg" style="margin:0;flex:1;">
+            <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx2);display:block;margin-bottom:6px;">Role</label>
+            <select class="finput" name="role">{% for v,l in roles %}<option value="{{ v }}" {% if user_obj.role == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+          </div>
+          <button type="submit" class="btn btn-secondary btn-sm">Update Role</button>
+        </form>
+        <div style="display:flex;gap:8px;">
+          <form method="post" style="flex:1;">{% csrf_token %}<input type="hidden" name="action" value="toggle_active">
+            <button type="submit" class="btn {% if user_obj.is_active %}btn-danger{% else %}btn-success{% endif %} btn-sm" style="width:100%;justify-content:center;">{% if user_obj.is_active %}Deactivate{% else %}Activate{% endif %}</button>
+          </form>
+          <form method="post" style="flex:1;">{% csrf_token %}<input type="hidden" name="action" value="grant_premium">
+            <button type="submit" class="btn btn-secondary btn-sm" style="width:100%;justify-content:center;">⭐ Grant Premium</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wallet -->
+    {% if wallet %}
+    <div class="panel" style="margin-top:14px;">
+      <div class="panel-head"><span class="panel-title">💰 Wallet</span></div>
+      <div class="panel-body" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center;">
+        <div><div style="font-size:18px;font-weight:700;">{{ wallet.balance }}</div><div style="font-size:10px;color:var(--tx2);margin-top:3px;">Balance</div></div>
+        <div><div style="font-size:18px;font-weight:700;">{{ wallet.total_earned }}</div><div style="font-size:10px;color:var(--tx2);margin-top:3px;">Total Earned</div></div>
+        <div><div style="font-size:18px;font-weight:700;">{{ wallet.total_withdrawn }}</div><div style="font-size:10px;color:var(--tx2);margin-top:3px;">Withdrawn</div></div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div>
+    <!-- Content -->
+    <div class="panel">
+      <div class="panel-head"><span class="panel-title">Content ({{ user_content|length }})</span></div>
+      <div style="max-height:260px;overflow-y:auto;">
+        <table class="dt"><thead><tr><th>Title</th><th>Type</th><th>Status</th><th>Views</th></tr></thead><tbody>
+        {% for c in user_content %}
+        <tr>
+          <td style="font-size:12px;font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ c.title }}</td>
+          <td><span class="badge badge-purple" style="font-size:9px;text-transform:uppercase;">{{ c.content_type }}</span></td>
+          <td><span class="badge {% if c.status == 'approved' %}badge-green{% elif c.status == 'pending' %}badge-yellow{% else %}badge-red{% endif %}" style="font-size:9px;">{{ c.status }}</span></td>
+          <td style="font-size:12px;color:var(--tx2);">{{ c.views }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" style="text-align:center;padding:20px;color:var(--tx2);font-size:12px;">No content uploaded.</td></tr>
+        {% endfor %}
+        </tbody></table>
+      </div>
+    </div>
+
+    <!-- Audit Log -->
+    <div class="panel" style="margin-top:14px;">
+      <div class="panel-head"><span class="panel-title">Recent Activity</span></div>
+      <div style="max-height:260px;overflow-y:auto;">
+        <table class="dt"><thead><tr><th>Action</th><th>IP</th><th>Time</th></tr></thead><tbody>
+        {% for log in audit_logs %}
+        <tr>
+          <td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ log.description }}</td>
+          <td style="font-family:monospace;font-size:10px;color:var(--tx2);">{{ log.ip_address|default:'—' }}</td>
+          <td style="font-size:10px;color:var(--tx2);">{{ log.timestamp|date:"M d H:i" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3" style="text-align:center;padding:16px;color:var(--tx2);font-size:12px;">No activity logged.</td></tr>
+        {% endfor %}
+        </tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}{{ action }} Section{% endblock %}
+{% block topbar_title %}{{ action }} Homepage Section{% endblock %}
+{% block content %}
+<div style="max-width:800px;">
+<form method="post" enctype="multipart/form-data">{% csrf_token %}
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">Section Settings</span></div>
+    <div class="panel-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Section Type</label>
+          <select class="form-control" name="section_type">
+            {% for val, label in section_types %}<option value="{{ val }}" {% if section and section.section_type == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Order <span class="form-hint">Lower = appears first</span></label><input class="form-control" type="number" name="order" value="{{ section.order|default:0 }}"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Title</label><input class="form-control" name="title" value="{{ section.title|default:'' }}"></div>
+      <div class="form-group"><label class="form-label">Subtitle</label><textarea class="form-control" name="subtitle">{{ section.subtitle|default:'' }}</textarea></div>
+      <div class="form-group"><label class="form-label">Body Content / Custom HTML</label><textarea class="form-control" name="content" style="min-height:120px;font-family:monospace;font-size:12px;">{{ section.content|default:'' }}</textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">CTA Button Text</label><input class="form-control" name="cta_text" value="{{ section.cta_text|default:'' }}" placeholder="e.g. Get Started"></div>
+        <div class="form-group"><label class="form-label">CTA Button URL</label><input class="form-control" name="cta_url" value="{{ section.cta_url|default:'' }}" placeholder="/auth/register/"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Secondary CTA Text</label><input class="form-control" name="cta2_text" value="{{ section.cta2_text|default:'' }}"></div>
+        <div class="form-group"><label class="form-label">Secondary CTA URL</label><input class="form-control" name="cta2_url" value="{{ section.cta2_url|default:'' }}"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Video URL <span class="form-hint">YouTube, Vimeo, or direct MP4 URL</span></label><input class="form-control" name="video_url" value="{{ section.video_url|default:'' }}" placeholder="https://..."></div>
+      <div class="form-group"><label class="form-label">Background Image</label>{% if section and section.image %}<img src="{{ section.image.url }}" style="width:120px;height:70px;object-fit:cover;border-radius:6px;margin-bottom:8px;display:block;">{% endif %}<input class="form-control" type="file" name="image" accept="image/*"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Background Color <span class="form-hint">Optional override</span></label><input class="form-control" name="bg_color" value="{{ section.bg_color|default:'' }}" placeholder="#000000 or rgba(...)"></div>
+        <div class="form-group"><label class="form-label">Text Color</label><input class="form-control" name="text_color" value="{{ section.text_color|default:'' }}" placeholder="#ffffff"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-check"><input type="checkbox" name="is_visible" {% if not section or section.is_visible %}checked{% endif %}> Section is visible on homepage</label>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;gap:12px;">
+    <button type="submit" class="btn btn-primary">💾 {{ action }} Section</button>
+    <a href="/admin-panel/cms/homepage/" class="btn btn-ghost">Cancel</a>
+  </div>
+</form>
+</div>
+{% endblock %}

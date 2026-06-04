@@ -1,0 +1,579 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}CMS Center{% endblock %}
+{% block topbar_title %}CMS Center{% endblock %}
+{% block content %}
+
+<div class="tab-bar">
+  {% for tid,tlabel in tab_list %}{% empty %}
+  {% for tid,icon,tlabel in cms_tabs %}{% empty %}
+  <button class="tab-btn {% if active_tab == 'branding' %}active{% endif %}" data-group="cms" data-id="branding" onclick="switchTab('cms','branding',this)">🎨 Branding</button>
+  <button class="tab-btn {% if active_tab == 'theme' %}active{% endif %}" data-group="cms" data-id="theme" onclick="switchTab('cms','theme',this)">🖌 Theme</button>
+  <button class="tab-btn {% if active_tab == 'homepage' %}active{% endif %}" data-group="cms" data-id="homepage" onclick="switchTab('cms','homepage',this)">🏠 Homepage</button>
+  <button class="tab-btn {% if active_tab == 'menus' %}active{% endif %}" data-group="cms" data-id="menus" onclick="switchTab('cms','menus',this)">📋 Menus</button>
+  <button class="tab-btn {% if active_tab == 'pages' %}active{% endif %}" data-group="cms" data-id="pages" onclick="switchTab('cms','pages',this)">📄 Pages</button>
+  <button class="tab-btn {% if active_tab == 'seo' %}active{% endif %}" data-group="cms" data-id="seo" onclick="switchTab('cms','seo',this)">🔍 SEO</button>
+  <button class="tab-btn {% if active_tab == 'announcements' %}active{% endif %}" data-group="cms" data-id="announcements" onclick="switchTab('cms','announcements',this)">📢 Announcements</button>
+  <button class="tab-btn {% if active_tab == 'email_templates' %}active{% endif %}" data-group="cms" data-id="email_templates" onclick="switchTab('cms','email_templates',this)">✉️ Email Templates</button>
+  <button class="tab-btn {% if active_tab == 'scripts' %}active{% endif %}" data-group="cms" data-id="scripts" onclick="switchTab('cms','scripts',this)">⚙ Scripts</button>
+  <button class="tab-btn {% if active_tab == 'feature_flags' %}active{% endif %}" data-group="cms" data-id="feature_flags" onclick="switchTab('cms','feature_flags',this)">🚩 Flags</button>
+  <button class="tab-btn {% if active_tab == 'maintenance' %}active{% endif %}" data-group="cms" data-id="maintenance" onclick="switchTab('cms','maintenance',this)">🔧 Maintenance</button>
+  {% endfor %}{% endfor %}
+</div>
+
+{# ══════════════ BRANDING ══════════════ #}
+<div class="tab-panel {% if active_tab == 'branding' %}active{% endif %}" data-group="cms" data-id="branding">
+<form method="post" enctype="multipart/form-data"><input type="hidden" name="_action" value="branding">{% csrf_token %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+  <div>
+    <div class="panel">
+      <div class="panel-head"><span class="panel-title">🏷 Site Identity</span></div>
+      <div class="panel-body">
+        <div class="fg"><label>Site Name</label><input class="finput" name="site_name" value="{{ branding.site_name }}"></div>
+        <div class="fg"><label>Tagline</label><input class="finput" name="site_tagline" value="{{ branding.site_tagline }}"></div>
+        <div class="fg"><label>Description</label><textarea class="finput" name="site_description">{{ branding.site_description }}</textarea></div>
+        <div class="fg"><label>Copyright <span class="hint" style="font-weight:400;letter-spacing:0;">(use {year})</span></label><input class="finput" name="copyright_text" value="{{ branding.copyright_text }}"></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><span class="panel-title">📞 Contact</span></div>
+      <div class="panel-body">
+        <div class="form-grid">
+          <div class="fg"><label>Email</label><input class="finput" type="email" name="contact_email" value="{{ branding.contact_email }}"></div>
+          <div class="fg"><label>Phone</label><input class="finput" name="contact_phone" value="{{ branding.contact_phone }}"></div>
+        </div>
+        <div class="fg"><label>Address</label><textarea class="finput" name="contact_address" rows="2">{{ branding.contact_address }}</textarea></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><span class="panel-title">🌐 Social Links</span></div>
+      <div class="panel-body">
+        <div class="form-grid">
+          {% for field, lbl in social_fields %}{% empty %}
+          <div class="fg"><label>Twitter / X</label><input class="finput" name="social_twitter" value="{{ branding.social_twitter }}" placeholder="https://twitter.com/…"></div>
+          <div class="fg"><label>Instagram</label><input class="finput" name="social_instagram" value="{{ branding.social_instagram }}" placeholder="https://instagram.com/…"></div>
+          <div class="fg"><label>Facebook</label><input class="finput" name="social_facebook" value="{{ branding.social_facebook }}" placeholder="https://facebook.com/…"></div>
+          <div class="fg"><label>YouTube</label><input class="finput" name="social_youtube" value="{{ branding.social_youtube }}" placeholder="https://youtube.com/…"></div>
+          <div class="fg"><label>TikTok</label><input class="finput" name="social_tiktok" value="{{ branding.social_tiktok }}" placeholder="https://tiktok.com/…"></div>
+          <div class="fg"><label>Discord</label><input class="finput" name="social_discord" value="{{ branding.social_discord }}" placeholder="https://discord.gg/…"></div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="panel">
+      <div class="panel-head"><span class="panel-title">🖼 Logos & Assets</span></div>
+      <div class="panel-body">
+        {% for fld, lbl, hint in logo_list %}{% empty %}
+        {% for item in logo_loop %}{% empty %}
+        {% for fld, lbl in logo_fields_list %}{% empty %}
+        <div class="fg"><label>Primary Logo <span class="hint" style="font-weight:400;letter-spacing:0;">dark backgrounds</span></label>
+          {% if branding.logo_primary %}<img src="{{ branding.logo_primary.url }}" style="height:36px;margin-bottom:8px;display:block;border-radius:4px;">{% endif %}
+          <input class="finput" type="file" name="logo_primary" accept="image/*"></div>
+        <div class="fg"><label>Dark Mode Logo <span class="hint" style="font-weight:400;letter-spacing:0;">light backgrounds</span></label>
+          {% if branding.logo_dark %}<img src="{{ branding.logo_dark.url }}" style="height:36px;margin-bottom:8px;display:block;background:#f5f5f5;padding:4px;border-radius:4px;">{% endif %}
+          <input class="finput" type="file" name="logo_dark" accept="image/*"></div>
+        <div class="fg"><label>Footer Logo</label>
+          {% if branding.logo_footer %}<img src="{{ branding.logo_footer.url }}" style="height:32px;margin-bottom:8px;display:block;">{% endif %}
+          <input class="finput" type="file" name="logo_footer" accept="image/*"></div>
+        <div class="fg"><label>Email Logo</label>
+          {% if branding.logo_email %}<img src="{{ branding.logo_email.url }}" style="height:32px;margin-bottom:8px;display:block;">{% endif %}
+          <input class="finput" type="file" name="logo_email" accept="image/*"></div>
+        <div class="fg"><label>Favicon</label>
+          {% if branding.favicon %}<img src="{{ branding.favicon.url }}" style="height:32px;margin-bottom:8px;display:block;">{% endif %}
+          <input class="finput" type="file" name="favicon" accept="image/*"></div>
+        <div class="fg"><label>Social Preview Image <span class="hint" style="font-weight:400;letter-spacing:0;">1200×630px</span></label>
+          {% if branding.social_preview %}<img src="{{ branding.social_preview.url }}" style="width:100%;max-width:240px;border-radius:6px;margin-bottom:8px;display:block;">{% endif %}
+          <input class="finput" type="file" name="social_preview" accept="image/*"></div>
+        {% endfor %}{% endfor %}{% endfor %}
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">💾 Save Branding</button>
+  </div>
+</div>
+</form>
+</div>
+
+{# ══════════════ THEME ══════════════ #}
+<div class="tab-panel {% if active_tab == 'theme' %}active{% endif %}" data-group="cms" data-id="theme">
+<form method="post"><input type="hidden" name="_action" value="theme">{% csrf_token %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+  <div>
+    <div class="panel">
+      <div class="panel-head"><span class="panel-title">🎨 Color Palette</span></div>
+      <div class="panel-body">
+        <div class="form-grid">
+          {% for field, lbl in color_list %}{% empty %}
+          {% for row in colors_config %}{% empty %}
+          <div class="fg"><label>Primary Color</label><div class="color-row"><input type="color" class="finput" name="primary_color" value="{{ theme_obj.primary_color }}"><input type="text" class="finput" value="{{ theme_obj.primary_color }}" oninput="this.previousElementSibling.value=this.value" style="font-family:monospace"></div></div>
+          <div class="fg"><label>Secondary Color</label><div class="color-row"><input type="color" class="finput" name="secondary_color" value="{{ theme_obj.secondary_color }}"><input type="text" class="finput" value="{{ theme_obj.secondary_color }}" oninput="this.previousElementSibling.value=this.value" style="font-family:monospace"></div></div>
+          <div class="fg"><label>Accent Color</label><div class="color-row"><input type="color" class="finput" name="accent_color" value="{{ theme_obj.accent_color }}"><input type="text" class="finput" value="{{ theme_obj.accent_color }}" oninput="this.previousElementSibling.value=this.value" style="font-family:monospace"></div></div>
+          <div class="fg"><label>Background</label><div class="color-row"><input type="color" class="finput" name="background_color" value="{{ theme_obj.background_color }}"><input type="text" class="finput" value="{{ theme_obj.background_color }}" oninput="this.previousElementSibling.value=this.value" style="font-family:monospace"></div></div>
+          <div class="fg"><label>Surface Color</label><div class="color-row"><input type="color" class="finput" name="surface_color" value="{{ theme_obj.surface_color }}"><input type="text" class="finput" value="{{ theme_obj.surface_color }}" oninput="this.previousElementSibling.value=this.value" style="font-family:monospace"></div></div>
+          <div class="fg"><label>Text Primary</label><div class="color-row"><input type="color" class="finput" name="text_primary" value="{{ theme_obj.text_primary }}"><input type="text" class="finput" value="{{ theme_obj.text_primary }}" oninput="this.previousElementSibling.value=this.value" style="font-family:monospace"></div></div>
+          <div class="fg"><label>Text Secondary</label><div class="color-row"><input type="color" class="finput" name="text_secondary" value="{{ theme_obj.text_secondary }}"><input type="text" class="finput" value="{{ theme_obj.text_secondary }}" oninput="this.previousElementSibling.value=this.value" style="font-family:monospace"></div></div>
+          <div class="fg"><label>Button Color</label><div class="color-row"><input type="color" class="finput" name="btn_primary_bg" value="{{ theme_obj.btn_primary_bg }}"><input type="text" class="finput" value="{{ theme_obj.btn_primary_bg }}" oninput="this.previousElementSibling.value=this.value" style="font-family:monospace"></div></div>
+          {% endfor %}{% endfor %}
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><span class="panel-title">🔡 Typography</span></div>
+      <div class="panel-body">
+        <div class="form-grid">
+          <div class="fg"><label>Heading Font</label><input class="finput" name="heading_font" value="{{ theme_obj.heading_font }}" placeholder="Syne"></div>
+          <div class="fg"><label>Body Font</label><input class="finput" name="body_font" value="{{ theme_obj.body_font }}" placeholder="DM Sans"></div>
+          <div class="fg"><label>Heading Font URL</label><input class="finput" name="heading_font_url" value="{{ theme_obj.heading_font_url }}" placeholder="https://fonts.googleapis.com/…"></div>
+          <div class="fg"><label>Body Font URL</label><input class="finput" name="body_font_url" value="{{ theme_obj.body_font_url }}"></div>
+          <div class="fg"><label>Base Font Size</label><input class="finput" name="base_font_size" value="{{ theme_obj.base_font_size }}" placeholder="16px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="panel">
+      <div class="panel-head"><span class="panel-title">📐 Layout & Shape</span></div>
+      <div class="panel-body">
+        <div class="form-grid">
+          <div class="fg"><label>Border Radius</label><input class="finput" name="border_radius" value="{{ theme_obj.border_radius }}" placeholder="12px"></div>
+          <div class="fg"><label>Max Width</label><input class="finput" name="max_width" value="{{ theme_obj.max_width }}" placeholder="1380px"></div>
+          <div class="fg"><label>Button Radius</label><input class="finput" name="btn_radius" value="{{ theme_obj.btn_radius }}" placeholder="8px"></div>
+          <div class="fg"><label>Button Text Color</label><div class="color-row"><input type="color" class="finput" name="btn_primary_text" value="{{ theme_obj.btn_primary_text }}"><input type="text" class="finput" value="{{ theme_obj.btn_primary_text }}" oninput="this.previousElementSibling.value=this.value" style="font-family:monospace"></div></div>
+          <div class="fg"><label>Default Mode</label>
+            <select class="finput" name="default_mode">
+              <option value="dark" {% if theme_obj.default_mode == 'dark' %}selected{% endif %}>Dark</option>
+              <option value="light" {% if theme_obj.default_mode == 'light' %}selected{% endif %}>Light</option>
+              <option value="system" {% if theme_obj.default_mode == 'system' %}selected{% endif %}>System</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><span class="panel-title">💅 Custom CSS</span></div>
+      <div class="panel-body">
+        <div class="fg"><label>Additional CSS <span class="hint" style="font-weight:400;letter-spacing:0;">injected after theme vars</span></label><textarea class="finput code" name="custom_css" style="min-height:180px;">{{ theme_obj.custom_css }}</textarea></div>
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">💾 Save Theme</button>
+    <p style="text-align:center;font-size:12px;color:var(--text2);margin-top:8px;">Changes are live immediately — no restart needed.</p>
+  </div>
+</div>
+</form>
+</div>
+
+{# ══════════════ HOMEPAGE ══════════════ #}
+<div class="tab-panel {% if active_tab == 'homepage' %}active{% endif %}" data-group="cms" data-id="homepage">
+<div class="section-head">
+  <h2>Homepage Sections</h2>
+  <button onclick="document.getElementById('hp-form').style.display=document.getElementById('hp-form').style.display==='none'?'block':'none'" class="btn btn-primary btn-sm">+ Add Section</button>
+</div>
+<div id="hp-form" style="display:none;" class="panel">
+  <div class="panel-head"><span class="panel-title">New Section</span></div>
+  <div class="panel-body">
+  <form method="post" enctype="multipart/form-data"><input type="hidden" name="_action" value="hp_create">{% csrf_token %}
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;">
+      <div class="fg"><label>Type</label><select class="finput" name="section_type">{% for v,l in hp_types %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+      <div class="fg"><label>Title</label><input class="finput" name="title" placeholder="Section headline"></div>
+      <div class="fg"><label>Order</label><input class="finput" type="number" name="order" value="0"></div>
+      <div class="fg" style="grid-column:span 2"><label>Subtitle / Body</label><textarea class="finput" name="subtitle" rows="2" placeholder="Supporting text or HTML"></textarea></div>
+      <div class="fg"><label>Background Image</label><input class="finput" type="file" name="image" accept="image/*"></div>
+      <div class="fg"><label>CTA Button Text</label><input class="finput" name="cta_text" placeholder="Get Started"></div>
+      <div class="fg"><label>CTA URL</label><input class="finput" name="cta_url" placeholder="/auth/register/"></div>
+      <div class="fg"><label>Secondary CTA Text</label><input class="finput" name="cta2_text"></div>
+      <div class="fg"><label>Secondary CTA URL</label><input class="finput" name="cta2_url"></div>
+      <div class="fg"><label>Video URL</label><input class="finput" name="video_url" placeholder="https://youtube.com/…"></div>
+      <div class="fg"><label>BG Color Override</label><input class="finput" name="bg_color" placeholder="#000000"></div>
+      <div class="fg" style="display:flex;align-items:flex-end;padding-bottom:4px;"><label class="fcheck"><input type="checkbox" name="is_visible" checked> Visible</label></div>
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm" style="margin-top:8px;">Create Section</button>
+  </form>
+  </div>
+</div>
+{% if hp_sections %}
+<div id="hp-list">
+{% for s in hp_sections %}
+<div class="panel" style="margin-bottom:10px;" data-pk="{{ s.pk }}">
+  <div style="display:flex;align-items:center;gap:14px;padding:14px 18px;">
+    <span style="color:var(--text3);font-size:18px;cursor:grab;">⠿</span>
+    <div style="flex:1">
+      <div style="font-weight:600;font-size:13px;">{{ s.title|default:"(untitled)" }}</div>
+      <div style="font-size:11px;color:var(--text2);">{{ s.get_section_type_display }} · order {{ s.order }}</div>
+    </div>
+    <span class="badge {% if s.is_visible %}badge-green{% else %}badge-gray{% endif %}">{% if s.is_visible %}Visible{% else %}Hidden{% endif %}</span>
+    <form method="post" style="display:inline;"><input type="hidden" name="_action" value="hp_toggle"><input type="hidden" name="pk" value="{{ s.pk }}">{% csrf_token %}<button class="btn-icon btn-xs" title="Toggle visibility">👁</button></form>
+    <form method="post" style="display:inline;" onsubmit="return confirm('Delete this section?')"><input type="hidden" name="_action" value="hp_delete"><input type="hidden" name="pk" value="{{ s.pk }}">{% csrf_token %}<button class="btn btn-danger btn-xs">Delete</button></form>
+  </div>
+</div>
+{% endfor %}
+</div>
+{% else %}
+<div class="empty"><div class="empty-icon">🏠</div><h3>No sections yet</h3><p>Add your first homepage section above.</p></div>
+{% endif %}
+</div>
+
+{# ══════════════ MENUS ══════════════ #}
+<div class="tab-panel {% if active_tab == 'menus' %}active{% endif %}" data-group="cms" data-id="menus">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;">
+  {% for loc_val, loc_label in menu_locs %}
+  {% for menu in menus %}{% if menu.location == loc_val %}
+  <div class="panel">
+    <div class="panel-head"><span class="panel-title">{{ loc_label }}</span><span class="badge badge-{% if menu.is_active %}green{% else %}gray{% endif %}">{% if menu.is_active %}Active{% else %}Off{% endif %}</span></div>
+    <div class="panel-body" style="padding:12px;">
+      {% for item in menu.items.all %}
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;background:rgba(255,255,255,.03);margin-bottom:6px;">
+        {% if item.icon %}<span style="font-size:14px;">{{ item.icon }}</span>{% endif %}
+        <span style="flex:1;font-size:13px;font-weight:500;">{{ item.label }}</span>
+        <code style="font-size:10px;color:var(--text3);">{{ item.url }}</code>
+        <form method="post" style="display:inline;"><input type="hidden" name="_action" value="menu_delete_item"><input type="hidden" name="item_pk" value="{{ item.pk }}">{% csrf_token %}<button class="btn-icon btn-xs" style="font-size:11px;">×</button></form>
+      </div>
+      {% endfor %}
+      <form method="post" style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr auto;gap:6px;align-items:end;">
+        <input type="hidden" name="_action" value="menu_add_item"><input type="hidden" name="location" value="{{ loc_val }}">{% csrf_token %}
+        <div><input class="finput" name="label" placeholder="Label" style="padding:7px 10px;font-size:12px;" required></div>
+        <div><input class="finput" name="url" placeholder="/path/" style="padding:7px 10px;font-size:12px;" required></div>
+        <button type="submit" class="btn btn-primary btn-xs">Add</button>
+      </form>
+    </div>
+  </div>
+  {% endif %}{% endfor %}
+  {% empty %}
+  <p style="color:var(--text2);">No menus configured.</p>
+  {% endfor %}
+</div>
+</div>
+
+{# ══════════════ PAGES ══════════════ #}
+<div class="tab-panel {% if active_tab == 'pages' %}active{% endif %}" data-group="cms" data-id="pages">
+<div class="section-head"><h2>Static Pages</h2><button onclick="document.getElementById('page-form').style.display=document.getElementById('page-form').style.display==='none'?'block':'none'" class="btn btn-primary btn-sm">+ New Page</button></div>
+<div id="page-form" style="display:none;" class="panel">
+  <div class="panel-head"><span class="panel-title">Create Page</span></div>
+  <div class="panel-body">
+  <form method="post"><input type="hidden" name="_action" value="page_create">{% csrf_token %}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="fg"><label>Title</label><input class="finput" name="title" required placeholder="Privacy Policy"></div>
+      <div class="fg"><label>Slug <span class="hint" style="font-weight:400;letter-spacing:0;">auto-generated if blank</span></label><input class="finput" name="slug" placeholder="privacy-policy"></div>
+      <div class="fg" style="grid-column:span 2"><label>Content (HTML supported)</label><textarea class="finput code" name="content" style="min-height:160px;" placeholder="<h2>Page title</h2><p>Page content...</p>"></textarea></div>
+      <div class="fg"><label>Status</label><select class="finput" name="status"><option value="draft">Draft</option><option value="published">Published</option></select></div>
+      <div class="fg" style="display:flex;align-items:flex-end;gap:16px;padding-bottom:4px;">
+        <label class="fcheck"><input type="checkbox" name="show_in_footer"> Footer</label>
+        <label class="fcheck"><input type="checkbox" name="show_in_nav"> Nav</label>
+      </div>
+      <div class="fg"><label>Meta Title</label><input class="finput" name="meta_title"></div>
+      <div class="fg"><label>Meta Description</label><input class="finput" name="meta_description"></div>
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm" style="margin-top:8px;">Create Page</button>
+  </form>
+  </div>
+</div>
+{% if pages %}
+<div class="table-wrap">
+<table class="dt">
+  <thead><tr><th>Title</th><th>Slug</th><th>Status</th><th>Footer</th><th>Nav</th><th>Updated</th><th>Actions</th></tr></thead>
+  <tbody>
+  {% for p in pages %}
+  <tr>
+    <td style="font-weight:500;">{{ p.title }}</td>
+    <td><code style="font-size:11px;color:var(--text2);">/page/{{ p.slug }}/</code></td>
+    <td><span class="badge {% if p.status == 'published' %}badge-green{% else %}badge-gray{% endif %}">{{ p.status }}</span></td>
+    <td style="text-align:center;font-size:16px;">{% if p.show_in_footer %}✅{% else %}—{% endif %}</td>
+    <td style="text-align:center;font-size:16px;">{% if p.show_in_nav %}✅{% else %}—{% endif %}</td>
+    <td style="font-size:12px;color:var(--text2);">{{ p.updated_at|date:"M d, Y" }}</td>
+    <td>
+      <div style="display:flex;gap:6px;">
+        <a href="/page/{{ p.slug }}/" target="_blank" class="btn btn-ghost btn-xs">View</a>
+        <button onclick="openEditPage({{ p.pk }},'{{ p.title|escapejs }}','{{ p.slug }}','{{ p.status }}',{{ p.show_in_footer|lower }},{{ p.show_in_nav|lower }})" class="btn btn-secondary btn-xs">Edit</button>
+        <form method="post" onsubmit="return confirm('Delete?')"><input type="hidden" name="_action" value="page_delete"><input type="hidden" name="pk" value="{{ p.pk }}">{% csrf_token %}<button class="btn btn-danger btn-xs">Del</button></form>
+      </div>
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="empty"><div class="empty-icon">📄</div><h3>No pages yet</h3><p>Create About, Privacy, Terms, and other pages here.</p></div>
+{% endif %}
+<!-- Edit modal -->
+<div id="page-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:999;align-items:center;justify-content:center;">
+  <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:24px;width:640px;max-height:80vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <span style="font-size:15px;font-weight:600;">Edit Page</span>
+      <button onclick="document.getElementById('page-edit-modal').style.display='none'" class="btn-icon">×</button>
+    </div>
+    <form method="post" id="page-edit-form"><input type="hidden" name="_action" value="page_edit"><input type="hidden" name="pk" id="ep-pk">{% csrf_token %}
+      <div class="fg"><label>Title</label><input class="finput" id="ep-title" name="title"></div>
+      <div class="fg"><label>Content (HTML)</label><textarea class="finput code" id="ep-content" name="content" style="min-height:200px;"></textarea></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="fg"><label>Status</label><select class="finput" id="ep-status" name="status"><option value="draft">Draft</option><option value="published">Published</option></select></div>
+        <div class="fg" style="display:flex;align-items:flex-end;gap:16px;padding-bottom:4px;">
+          <label class="fcheck"><input type="checkbox" id="ep-footer" name="show_in_footer"> Footer</label>
+          <label class="fcheck"><input type="checkbox" id="ep-nav" name="show_in_nav"> Nav</label>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">Save Changes</button>
+    </form>
+  </div>
+</div>
+</div>
+
+{# ══════════════ SEO ══════════════ #}
+<div class="tab-panel {% if active_tab == 'seo' %}active{% endif %}" data-group="cms" data-id="seo">
+<form method="post" enctype="multipart/form-data"><input type="hidden" name="_action" value="seo_global">{% csrf_token %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+  <div class="panel"><div class="panel-head"><span class="panel-title">🔍 Global Defaults</span></div><div class="panel-body">
+    <div class="fg"><label>Meta Title <span class="hint" style="font-weight:400;letter-spacing:0;">max 200 chars</span></label><input class="finput" name="meta_title" value="{{ global_seo.meta_title }}" maxlength="200"></div>
+    <div class="fg"><label>Meta Description <span class="hint" style="font-weight:400;letter-spacing:0;">max 320 chars</span></label><textarea class="finput" name="meta_description" maxlength="320" rows="2">{{ global_seo.meta_description }}</textarea></div>
+    <div class="fg"><label>Keywords</label><input class="finput" name="meta_keywords" value="{{ global_seo.meta_keywords }}" placeholder="comma, separated"></div>
+    <div class="fg"><label>OG Title</label><input class="finput" name="og_title" value="{{ global_seo.og_title }}"></div>
+    <div class="fg"><label>OG Description</label><textarea class="finput" name="og_description" rows="2">{{ global_seo.og_description }}</textarea></div>
+    <div class="fg"><label>OG Image <span class="hint" style="font-weight:400;letter-spacing:0;">1200×630px</span></label>{% if global_seo.og_image %}<img src="{{ global_seo.og_image.url }}" style="width:100%;max-width:280px;border-radius:6px;margin-bottom:8px;display:block;">{% endif %}<input class="finput" type="file" name="og_image" accept="image/*"></div>
+    <div class="form-grid">
+      <div class="fg"><label>Twitter Card</label><select class="finput" name="twitter_card"><option value="summary" {% if global_seo.twitter_card == 'summary' %}selected{% endif %}>Summary</option><option value="summary_large_image" {% if global_seo.twitter_card == 'summary_large_image' %}selected{% endif %}>Large Image</option></select></div>
+      <div class="fg"><label>Twitter Handle</label><input class="finput" name="twitter_handle" value="{{ global_seo.twitter_handle }}" placeholder="@nexus"></div>
+      <div class="fg"><label>Canonical Domain</label><input class="finput" name="canonical_domain" value="{{ global_seo.canonical_domain }}" placeholder="https://yourdomain.com"></div>
+      <div class="fg" style="display:flex;align-items:flex-end;padding-bottom:4px;"><label class="fcheck"><input type="checkbox" name="allow_indexing" {% if global_seo.allow_indexing %}checked{% endif %}> Allow search engine indexing</label></div>
+      <div class="fg"><label>Google Verification</label><input class="finput" name="google_site_verification" value="{{ global_seo.google_site_verification }}"></div>
+      <div class="fg"><label>Bing Verification</label><input class="finput" name="bing_site_verification" value="{{ global_seo.bing_site_verification }}"></div>
+    </div>
+  </div></div>
+  <div class="panel"><div class="panel-head"><span class="panel-title">🤖 robots.txt</span><span class="hint" style="font-size:11px;">served at /robots.txt</span></div><div class="panel-body">
+    <textarea class="finput code" name="robots_txt" style="min-height:220px;font-size:12px;">{{ global_seo.robots_txt }}</textarea>
+    <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:12px;">💾 Save SEO Settings</button>
+  </div></div>
+</div>
+</form>
+{% if page_seos %}
+<div class="panel" style="margin-top:16px;"><div class="panel-head"><span class="panel-title">Per-Page SEO Overrides</span></div>
+<div class="table-wrap borderless"><table class="dt"><thead><tr><th>Path</th><th>Title Override</th><th>No-index</th><th></th></tr></thead><tbody>
+{% for ps in page_seos %}<tr>
+  <td><code style="font-size:12px;">{{ ps.path }}</code></td>
+  <td style="font-size:12px;color:var(--text2);">{{ ps.meta_title|default:'—'|truncatechars:40 }}</td>
+  <td>{% if ps.no_index %}<span class="badge badge-red">No-index</span>{% else %}—{% endif %}</td>
+  <td><form method="post"><input type="hidden" name="_action" value="page_seo_delete"><input type="hidden" name="pk" value="{{ ps.pk }}">{% csrf_token %}<button class="btn btn-danger btn-xs">Remove</button></form></td>
+</tr>{% endfor %}
+</tbody></table></div></div>
+{% endif %}
+</div>
+
+{# ══════════════ ANNOUNCEMENTS ══════════════ #}
+<div class="tab-panel {% if active_tab == 'announcements' %}active{% endif %}" data-group="cms" data-id="announcements">
+<div class="section-head"><h2>Announcements</h2><button onclick="document.getElementById('ann-form').style.display=document.getElementById('ann-form').style.display==='none'?'block':'none'" class="btn btn-primary btn-sm">+ New Announcement</button></div>
+<div id="ann-form" style="display:none;" class="panel"><div class="panel-head"><span class="panel-title">Create Announcement</span></div><div class="panel-body">
+<form method="post"><input type="hidden" name="_action" value="ann_create">{% csrf_token %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+  <div class="fg"><label>Type</label><select class="finput" name="announcement_type">{% for v,l in ann_types %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+  <div class="fg"><label>Title</label><input class="finput" name="title" required></div>
+  <div class="fg" style="grid-column:span 2"><label>Message</label><textarea class="finput" name="message" required></textarea></div>
+  <div class="fg"><label>CTA Text</label><input class="finput" name="link_text" placeholder="Learn More"></div>
+  <div class="fg"><label>CTA URL</label><input class="finput" name="link_url" placeholder="/page/about/"></div>
+  <div class="fg"><label>Background Color</label><div class="color-row"><input type="color" class="finput" name="bg_color" value="#7c5cfc"><input type="text" class="finput" value="#7c5cfc" style="font-family:monospace"></div></div>
+  <div class="fg"><label>Text Color</label><div class="color-row"><input type="color" class="finput" name="text_color" value="#ffffff"><input type="text" class="finput" value="#ffffff" style="font-family:monospace"></div></div>
+  <div class="fg"><label>Start (optional)</label><input class="finput" type="datetime-local" name="starts_at"></div>
+  <div class="fg"><label>End (optional)</label><input class="finput" type="datetime-local" name="ends_at"></div>
+  <div class="fg" style="display:flex;gap:16px;align-items:flex-end;padding-bottom:4px;grid-column:span 2">
+    <label class="fcheck"><input type="checkbox" name="is_active" checked> Active</label>
+    <label class="fcheck"><input type="checkbox" name="is_dismissible" checked> Dismissible</label>
+    <label class="fcheck"><input type="checkbox" name="show_to_logged_in" checked> Logged-in users</label>
+    <label class="fcheck"><input type="checkbox" name="show_to_guests" checked> Guests</label>
+  </div>
+</div>
+<button type="submit" class="btn btn-primary btn-sm" style="margin-top:8px;">Create</button>
+</form>
+</div></div>
+{% if announcements %}
+<div class="table-wrap"><table class="dt"><thead><tr><th>Type</th><th>Title</th><th>Schedule</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+{% for a in announcements %}<tr>
+  <td><span class="badge badge-purple">{{ a.get_announcement_type_display }}</span></td>
+  <td style="font-weight:500;">{{ a.title }}</td>
+  <td style="font-size:12px;color:var(--text2);">{% if a.starts_at %}{{ a.starts_at|date:"M d H:i" }}{% else %}Always{% endif %}{% if a.ends_at %} → {{ a.ends_at|date:"M d H:i" }}{% endif %}</td>
+  <td><form method="post" style="display:inline;"><input type="hidden" name="_action" value="ann_toggle"><input type="hidden" name="pk" value="{{ a.pk }}">{% csrf_token %}<button class="badge {% if a.is_active %}badge-green{% else %}badge-gray{% endif %}" style="border:none;cursor:pointer;">{% if a.is_active %}Active{% else %}Inactive{% endif %}</button></form></td>
+  <td><form method="post" style="display:inline;" onsubmit="return confirm('Delete?')"><input type="hidden" name="_action" value="ann_delete"><input type="hidden" name="pk" value="{{ a.pk }}">{% csrf_token %}<button class="btn btn-danger btn-xs">Delete</button></form></td>
+</tr>{% endfor %}
+</tbody></table></div>
+{% else %}
+<div class="empty"><div class="empty-icon">📢</div><h3>No announcements</h3><p>Create top banners and site notices here.</p></div>
+{% endif %}
+</div>
+
+{# ══════════════ EMAIL TEMPLATES ══════════════ #}
+<div class="tab-panel {% if active_tab == 'email_templates' %}active{% endif %}" data-group="cms" data-id="email_templates">
+<div style="display:grid;grid-template-columns:260px 1fr;gap:16px;height:600px;">
+  <div class="panel" style="overflow-y:auto;">
+    <div class="panel-head"><span class="panel-title">Templates</span></div>
+    <div style="padding:8px;">
+      {% for val, label in email_types %}
+      {% for t in email_templates %}{% if t.template_type == val %}
+      <button onclick="loadTemplate('{{ val }}','{{ label|escapejs }}')" class="sb-item" style="width:100%;text-align:left;" id="tmpl-btn-{{ val }}">
+        <span style="font-size:13px;">{% if t.is_active %}🟢{% else %}⚫{% endif %}</span> {{ label }}
+      </button>
+      {% endif %}{% endfor %}
+      {% endfor %}
+      {% for val, label in email_types %}
+      {% if val not in email_templates|dictsortreversed:"template_type" %}
+      <button onclick="loadTemplate('{{ val }}','{{ label|escapejs }}')" class="sb-item" style="width:100%;text-align:left;">
+        <span style="font-size:13px;">⚫</span> {{ label }}
+      </button>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+  <div class="panel" id="tmpl-editor" style="overflow-y:auto;">
+    <div class="panel-head"><span class="panel-title" id="tmpl-title">Select a template</span></div>
+    <div class="panel-body" id="tmpl-body" style="display:none;">
+      <form method="post" id="tmpl-form"><input type="hidden" name="_action" value="email_tmpl_save"><input type="hidden" name="template_type" id="tmpl-type">{% csrf_token %}
+        <div class="fg"><label>Subject</label><input class="finput" name="subject" id="tmpl-subject" required></div>
+        <div class="form-grid">
+          <div class="fg"><label>From Name</label><input class="finput" name="from_name" id="tmpl-from-name"></div>
+          <div class="fg"><label>From Email</label><input class="finput" type="email" name="from_email" id="tmpl-from-email"></div>
+        </div>
+        <div class="fg"><label>HTML Body <span class="hint" style="font-weight:400;letter-spacing:0;">{{user.username}}, {{content_title}}, {{amount}}, {{reason}}, {{site_name}} available</span></label><textarea class="finput code" name="body_html" id="tmpl-html" style="min-height:240px;"></textarea></div>
+        <div class="fg"><label>Plain Text Fallback</label><textarea class="finput" name="body_text" id="tmpl-text" rows="3"></textarea></div>
+        <div class="fg"><label class="fcheck"><input type="checkbox" name="is_active" id="tmpl-active"> Active</label></div>
+        <button type="submit" class="btn btn-primary">💾 Save Template</button>
+      </form>
+    </div>
+    <div id="tmpl-placeholder" style="display:flex;align-items:center;justify-content:center;height:400px;color:var(--text2);">← Choose a template to edit</div>
+  </div>
+</div>
+{% comment %}Template data for JS{% endcomment %}
+<script>
+const tmplData = {
+{% for t in email_templates %}
+  "{{ t.template_type }}": { subject: "{{ t.subject|escapejs }}", from_name: "{{ t.from_name|escapejs }}", from_email: "{{ t.from_email|escapejs }}", body_html: {{ t.body_html|escapejs|safe }}, body_text: "{{ t.body_text|escapejs }}", is_active: {{ t.is_active|lower }} },
+{% endfor %}
+};
+function loadTemplate(type, label) {
+  document.getElementById('tmpl-title').textContent = label;
+  document.getElementById('tmpl-type').value = type;
+  const d = tmplData[type] || {};
+  document.getElementById('tmpl-subject').value = d.subject || '';
+  document.getElementById('tmpl-from-name').value = d.from_name || '';
+  document.getElementById('tmpl-from-email').value = d.from_email || '';
+  document.getElementById('tmpl-html').value = (d.body_html || '').replace(/\\n/g,'\n');
+  document.getElementById('tmpl-text').value = d.body_text || '';
+  document.getElementById('tmpl-active').checked = !!d.is_active;
+  document.getElementById('tmpl-body').style.display = 'block';
+  document.getElementById('tmpl-placeholder').style.display = 'none';
+}
+</script>
+</div>
+
+{# ══════════════ SCRIPTS ══════════════ #}
+<div class="tab-panel {% if active_tab == 'scripts' %}active{% endif %}" data-group="cms" data-id="scripts">
+<div class="section-head"><h2>Scripts & Integrations</h2><button onclick="document.getElementById('script-form').style.display=document.getElementById('script-form').style.display==='none'?'block':'none'" class="btn btn-primary btn-sm">+ Add Script</button></div>
+<div id="script-form" style="display:none;" class="panel"><div class="panel-head"><span class="panel-title">Add Script / Integration</span></div><div class="panel-body">
+<form method="post"><input type="hidden" name="_action" value="script_create">{% csrf_token %}
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+  <div class="fg"><label>Name</label><input class="finput" name="name" required placeholder="Google Analytics"></div>
+  <div class="fg"><label>Position</label><select class="finput" name="position">{% for v,l in script_positions %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+  <div class="fg"><label>Load on Pages</label><input class="finput" name="load_on_pages" value="*" placeholder="* or /blog/,/movies/"></div>
+  <div class="fg" style="grid-column:span 2"><label>Script Code</label><textarea class="finput code" name="script" style="min-height:120px;" required placeholder="<script async src='...'></s​cript>"></textarea></div>
+  <div class="fg" style="display:flex;flex-direction:column;gap:10px;justify-content:flex-end;">
+    <div class="fg"><label>Order</label><input class="finput" type="number" name="order" value="0"></div>
+    <label class="fcheck"><input type="checkbox" name="is_active" checked> Active</label>
+  </div>
+</div>
+<button type="submit" class="btn btn-primary btn-sm" style="margin-top:8px;">Add Script</button>
+</form>
+</div></div>
+{% if scripts %}
+<div class="table-wrap"><table class="dt"><thead><tr><th>Name</th><th>Position</th><th>Pages</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+{% for s in scripts %}<tr>
+  <td style="font-weight:500;">{{ s.name }}{% if s.description %}<br><span style="font-size:11px;color:var(--text2);">{{ s.description }}</span>{% endif %}</td>
+  <td><span class="badge badge-gray">{{ s.get_position_display }}</span></td>
+  <td style="font-size:12px;color:var(--text2);">{{ s.load_on_pages }}</td>
+  <td>
+    <form method="post" style="display:inline;"><input type="hidden" name="_action" value="script_toggle"><input type="hidden" name="pk" value="{{ s.pk }}">{% csrf_token %}
+      <button class="badge {% if s.is_active %}badge-green{% else %}badge-gray{% endif %}" style="border:none;cursor:pointer;">{% if s.is_active %}Active{% else %}Off{% endif %}</button>
+    </form>
+  </td>
+  <td style="display:flex;gap:6px;">
+    <form method="post" style="display:inline;" onsubmit="return confirm('Delete?')"><input type="hidden" name="_action" value="script_delete"><input type="hidden" name="pk" value="{{ s.pk }}">{% csrf_token %}<button class="btn btn-danger btn-xs">Delete</button></form>
+  </td>
+</tr>{% endfor %}
+</tbody></table></div>
+{% else %}
+<div class="empty"><div class="empty-icon">⚙</div><h3>No scripts yet</h3><p>Add Google Analytics, Meta Pixel, custom tracking, and more.</p></div>
+{% endif %}
+<div class="panel" style="margin-top:16px;"><div class="panel-head"><span class="panel-title">💡 Common Integrations — click to pre-fill</span></div>
+<div class="panel-body" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;">
+{% for name, desc, snippet in common_integrations %}{% empty %}
+<div style="border:1px solid var(--border);border-radius:8px;padding:12px;cursor:pointer;transition:border-color .15s;" onclick="prefillScript('Google Analytics (GA4)','<!-- Google Analytics -->\n<script async src=\'https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX\'></s​cript>\n<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag(\'js\',new Date());gtag(\'config\',\'G-XXXXXXXXXX\');</s​cript>')" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"><div style="font-weight:600;font-size:13px;margin-bottom:4px;">📊 Google Analytics</div><div style="font-size:11px;color:var(--text2);">GA4 tracking code</div></div>
+<div style="border:1px solid var(--border);border-radius:8px;padding:12px;cursor:pointer;transition:border-color .15s;" onclick="prefillScript('Meta Pixel','<!-- Meta Pixel -->\n<script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version=\'2.0\';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,\'script\',\'https://connect.facebook.net/en_US/fbevents.js\');fbq(\'init\',\'YOUR_PIXEL_ID\');fbq(\'track\',\'PageView\');</s​cript>')" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"><div style="font-weight:600;font-size:13px;margin-bottom:4px;">📘 Meta Pixel</div><div style="font-size:11px;color:var(--text2);">Facebook/Instagram ads</div></div>
+<div style="border:1px solid var(--border);border-radius:8px;padding:12px;cursor:pointer;transition:border-color .15s;" onclick="prefillScript('TikTok Pixel','<!-- TikTok Pixel -->\n<script>\n!function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=[\'page\',\'track\',\'identify\'];ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e};ttq.load=function(e,n){var i=\'https://analytics.tiktok.com/i18n/pixel/events.js\';ttq._i=ttq._i||{};ttq._i[e]=[];ttq._i[e]._u=i;ttq._t=ttq._t||{};ttq._t[e]=+new Date;ttq._o=ttq._o||{};ttq._o[e]=n||{};var o=document.createElement(\'script\');o.type=\'text/javascript\';o.async=!0;o.src=i+\'?sdkid=\'+e+\'&lib=\'+t;var a=document.getElementsByTagName(\'script\')[0];a.parentNode.insertBefore(o,a)};ttq.load(\'YOUR_PIXEL_ID\');ttq.page();\n}(window,document,\'ttq\');\n</s​cript>')" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"><div style="font-weight:600;font-size:13px;margin-bottom:4px;">🎵 TikTok Pixel</div><div style="font-size:11px;color:var(--text2);">TikTok ads tracking</div></div>
+<div style="border:1px solid var(--border);border-radius:8px;padding:12px;cursor:pointer;transition:border-color .15s;" onclick="prefillScript('Google Tag Manager','<!-- GTM Head -->\n<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({\'gtm.start\':new Date().getTime(),event:\'gtm.js\'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!=\'dataLayer\'?\'&l=\'+l:\'\';j.async=true;j.src=\'https://www.googletagmanager.com/gtm.js?id=\'+i+dl;f.parentNode.insertBefore(j,f);})(window,document,\'script\',\'dataLayer\',\'GTM-XXXXXXX\');</s​cript>')" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"><div style="font-weight:600;font-size:13px;margin-bottom:4px;">🏷 Google Tag Manager</div><div style="font-size:11px;color:var(--text2);">GTM container</div></div>
+<div style="border:1px solid var(--border);border-radius:8px;padding:12px;cursor:pointer;transition:border-color .15s;" onclick="prefillScript('Crisp Live Chat','<!-- Crisp Chat -->\n<script type=\'text/javascript\'>\nwindow.$crisp=[];window.CRISP_WEBSITE_ID=\'YOUR-CRISP-ID\';\n(function(){d=document;s=d.createElement(\'script\');s.src=\'https://client.crisp.chat/l.js\';s.async=1;d.getElementsByTagName(\'head\')[0].appendChild(s);})();\n</s​cript>')" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"><div style="font-weight:600;font-size:13px;margin-bottom:4px;">💬 Crisp Live Chat</div><div style="font-size:11px;color:var(--text2);">Customer support widget</div></div>
+<div style="border:1px solid var(--border);border-radius:8px;padding:12px;cursor:pointer;transition:border-color .15s;" onclick="prefillScript('Hotjar Analytics','<!-- Hotjar -->\n<script>\n(function(h,o,t,j,a,r){h.hj=h.hj||function(){(h.hj.q=h.hj.q||[]).push(arguments)};h._hjSettings={hjid:YOUR_HJID,hjsv:6};a=o.getElementsByTagName(\'head\')[0];r=o.createElement(\'script\');r.async=1;r.src=t+h._hjSettings.hjid+j+h._hjSettings.hjsv;a.appendChild(r);})(window,document,\'https://static.hotjar.com/c/hotjar-\',\'.js?sv=\');\n</s​cript>')" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"><div style="font-weight:600;font-size:13px;margin-bottom:4px;">🔥 Hotjar</div><div style="font-size:11px;color:var(--text2);">Heatmaps & recordings</div></div>
+{% endfor %}
+</div></div>
+</div>
+
+{# ══════════════ FEATURE FLAGS ══════════════ #}
+<div class="tab-panel {% if active_tab == 'feature_flags' %}active{% endif %}" data-group="cms" data-id="feature_flags">
+<div class="alert alert-info"><span class="alert-icon">ℹ️</span> Feature flags let you enable or disable platform features instantly without deployments. Changes take effect within 60 seconds.</div>
+<div class="table-wrap"><table class="dt"><thead><tr><th>Key</th><th>Feature</th><th>Rollout %</th><th>Updated</th><th>Enabled</th></tr></thead><tbody>
+{% for flag in flags %}<tr>
+  <td><code style="font-size:11px;color:var(--text2);">{{ flag.key }}</code></td>
+  <td><div style="font-weight:500;">{{ flag.name }}</div>{% if flag.description %}<div style="font-size:11px;color:var(--text2);">{{ flag.description }}</div>{% endif %}</td>
+  <td>
+    <form method="post" style="display:flex;gap:6px;align-items:center;"><input type="hidden" name="_action" value="flag_save"><input type="hidden" name="pk" value="{{ flag.pk }}">{% csrf_token %}
+      <input class="finput" type="number" name="rollout_pct" value="{{ flag.rollout_pct }}" min="0" max="100" style="width:64px;padding:4px 8px;font-size:12px;">
+      <button type="submit" class="btn btn-ghost btn-xs">%</button>
+    </form>
+  </td>
+  <td style="font-size:11px;color:var(--text2);">{{ flag.updated_at|date:"M d H:i" }}</td>
+  <td>
+    <form method="post" style="display:inline;"><input type="hidden" name="_action" value="flag_toggle"><input type="hidden" name="pk" value="{{ flag.pk }}">{% csrf_token %}
+      <label class="toggle"><input type="submit" style="display:none;" onclick="this.closest('form').submit()"><input type="checkbox" {% if flag.is_enabled %}checked{% endif %} onchange="this.closest('form').submit()"><span class="toggle-slider"></span></label>
+    </form>
+  </td>
+</tr>{% endfor %}
+</tbody></table></div>
+</div>
+
+{# ══════════════ MAINTENANCE ══════════════ #}
+<div class="tab-panel {% if active_tab == 'maintenance' %}active{% endif %}" data-group="cms" data-id="maintenance">
+{% if maintenance.is_active %}
+<div class="alert alert-warning"><span class="alert-icon">⚠️</span><strong>Maintenance mode is ACTIVE.</strong> All non-admin visitors see the maintenance page.</div>
+{% endif %}
+<div style="max-width:600px;">
+<form method="post"><input type="hidden" name="_action" value="maintenance">{% csrf_token %}
+<div class="panel"><div class="panel-head"><span class="panel-title">🔧 Maintenance Mode</span></div><div class="panel-body">
+  <div class="fg" style="margin-bottom:20px;">
+    <label class="fcheck" style="font-size:15px;gap:12px;">
+      <label class="toggle" style="transform:scale(1.3);margin-right:4px;"><input type="checkbox" name="is_active" {% if maintenance.is_active %}checked{% endif %}><span class="toggle-slider"></span></label>
+      <span style="font-weight:600;">Enable Maintenance Mode</span>
+    </label>
+  </div>
+  <div class="fg"><label>Page Title</label><input class="finput" name="title" value="{{ maintenance.title }}"></div>
+  <div class="fg"><label>Message</label><textarea class="finput" name="message">{{ maintenance.message }}</textarea></div>
+  <div class="fg"><label>Estimated Return (optional)</label><input class="finput" type="datetime-local" name="estimated_return" {% if maintenance.estimated_return %}value="{{ maintenance.estimated_return|date:'Y-m-d\TH:i' }}"{% endif %}></div>
+  <div class="fg"><label class="fcheck"><input type="checkbox" name="allow_admins" {% if maintenance.allow_admins %}checked{% endif %}> Allow admin users to bypass</label></div>
+  <div class="fg"><label>Bypass IPs <span class="hint" style="font-weight:400;letter-spacing:0;">comma-separated</span></label><input class="finput" name="allowed_ips" value="{{ maintenance.allowed_ips }}" placeholder="192.168.1.1, 10.0.0.1"></div>
+  <button type="submit" class="btn btn-primary">💾 Save Maintenance Settings</button>
+</div></div>
+</form>
+</div>
+</div>
+
+{% endblock %}
+{% block extra_scripts %}
+<script>
+function prefillScript(name, code) {
+  document.getElementById('script-form').style.display = 'block';
+  document.querySelector('#script-form input[name="name"]').value = name;
+  document.querySelector('#script-form textarea[name="script"]').value = code;
+  document.getElementById('script-form').scrollIntoView({behavior:'smooth'});
+}
+function openEditPage(pk, title, slug, status, footer, nav) {
+  document.getElementById('ep-pk').value = pk;
+  document.getElementById('ep-title').value = title;
+  document.getElementById('ep-status').value = status;
+  document.getElementById('ep-footer').checked = footer;
+  document.getElementById('ep-nav').checked = nav;
+  document.getElementById('ep-content').value = ''; // fetched separately if needed
+  document.getElementById('page-edit-modal').style.display = 'flex';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Movies & Series{% endblock %}
+{% block content %}
+<div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:32px 0;">
+  <div class="container">
+    <h1 style="font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;margin-bottom:4px;">🎬 Movies & Series</h1>
+    <p style="color:var(--text2);">Stream free and premium films, documentaries, and episodic content</p>
+  </div>
+</div>
+<div class="container" style="padding-top:32px;padding-bottom:60px;">
+  {% if series_list %}
+  <div class="section-header"><div class="section-title">📺 <span>Series</span></div></div>
+  <div class="grid-4" style="margin-bottom:48px;">
+    {% for s in series_list %}
+    <a href="/series/{{ s.pk }}/" class="card" style="text-decoration:none;">
+      <div class="thumb-wrap">
+        {% if s.thumbnail %}<img src="{{ s.thumbnail.url }}" class="card-img" loading="lazy">{% else %}<div class="card-img img-placeholder">📺</div>{% endif %}
+        <span class="card-badge" style="background:rgba(0,212,170,0.2);color:var(--accent3);border:1px solid rgba(0,212,170,0.3);">Series</span>
+      </div>
+      <div class="card-body">
+        <div class="card-title">{{ s.title }}</div>
+        <div class="card-meta"><span>📺 {{ s.seasons.count }} Season{{ s.seasons.count|pluralize }}</span></div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+  
+  {% if movies %}
+  <div class="section-header"><div class="section-title">🎬 <span>Movies</span></div></div>
+  <div class="grid-4">
+    {% for item in movies %}
+    <a href="/content/{{ item.pk }}/" class="card" style="text-decoration:none;">
+      <div class="thumb-wrap">
+        {% if item.thumbnail %}<img src="{{ item.thumbnail.url }}" class="card-img" loading="lazy">{% else %}<div class="card-img img-placeholder">🎬</div>{% endif %}
+        <span class="card-badge badge-{{ item.tier }}">{{ item.tier|capfirst }}</span>
+        <div class="play-overlay"><div class="play-btn">▶</div></div>
+      </div>
+      <div class="card-body">
+        <div class="card-title">{{ item.title }}</div>
+        <div class="card-meta"><span>👁 {{ item.views }}</span><span>♥ {{ item.likes_count }}</span></div>
+      </div>
+    </a>
+    {% empty %}<div style="grid-column:1/-1;text-align:center;padding:80px 0;color:var(--text2);"><div style="font-size:3rem;">🎬</div><div>No movies yet</div></div>{% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}{{ action }} Job{% endblock %}
+{% block topbar_title %}{{ action }} Scheduled Job{% endblock %}
+{% block content %}
+<div style="max-width:620px;">
+<form method="post">{% csrf_token %}
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">Job Settings</span></div>
+    <div class="panel-body">
+      <div class="form-group"><label class="form-label">Job Name</label><input class="form-control" name="name" required placeholder="e.g. Update trending scores"></div>
+      <div class="form-group"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="2" placeholder="What does this job do?"></textarea></div>
+      <div class="form-group"><label class="form-label">Task Path <span class="form-hint">Python dotted path e.g. music.tasks.update_trends</span></label><input class="form-control" name="task_name" placeholder="app.tasks.function_name" required></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Interval</label>
+          <select class="form-control" name="interval" id="intervalSelect" onchange="document.getElementById('cronGroup').style.display=this.value==='custom'?'block':'none'">
+            {% for val, label in intervals %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group" id="cronGroup" style="display:none;"><label class="form-label">Cron Expression</label><input class="form-control" name="cron_expr" placeholder="0 2 * * *" style="font-family:monospace;"></div>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;gap:12px;">
+    <button type="submit" class="btn btn-primary">💾 Create Job</button>
+    <a href="/admin-panel/automation/" class="btn btn-ghost">Cancel</a>
+  </div>
+</form>
+</div>
+{% endblock %}

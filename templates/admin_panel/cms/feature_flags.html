@@ -1,0 +1,44 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Feature Flags{% endblock %}
+{% block topbar_title %}🚩 Feature Flags{% endblock %}
+{% block content %}
+<div class="alert alert-info" style="margin-bottom:20px;">Feature flags let you enable or disable platform features without deploying code. Changes take effect immediately.</div>
+<div class="panel">
+  <div class="table-wrap" style="border:none;border-radius:0;">
+    <table class="data-table">
+      <thead><tr><th>Key</th><th>Feature</th><th>Rollout %</th><th>Module</th><th>Enabled</th><th>Actions</th></tr></thead>
+      <tbody>
+      {% for flag in flags %}
+      <tr>
+        <td style="font-family:monospace;font-size:12px;color:var(--text2);">{{ flag.key }}</td>
+        <td><div style="font-weight:500;">{{ flag.name }}</div>{% if flag.description %}<div style="font-size:12px;color:var(--text2);">{{ flag.description }}</div>{% endif %}</td>
+        <td>
+          <form method="post" action="/admin-panel/cms/feature-flags/{{ flag.pk }}/save/" style="display:inline;">{% csrf_token %}
+            <input type="number" name="rollout_pct" value="{{ flag.rollout_pct }}" min="0" max="100" class="form-control" style="width:70px;display:inline;padding:4px 8px;font-size:12px;">
+            <button type="submit" class="btn btn-ghost btn-sm">%</button>
+          </form>
+        </td>
+        <td style="font-size:12px;color:var(--text2);">{{ flag.module|default:'—' }}</td>
+        <td>
+          <button onclick="toggleFlag({{ flag.pk }}, this)" class="status-badge {% if flag.is_enabled %}s-approved{% else %}s-draft{% endif %}" style="border:none;cursor:pointer;font-size:12px;">
+            {% if flag.is_enabled %}ON{% else %}OFF{% endif %}
+          </button>
+        </td>
+        <td><span style="font-size:12px;color:var(--text2);">{{ flag.updated_at|date:"M d H:i" }}</span></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text2);">No feature flags configured. Defaults from settings.py are used.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+function toggleFlag(pk, btn) {
+  fetch('/admin-panel/cms/feature-flags/' + pk + '/toggle/', { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' } })
+    .then(r => r.json()).then(d => { btn.textContent = d.enabled ? 'ON' : 'OFF'; btn.className = 'status-badge ' + (d.enabled ? 's-approved' : 's-draft') + ' status-badge'; btn.style.cssText = 'border:none;cursor:pointer;font-size:12px;'; });
+}
+</script>
+{% endblock %}

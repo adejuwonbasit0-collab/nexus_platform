@@ -1,0 +1,61 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Analytics{% endblock %}
+{% block topbar_title %}Analytics{% endblock %}
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+
+<div class="stats-row" style="grid-template-columns:repeat(4,1fr);">
+  <div class="stat-card accent"><div class="stat-label">Total Users</div><div class="stat-value">{{ total_users }}</div></div>
+  <div class="stat-card"><div class="stat-label">Total Content</div><div class="stat-value">{{ total_content }}</div></div>
+  <div class="stat-card green"><div class="stat-label">Total Revenue</div><div class="stat-value">₦{{ total_revenue }}</div></div>
+  <div class="stat-card"><div class="stat-label">Top Creators</div><div class="stat-value">{{ top_creators|length }}</div></div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+  <div class="panel"><div class="panel-head"><span class="panel-title">User Growth — Last 30 Days</span></div>
+    <div class="panel-body"><canvas id="userChart" height="200"></canvas></div></div>
+  <div class="panel"><div class="panel-head"><span class="panel-title">Revenue — Last 30 Days</span></div>
+    <div class="panel-body"><canvas id="revenueChart" height="200"></canvas></div></div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+  <div class="panel"><div class="panel-head"><span class="panel-title">Content by Type</span></div>
+    <div class="panel-body" style="display:flex;justify-content:center;"><canvas id="contentChart" height="220" style="max-width:280px;"></canvas></div></div>
+  <div class="panel"><div class="panel-head"><span class="panel-title">🏆 Top Creators by Uploads</span></div>
+    <div class="table-wrap borderless"><table class="dt">
+      <thead><tr><th>#</th><th>Creator</th><th>Uploads</th><th>Role</th></tr></thead>
+      <tbody>
+      {% for c in top_creators %}
+      <tr>
+        <td style="color:var(--text2);font-size:12px;">{{ forloop.counter }}</td>
+        <td><a href="/admin-panel/users/{{ c.pk }}/" style="color:var(--accent);font-weight:500;">{{ c.username }}</a></td>
+        <td style="font-weight:600;">{{ c.content_count }}</td>
+        <td><span class="badge badge-purple" style="font-size:10px;">{{ c.role }}</span></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text2);">No creators yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div></div>
+</div>
+
+{% endblock %}
+{% block extra_scripts %}
+<script>
+const PALETTE = { accent:'#7c5cfc', accent2:'#ff4d6d', text2:'#8888aa', border:'rgba(255,255,255,0.06)' };
+const CHART_OPTS = { responsive:true, plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:PALETTE.text2,font:{size:10}},grid:{color:PALETTE.border}}, y:{ticks:{color:PALETTE.text2,font:{size:10}},grid:{color:PALETTE.border},beginAtZero:true} } };
+
+const uData = {{ user_growth|safe }};
+const rData = {{ revenue_data|safe }};
+const cData = {{ content_by_type|safe }};
+
+new Chart(document.getElementById('userChart'), { type:'line', data:{ labels:uData.map(d=>d.date), datasets:[{ data:uData.map(d=>d.count), borderColor:PALETTE.accent, backgroundColor:'rgba(124,92,252,0.1)', fill:true, tension:.4, pointRadius:2, pointHoverRadius:4 }] }, options:CHART_OPTS });
+
+new Chart(document.getElementById('revenueChart'), { type:'bar', data:{ labels:rData.map(d=>d.date), datasets:[{ data:rData.map(d=>d.amount), backgroundColor:'rgba(124,92,252,0.5)', borderColor:PALETTE.accent, borderWidth:1, borderRadius:4 }] }, options:CHART_OPTS });
+
+new Chart(document.getElementById('contentChart'), { type:'doughnut', data:{ labels:cData.map(d=>d.content_type||d.type||d.name), datasets:[{ data:cData.map(d=>d.count), backgroundColor:['#7c5cfc','#ff4d6d','#00d4aa','#f59e0b','#3b82f6','#ef4444'], borderWidth:0 }] }, options:{ responsive:true, plugins:{ legend:{ position:'bottom', labels:{ color:PALETTE.text2, font:{size:11}, padding:14, boxWidth:10 } } }, cutout:'65%' } });
+</script>
+{% endblock %}

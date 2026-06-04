@@ -1,0 +1,71 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Theme{% endblock %}
+{% block topbar_title %}🖌️ Theme Management{% endblock %}
+{% block content %}
+<form method="post">
+{% csrf_token %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+  <div>
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">Color Palette</span></div>
+      <div class="panel-body">
+        {% for field, label in color_fields %}{% empty %}
+        {% for item in colors_list %}{% empty %}
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Primary Color</label><div style="display:flex;gap:8px;align-items:center;"><input type="color" name="primary_color" value="{{ obj.primary_color }}" style="width:48px;height:36px;border-radius:6px;border:1px solid var(--border);background:none;cursor:pointer;"><input class="form-control" name="primary_color_hex" value="{{ obj.primary_color }}" style="flex:1;font-family:monospace;"></div></div>
+          <div class="form-group"><label class="form-label">Secondary Color</label><div style="display:flex;gap:8px;align-items:center;"><input type="color" name="secondary_color" value="{{ obj.secondary_color }}" style="width:48px;height:36px;border-radius:6px;border:1px solid var(--border);background:none;cursor:pointer;"><input class="form-control" name="secondary_color_hex" value="{{ obj.secondary_color }}" style="flex:1;font-family:monospace;"></div></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Accent Color</label><div style="display:flex;gap:8px;align-items:center;"><input type="color" name="accent_color" value="{{ obj.accent_color }}" style="width:48px;height:36px;border-radius:6px;border:1px solid var(--border);background:none;cursor:pointer;"><input class="form-control" value="{{ obj.accent_color }}" style="flex:1;font-family:monospace;"></div></div>
+          <div class="form-group"><label class="form-label">Background Color</label><div style="display:flex;gap:8px;align-items:center;"><input type="color" name="background_color" value="{{ obj.background_color }}" style="width:48px;height:36px;border-radius:6px;border:1px solid var(--border);background:none;cursor:pointer;"><input class="form-control" value="{{ obj.background_color }}" style="flex:1;font-family:monospace;"></div></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Surface Color</label><div style="display:flex;gap:8px;align-items:center;"><input type="color" name="surface_color" value="{{ obj.surface_color }}" style="width:48px;height:36px;border-radius:6px;border:1px solid var(--border);background:none;cursor:pointer;"><input class="form-control" value="{{ obj.surface_color }}" style="flex:1;font-family:monospace;"></div></div>
+          <div class="form-group"><label class="form-label">Text Primary</label><div style="display:flex;gap:8px;align-items:center;"><input type="color" name="text_primary" value="{{ obj.text_primary }}" style="width:48px;height:36px;border-radius:6px;border:1px solid var(--border);background:none;cursor:pointer;"><input class="form-control" value="{{ obj.text_primary }}" style="flex:1;font-family:monospace;"></div></div>
+        </div>
+        {% endfor %}{% endfor %}
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">Typography</span></div>
+      <div class="panel-body">
+        <div class="form-group"><label class="form-label">Heading Font</label><input class="form-control" name="heading_font" value="{{ obj.heading_font }}" placeholder="Syne"><div class="form-hint">Google Fonts name</div></div>
+        <div class="form-group"><label class="form-label">Body Font</label><input class="form-control" name="body_font" value="{{ obj.body_font }}" placeholder="DM Sans"></div>
+        <div class="form-group"><label class="form-label">Heading Font URL <span class="form-hint">(Google Fonts CSS URL)</span></label><input class="form-control" name="heading_font_url" value="{{ obj.heading_font_url }}" placeholder="https://fonts.googleapis.com/css2?..."></div>
+        <div class="form-group"><label class="form-label">Body Font URL</label><input class="form-control" name="body_font_url" value="{{ obj.body_font_url }}"></div>
+        <div class="form-group"><label class="form-label">Base Font Size</label><input class="form-control" name="base_font_size" value="{{ obj.base_font_size }}" placeholder="16px"></div>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">Layout & Buttons</span></div>
+      <div class="panel-body">
+        <div class="form-group"><label class="form-label">Border Radius</label><input class="form-control" name="border_radius" value="{{ obj.border_radius }}" placeholder="12px"></div>
+        <div class="form-group"><label class="form-label">Max Width</label><input class="form-control" name="max_width" value="{{ obj.max_width }}" placeholder="1380px"></div>
+        <div class="form-group"><label class="form-label">Button Radius</label><input class="form-control" name="btn_radius" value="{{ obj.btn_radius }}" placeholder="8px"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Button Background</label><div style="display:flex;gap:8px;align-items:center;"><input type="color" name="btn_primary_bg" value="{{ obj.btn_primary_bg }}" style="width:48px;height:36px;border-radius:6px;border:1px solid var(--border);background:none;cursor:pointer;"><input class="form-control" value="{{ obj.btn_primary_bg }}" style="flex:1;font-family:monospace;"></div></div>
+          <div class="form-group"><label class="form-label">Button Text</label><div style="display:flex;gap:8px;align-items:center;"><input type="color" name="btn_primary_text" value="{{ obj.btn_primary_text }}" style="width:48px;height:36px;border-radius:6px;border:1px solid var(--border);background:none;cursor:pointer;"><input class="form-control" value="{{ obj.btn_primary_text }}" style="flex:1;font-family:monospace;"></div></div>
+        </div>
+        <div class="form-group"><label class="form-label">Default Color Mode</label>
+          <select class="form-control" name="default_mode">
+            <option value="dark" {% if obj.default_mode == 'dark' %}selected{% endif %}>Dark</option>
+            <option value="light" {% if obj.default_mode == 'light' %}selected{% endif %}>Light</option>
+            <option value="system" {% if obj.default_mode == 'system' %}selected{% endif %}>System</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">Custom CSS</span></div>
+      <div class="panel-body">
+        <div class="form-group"><label class="form-label">Additional CSS <span class="form-hint">Injected into every page after theme variables</span></label><textarea class="form-control" name="custom_css" style="min-height:160px;font-family:monospace;font-size:12px;">{{ obj.custom_css }}</textarea></div>
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">💾 Save Theme</button>
+    <p style="margin-top:8px;font-size:12px;color:var(--text2);text-align:center;">Changes apply immediately to all pages.</p>
+  </div>
+</div>
+</form>
+{% endblock %}

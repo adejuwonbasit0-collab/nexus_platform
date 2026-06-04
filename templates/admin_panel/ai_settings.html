@@ -1,0 +1,26 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}AI Settings{% endblock %}
+{% block topbar_title %}🤖 AI Provider Settings{% endblock %}
+{% block content %}
+<div style="max-width:700px;">
+<div class="alert alert-warning">⚠️ API keys entered here are stored in the database. For maximum security, set them as environment variables (ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.) in your server configuration instead.</div>
+<form method="post">{% csrf_token %}
+  {% for provider in providers %}
+  <div class="panel" style="margin-bottom:20px;">
+    <div class="panel-header">
+      <span class="panel-title">{% if provider == 'anthropic' %}🟠 Anthropic Claude{% elif provider == 'openai' %}🟢 OpenAI{% else %}🎨 Stability AI{% endif %}</span>
+      <label class="form-check"><input type="checkbox" name="{{ provider }}_active" {% if objs|get_item:provider and objs|get_item:provider|getattr:'is_active' %}checked{% endif %}> Active</label>
+    </div>
+    <div class="panel-body">
+      <div class="form-group">
+        <label class="form-label">API Key</label>
+        <input class="form-control" type="password" name="{{ provider }}_key" placeholder="{% if objs|get_item:provider %}••••••••••••••••{% else %}Enter API key…{% endif %}">
+        <span class="form-hint">Leave blank to keep existing key</span>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+  <button type="submit" class="btn btn-primary">💾 Save AI Settings</button>
+</form>
+</div>
+{% endblock %}

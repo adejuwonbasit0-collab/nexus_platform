@@ -1,0 +1,68 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}SEO{% endblock %}
+{% block topbar_title %}🔍 SEO Management{% endblock %}
+{% block content %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+  <div>
+    <form method="post" enctype="multipart/form-data">{% csrf_token %}
+    <input type="hidden" name="action" value="global">
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-header"><span class="panel-title">Global SEO Defaults</span></div>
+      <div class="panel-body">
+        <div class="form-group"><label class="form-label">Meta Title <span class="form-hint">Max 200 chars</span></label><input class="form-control" name="meta_title" value="{{ global_seo.meta_title }}" maxlength="200"><span class="form-hint" id="titleCount">{{ global_seo.meta_title|length }}/200</span></div>
+        <div class="form-group"><label class="form-label">Meta Description <span class="form-hint">Max 320 chars</span></label><textarea class="form-control" name="meta_description" maxlength="320">{{ global_seo.meta_description }}</textarea></div>
+        <div class="form-group"><label class="form-label">Keywords <span class="form-hint">Comma-separated</span></label><input class="form-control" name="meta_keywords" value="{{ global_seo.meta_keywords }}"></div>
+        <div class="form-group"><label class="form-label">OG Title</label><input class="form-control" name="og_title" value="{{ global_seo.og_title }}"></div>
+        <div class="form-group"><label class="form-label">OG Description</label><textarea class="form-control" name="og_description">{{ global_seo.og_description }}</textarea></div>
+        <div class="form-group"><label class="form-label">OG Image <span class="form-hint">1200×630 recommended</span></label>{% if global_seo.og_image %}<img src="{{ global_seo.og_image.url }}" style="width:100%;max-width:300px;border-radius:6px;margin-bottom:8px;display:block;">{% endif %}<input class="form-control" type="file" name="og_image" accept="image/*"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Twitter Card</label><select class="form-control" name="twitter_card"><option value="summary" {% if global_seo.twitter_card == 'summary' %}selected{% endif %}>Summary</option><option value="summary_large_image" {% if global_seo.twitter_card == 'summary_large_image' %}selected{% endif %}>Large Image</option></select></div>
+          <div class="form-group"><label class="form-label">Twitter Handle</label><input class="form-control" name="twitter_handle" value="{{ global_seo.twitter_handle }}" placeholder="@username"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Canonical Domain</label><input class="form-control" name="canonical_domain" value="{{ global_seo.canonical_domain }}" placeholder="https://yourdomain.com"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Google Verification</label><input class="form-control" name="google_site_verification" value="{{ global_seo.google_site_verification }}"></div>
+          <div class="form-group"><label class="form-label">Bing Verification</label><input class="form-control" name="bing_site_verification" value="{{ global_seo.bing_site_verification }}"></div>
+        </div>
+        <div class="form-group"><label class="form-check"><input type="checkbox" name="allow_indexing" {% if global_seo.allow_indexing %}checked{% endif %}> Allow search engine indexing</label></div>
+        <div class="form-group"><label class="form-label">robots.txt <span class="form-hint">Served at /robots.txt</span></label><textarea class="form-control" name="robots_txt" style="font-family:monospace;font-size:12px;">{{ global_seo.robots_txt }}</textarea></div>
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">💾 Save Global SEO</button>
+      </div>
+    </div>
+    </form>
+  </div>
+
+  <div>
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-header"><span class="panel-title">Page-Level SEO Overrides</span></div>
+      <div class="panel-body">
+        <form method="post">{% csrf_token %}
+        <input type="hidden" name="action" value="add_page_seo">
+        <div class="form-group"><label class="form-label">URL Path</label><input class="form-control" name="path" placeholder="/about/, /movies/, etc."></div>
+        <div class="form-group"><label class="form-label">Meta Title Override</label><input class="form-control" name="page_meta_title"></div>
+        <div class="form-group"><label class="form-label">Meta Description Override</label><textarea class="form-control" name="page_meta_description"></textarea></div>
+        <div class="form-group"><label class="form-check"><input type="checkbox" name="no_index"> No-index this page</label></div>
+        <button type="submit" class="btn btn-outline" style="width:100%;justify-content:center;">Add Override</button>
+        </form>
+      </div>
+      {% if page_seos %}
+      <div style="border-top:1px solid var(--border);">
+        <table class="data-table">
+          <thead><tr><th>Path</th><th>Title</th><th>No-index</th><th></th></tr></thead>
+          <tbody>
+          {% for ps in page_seos %}
+          <tr>
+            <td style="font-family:monospace;font-size:12px;">{{ ps.path }}</td>
+            <td style="font-size:12px;color:var(--text2);">{{ ps.meta_title|truncatechars:30|default:'—' }}</td>
+            <td>{% if ps.no_index %}⛔{% else %}—{% endif %}</td>
+            <td><form method="post">{% csrf_token %}<input type="hidden" name="action" value="delete_page_seo"><input type="hidden" name="page_seo_pk" value="{{ ps.pk }}"><button class="btn btn-ghost btn-sm" style="color:#e74c3c;">×</button></form></td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

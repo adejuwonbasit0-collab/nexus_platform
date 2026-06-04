@@ -1,0 +1,67 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Workflow: {{ wf.name }}{% endblock %}
+{% block topbar_title %}⚡ {{ wf.name }}{% endblock %}
+{% block content %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+  <div>
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-header"><span class="panel-title">Workflow Settings</span></div>
+      <div class="panel-body">
+        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="update_workflow">
+          <div class="form-group"><label class="form-label">Name</label><input class="form-control" name="name" value="{{ wf.name }}"></div>
+          <div class="form-group"><label class="form-label">Description</label><textarea class="form-control" name="description">{{ wf.description }}</textarea></div>
+          <div class="form-group"><label class="form-label">Trigger</label>
+            <select class="form-control" name="trigger_event">
+              {% for val, label in trigger_events %}<option value="{{ val }}" {% if wf.trigger_event == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="form-group"><label class="form-check"><input type="checkbox" name="is_active" {% if wf.is_active %}checked{% endif %}> Active</label></div>
+          <div style="display:flex;gap:10px;">
+            <button type="submit" class="btn btn-primary btn-sm">Save</button>
+            <form method="post" style="display:inline;">{% csrf_token %}<input type="hidden" name="action" value="test_fire"><button type="submit" class="btn btn-outline btn-sm">🧪 Test Fire</button></form>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">Actions (Steps)</span></div>
+      <div class="panel-body">
+        {% for a in actions %}
+        <div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:flex-start;">
+          <div><div style="font-weight:500;font-size:13px;">Step {{ a.order }}: {{ a.get_action_type_display }}</div><div style="font-size:11px;color:var(--text2);font-family:monospace;margin-top:4px;">{{ a.config|default:'{}' }}</div></div>
+          <form method="post">{% csrf_token %}<input type="hidden" name="action" value="delete_action"><input type="hidden" name="action_pk" value="{{ a.pk }}"><button class="btn btn-ghost btn-sm" style="color:#e74c3c;">×</button></form>
+        </div>
+        {% empty %}
+        <p style="color:var(--text2);font-size:13px;text-align:center;padding:20px;">No actions yet. Add actions to define what this workflow does.</p>
+        {% endfor %}
+        <form method="post" style="margin-top:16px;">{% csrf_token %}<input type="hidden" name="action" value="add_action">
+          <div class="form-group"><label class="form-label">Action Type</label>
+            <select class="form-control" name="action_type">{% for val, label in action_types %}<option value="{{ val }}">{{ label }}</option>{% endfor %}</select>
+          </div>
+          <div class="form-group"><label class="form-label">Config (JSON)</label><textarea class="form-control" name="config" style="font-family:monospace;font-size:12px;min-height:80px;" placeholder='{"subject": "Welcome!", "body": "Hello {{username}}!"}'>{}</textarea></div>
+          <button type="submit" class="btn btn-outline btn-sm" style="width:100%;justify-content:center;">+ Add Action</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">Recent Runs ({{ runs|length }})</span></div>
+    <div class="table-wrap" style="border:none;border-radius:0;">
+      <table class="data-table">
+        <thead><tr><th>Status</th><th>Started</th><th>Error</th></tr></thead>
+        <tbody>
+        {% for run in runs %}
+        <tr>
+          <td><span class="status-badge {% if run.status == 'completed' %}s-approved{% elif run.status == 'running' %}s-pending{% else %}s-rejected{% endif %}">{{ run.status }}</span></td>
+          <td style="font-size:12px;color:var(--text2);">{{ run.started_at|date:"M d H:i" }}</td>
+          <td style="font-size:11px;color:#e74c3c;">{{ run.error|default:'—'|truncatechars:40 }}</td>
+        </tr>
+        {% empty %}<tr><td colspan="3" style="padding:16px;text-align:center;color:var(--text2);">No runs yet.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

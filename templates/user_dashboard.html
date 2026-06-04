@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+{% block title %}My Dashboard — NEXUS{% endblock %}
+{% block extra_head %}
+<style>
+.dash-stat{
+  background:rgba(255,255,255,.03);
+  backdrop-filter:blur(12px);
+  border:1px solid var(--bd);
+  border-radius:16px;padding:22px 24px;
+  transition:border-color .2s,box-shadow .2s;
+}
+.dash-stat:hover{border-color:rgba(124,92,252,.2);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.dash-stat-val{
+  font-family:'Syne',sans-serif;
+  font-size:32px;font-weight:800;
+  background:linear-gradient(135deg,var(--ac),var(--ac2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.dash-tab{padding:8px 18px;border-radius:9px;font-size:13px;font-weight:500;background:none;border:none;color:var(--tx2);cursor:pointer;transition:all .15s}
+.dash-tab:hover{color:var(--tx);background:rgba(255,255,255,.06)}
+.dash-tab.on{background:rgba(124,92,252,.12);color:var(--ac);}
+.dash-panel{display:none}.dash-panel.on{display:block}
+</style>
+{% endblock %}
+{% block content %}
+
+<div style="background:linear-gradient(160deg,rgba(124,92,252,.1) 0%,transparent 60%);border-bottom:1px solid var(--bd);padding:44px 0 0;">
+  <div class="container">
+    <div style="display:flex;align-items:center;gap:18px;margin-bottom:32px;">
+      <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--ac),var(--ac2));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:24px;font-weight:800;flex-shrink:0;border:2px solid rgba(124,92,252,.3);">
+        {% if user.avatar %}<img src="{{ user.avatar.url }}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">{% else %}{{ user.username|slice:':1'|upper }}{% endif %}
+      </div>
+      <div>
+        <h1 style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;margin-bottom:4px;">Welcome back, {{ user.first_name|default:user.username }} 👋</h1>
+        <div style="font-size:13px;color:var(--tx2);">{{ user.email }} · <span style="text-transform:capitalize;">{{ user.role|default:'Member' }}</span>
+          {% if sub %} · <span style="color:var(--ac);font-weight:600;">{{ sub.plan.name }}</span> subscriber{% endif %}
+        </div>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:10px;flex-wrap:wrap;">
+        <a href="/auth/profile/" class="btn btn-ghost btn-sm">Edit Profile</a>
+        {% if user.is_creator or user.is_admin %}<a href="/creator/" class="btn btn-primary btn-sm">🎨 Creator Studio</a>{% endif %}
+      </div>
+    </div>
+
+    <div style="display:flex;gap:4px;overflow-x:auto;padding-bottom:0;">
+      <button class="dash-tab on" onclick="switchDashTab('overview',this)">Overview</button>
+      <button class="dash-tab" onclick="switchDashTab('content',this)">My Content</button>
+      <button class="dash-tab" onclick="switchDashTab('likes',this)">Liked</button>
+      <button class="dash-tab" onclick="switchDashTab('subscription',this)">Subscription</button>
+      {% if wallet %}<button class="dash-tab" onclick="switchDashTab('wallet',this)">Wallet</button>{% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="container" style="padding-top:36px;padding-bottom:80px;">
+
+  {# ── Overview ── #}
+  <div class="dash-panel on" data-dtab="overview">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:18px;margin-bottom:36px;">
+      <div class="dash-stat">
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--tx2);margin-bottom:8px;">Content Uploaded</div>
+        <div class="dash-stat-val">{{ my_content|length }}</div>
+      </div>
+      {% if wallet %}
+      <div class="dash-stat">
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--tx2);margin-bottom:8px;">Wallet Balance</div>
+        <div class="dash-stat-val">${{ wallet.balance|default:'0.00' }}</div>
+      </div>
+      {% endif %}
+      <div class="dash-stat">
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--tx2);margin-bottom:8px;">Liked Items</div>
+        <div class="dash-stat-val">{{ liked_tracks|length }}</div>
+      </div>
+      <div class="dash-stat">
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--tx2);margin-bottom:8px;">Plan</div>
+        <div class="dash-stat-val" style="font-size:20px;">{% if sub %}{{ sub.plan.name }}{% else %}Free{% endif %}</div>
+      </div>
+    </div>
+
+    {# Quick actions #}
+    <div style="background:rgba(255,255,255,.025);border:1px solid var(--bd);border-radius:16px;padding:24px;margin-bottom:28px;">
+      <h3 style="font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx2);margin-bottom:16px;">Quick Actions</h3>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <a href="/trending/" class="btn btn-ghost btn-sm">🔥 Trending</a>
+        <a href="/movies/" class="btn btn-ghost btn-sm">🎬 Movies</a>
+        <a href="/music/" class="btn btn-ghost btn-sm">🎵 Music</a>
+        <a href="/ai/studio/" class="btn btn-ghost btn-sm">✨ AI Studio</a>
+        <a href="/subscriptions/" class="btn btn-ghost btn-sm">💎 Upgrade</a>
+        {% if user.is_creator or user.is_admin %}<a href="/creator/" class="btn btn-primary btn-sm">🎨 Creator Studio</a>{% endif %}
+      </div>
+    </div>
+
+    {# Recent content #}
+    {% if my_content %}
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:16px;">My Recent Uploads</h3>
+    <div style="background:rgba(255,255,255,.025);border:1px solid var(--bd);border-radius:14px;overflow:hidden;">
+      {% for c in my_content|slice:':5' %}
+      <div style="display:flex;align-items:center;gap:14px;padding:13px 18px;border-bottom:1px solid var(--bd);transition:background .15s;" onmouseenter="this.style.background='rgba(255,255,255,.04)'" onmouseleave="this.style.background=''">
+        <div style="width:48px;height:36px;border-radius:7px;overflow:hidden;flex-shrink:0;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:16px;">
+          {% if c.thumbnail %}<img src="{{ c.thumbnail.url }}" style="width:100%;height:100%;object-fit:cover;">{% else %}{% if c.content_type == 'video' %}🎬{% elif c.content_type == 'music' %}🎵{% elif c.content_type == 'image' %}🖼{% else %}📝{% endif %}{% endif %}
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><a href="/content/{{ c.pk }}/" style="color:var(--tx);">{{ c.title }}</a></div>
+          <div style="font-size:11px;color:var(--tx2);">{{ c.created_at|date:"M d, Y" }} · {{ c.views }} views</div>
+        </div>
+        <span class="badge {% if c.status == 'approved' %}badge-green{% elif c.status == 'pending' %}badge-yellow{% else %}badge-gray{% endif %}" style="font-size:10px;flex-shrink:0;">{{ c.status }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  {# ── My Content ── #}
+  <div class="dash-panel" data-dtab="content">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <h2 style="font-size:18px;font-weight:700;">My Uploads ({{ my_content|length }})</h2>
+      {% if user.is_creator or user.is_admin %}<a href="/creator/upload/" class="btn btn-primary btn-sm">+ Upload</a>{% endif %}
+    </div>
+    {% if my_content %}
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;">
+      {% for c in my_content %}
+      <div style="background:rgba(255,255,255,.03);border:1px solid var(--bd);border-radius:14px;overflow:hidden;transition:transform .2s,border-color .2s;" onmouseenter="this.style.transform='translateY(-3px)';this.style.borderColor='rgba(124,92,252,.2)'" onmouseleave="this.style.transform='';this.style.borderColor='var(--bd)'">
+        <div style="aspect-ratio:16/9;overflow:hidden;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:36px;">
+          {% if c.thumbnail %}<img src="{{ c.thumbnail.url }}" style="width:100%;height:100%;object-fit:cover;">{% else %}{% if c.content_type == 'video' %}🎬{% elif c.content_type == 'music' %}🎵{% elif c.content_type == 'image' %}🖼{% else %}📝{% endif %}{% endif %}
+        </div>
+        <div style="padding:12px 14px;">
+          <div style="font-size:13px;font-weight:600;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><a href="/content/{{ c.pk }}/" style="color:var(--tx);">{{ c.title }}</a></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--tx2);">
+            <span>{{ c.created_at|date:"M d" }} · 👁 {{ c.views }}</span>
+            <span class="badge {% if c.status == 'approved' %}badge-green{% elif c.status == 'pending' %}badge-yellow{% else %}badge-gray{% endif %}" style="font-size:9px;">{{ c.status }}</span>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty"><div class="empty-icon">📤</div><h3>No uploads yet</h3><p>{% if user.is_creator %}Start uploading your creative work.{% else %}<a href="/auth/profile/" style="color:var(--ac);">Become a creator</a> to start uploading.{% endif %}</p></div>
+    {% endif %}
+  </div>
+
+  {# ── Liked ── #}
+  <div class="dash-panel" data-dtab="likes">
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:20px;">Liked Music ({{ liked_tracks|length }})</h2>
+    {% if liked_tracks %}
+    <div style="background:rgba(255,255,255,.025);border:1px solid var(--bd);border-radius:14px;overflow:hidden;">
+      {% for like in liked_tracks %}
+      <div style="display:flex;align-items:center;gap:14px;padding:12px 18px;border-bottom:1px solid var(--bd);">
+        <div style="width:44px;height:44px;border-radius:8px;overflow:hidden;flex-shrink:0;background:rgba(124,92,252,.1);display:flex;align-items:center;justify-content:center;">
+          {% if like.track.cover_image %}<img src="{{ like.track.cover_image.url }}" style="width:100%;height:100%;object-fit:cover;">{% else %}<span style="font-size:18px;">🎵</span>{% endif %}
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><a href="/music/track/{{ like.track.slug }}/" style="color:var(--tx);">{{ like.track.title }}</a></div>
+          <div style="font-size:12px;color:var(--tx2);">{{ like.track.artist.name }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty"><div class="empty-icon">❤️</div><h3>No liked tracks yet</h3><p>Like tracks while browsing music to save them here.</p></div>
+    {% endif %}
+  </div>
+
+  {# ── Subscription ── #}
+  <div class="dash-panel" data-dtab="subscription">
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:24px;">My Subscription</h2>
+    {% if sub %}
+    <div style="background:rgba(124,92,252,.06);border:1px solid rgba(124,92,252,.3);border-radius:18px;padding:28px 32px;margin-bottom:24px;max-width:520px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ac);margin-bottom:8px;">Active Plan</div>
+          <div style="font-size:26px;font-weight:800;font-family:'Syne',sans-serif;">{{ sub.plan.name }}</div>
+          <div style="font-size:13px;color:var(--tx2);margin-top:4px;">Renews {{ sub.expires_at|date:"M d, Y" }}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:28px;font-weight:800;font-family:'Syne',sans-serif;background:linear-gradient(135deg,var(--ac),var(--ac2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">${{ sub.plan.price }}<span style="font-size:14px;font-weight:400;-webkit-text-fill-color:var(--tx2);">/mo</span></div>
+        </div>
+      </div>
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(124,92,252,.2);display:flex;gap:10px;">
+        <a href="/subscriptions/" class="btn btn-ghost btn-sm">Change Plan</a>
+        <a href="/pay/cancel/" class="btn btn-danger btn-sm" onclick="return confirm('Cancel your subscription?')">Cancel</a>
+      </div>
+    </div>
+    {% else %}
+    <div style="background:rgba(255,255,255,.025);border:1px solid var(--bd);border-radius:18px;padding:28px 32px;max-width:520px;">
+      <div style="font-size:36px;margin-bottom:12px;">💎</div>
+      <h3 style="font-size:18px;font-weight:700;margin-bottom:8px;">Upgrade to Premium</h3>
+      <p style="color:var(--tx2);font-size:14px;line-height:1.7;margin-bottom:22px;">Get unlimited access to all premium content, HD downloads, AI Studio, and more.</p>
+      <a href="/subscriptions/" class="btn btn-primary" style="padding:12px 28px;">View Plans →</a>
+    </div>
+    {% endif %}
+  </div>
+
+  {# ── Wallet ── #}
+  {% if wallet %}
+  <div class="dash-panel" data-dtab="wallet">
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:24px;">My Wallet</h2>
+    <div style="background:linear-gradient(135deg,rgba(124,92,252,.1),rgba(255,77,109,.06));border:1px solid rgba(124,92,252,.3);border-radius:18px;padding:28px 32px;max-width:420px;margin-bottom:24px;">
+      <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--tx2);margin-bottom:8px;">Available Balance</div>
+      <div style="font-family:'Syne',sans-serif;font-size:42px;font-weight:800;background:linear-gradient(135deg,var(--ac),var(--ac2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">${{ wallet.balance|default:'0.00' }}</div>
+      <div style="margin-top:20px;display:flex;gap:10px;">
+        <a href="/pay/withdraw/" class="btn btn-primary btn-sm">Withdraw</a>
+        <a href="/pay/wallet/" class="btn btn-ghost btn-sm">Full History</a>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+function switchDashTab(id, btn) {
+  document.querySelectorAll('[data-dtab]').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.dash-tab').forEach(b => b.classList.remove('on'));
+  document.querySelector(`[data-dtab="${id}"]`).classList.add('on');
+  btn.classList.add('on');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Security Alerts{% endblock %}
+{% block topbar_title %}🛡️ Security Alerts{% endblock %}
+{% block content %}
+{% if unresolved %}
+<div class="alert alert-warning" style="margin-bottom:20px;">⚠️ {{ unresolved|length }} unresolved security alert{{ unresolved|length|pluralize }} require attention.</div>
+{% endif %}
+<div class="panel" style="margin-bottom:20px;">
+  <div class="panel-header"><span class="panel-title">🔴 Unresolved Alerts</span></div>
+  <div class="table-wrap" style="border:none;border-radius:0;">
+    <table class="data-table">
+      <thead><tr><th>Type</th><th>Severity</th><th>Description</th><th>IP</th><th>User</th><th>Time</th><th>Actions</th></tr></thead>
+      <tbody>
+      {% for a in unresolved %}
+      <tr>
+        <td style="font-size:12px;font-weight:500;">{{ a.get_alert_type_display }}</td>
+        <td><span class="status-badge {% if a.severity == 'critical' %}s-rejected{% elif a.severity == 'high' %}s-rejected{% elif a.severity == 'medium' %}s-pending{% else %}s-draft{% endif %}">{{ a.severity }}</span></td>
+        <td style="font-size:12px;max-width:240px;overflow:hidden;text-overflow:ellipsis;">{{ a.description }}</td>
+        <td style="font-family:monospace;font-size:11px;color:var(--text2);">{{ a.ip_address|default:'—' }}</td>
+        <td style="font-size:12px;">{% if a.user %}<a href="/admin-panel/users/{{ a.user.pk }}/" style="color:var(--accent);">{{ a.user.username }}</a>{% else %}—{% endif %}</td>
+        <td style="font-size:12px;color:var(--text2);">{{ a.created_at|timesince }} ago</td>
+        <td>
+          <form method="post" action="/admin-panel/observability/security-alerts/{{ a.pk }}/resolve/">{% csrf_token %}
+            <button class="btn btn-success btn-sm">Resolve</button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" style="text-align:center;padding:32px;color:#27ae60;">✅ No unresolved security alerts.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% if resolved %}
+<div class="panel">
+  <div class="panel-header"><span class="panel-title">✅ Recently Resolved</span></div>
+  <div class="table-wrap" style="border:none;border-radius:0;">
+    <table class="data-table">
+      <thead><tr><th>Type</th><th>Description</th><th>Resolved by</th><th>Resolved at</th></tr></thead>
+      <tbody>
+      {% for a in resolved %}
+      <tr>
+        <td style="font-size:12px;">{{ a.get_alert_type_display }}</td>
+        <td style="font-size:12px;color:var(--text2);max-width:280px;overflow:hidden;text-overflow:ellipsis;">{{ a.description }}</td>
+        <td style="font-size:12px;">{{ a.resolved_by.username|default:'—' }}</td>
+        <td style="font-size:12px;color:var(--text2);">{{ a.resolved_at|date:"M d, Y H:i" }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

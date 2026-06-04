@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Images{% endblock %}
+{% block content %}
+<div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:32px 0;">
+  <div class="container">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <h1 style="font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;margin-bottom:4px;">🖼 Image Gallery</h1>
+        <p style="color:var(--text2);">Browse free & premium images, AI-generated art</p>
+      </div>
+      <a href="/ai/studio/" class="btn btn-primary">✨ Generate AI Image</a>
+    </div>
+  </div>
+</div>
+<div class="container" style="padding-top:32px;padding-bottom:60px;">
+  <div style="display:flex;gap:8px;margin-bottom:24px;">
+    <a href="/images/" class="tag {% if not request.GET.tier %}active{% endif %}" style="padding:6px 14px;{% if not request.GET.tier %}border-color:var(--accent);color:var(--accent);{% endif %}">All</a>
+    <a href="?tier=free" class="tag" style="padding:6px 14px;{% if request.GET.tier == 'free' %}border-color:var(--accent3);color:var(--accent3);{% endif %}">Free</a>
+    <a href="?tier=premium" class="tag" style="padding:6px 14px;{% if request.GET.tier == 'premium' %}border-color:var(--gold);color:var(--gold);{% endif %}">Premium</a>
+  </div>
+  <div class="grid-6">
+    {% for item in items %}
+    <a href="/content/{{ item.pk }}/" style="text-decoration:none;">
+      <div class="card">
+        <div class="thumb-wrap">
+          {% if item.file and item.content_type == 'image' %}<img src="{{ item.file.url }}" class="card-img card-img-square" loading="lazy" alt="{{ item.title }}">
+          {% elif item.thumbnail %}<img src="{{ item.thumbnail.url }}" class="card-img card-img-square" loading="lazy">
+          {% else %}<div class="card-img card-img-square img-placeholder">🖼</div>{% endif %}
+          <span class="card-badge badge-{{ item.tier }}" style="font-size:0.65rem;">{{ item.tier|capfirst }}</span>
+          {% if item.is_ai_generated %}<span class="card-badge badge-ai" style="top:auto;bottom:8px;right:8px;font-size:0.65rem;">AI</span>{% endif %}
+        </div>
+        <div class="card-body" style="padding:8px 10px;">
+          <div style="font-size:0.78rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ item.title }}</div>
+        </div>
+      </div>
+    </a>
+    {% empty %}<div style="grid-column:1/-1;text-align:center;padding:80px 0;color:var(--text2);"><div style="font-size:3rem;">🖼</div><div>No images yet. <a href="/ai/studio/" style="color:var(--accent);">Generate one!</a></div></div>{% endfor %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block title %}AI Blog Generator{% endblock %}
+{% block content %}
+<div style="background:#fafaf8;min-height:100vh;color:#1c1917;padding:44px 0 60px;">
+<div class="container" style="max-width:700px;">
+  <div style="text-align:center;margin-bottom:32px;">
+    <div style="font-size:2.5rem;margin-bottom:12px;">✨</div>
+    <h1 style="font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;color:#1c1917;margin-bottom:8px;">AI Blog Generator</h1>
+    <p style="color:#57534e;font-size:0.9rem;">Enter a topic and AI will write a full blog post for you.</p>
+    <div style="display:inline-flex;align-items:center;gap:8px;background:{% if remaining > 3 %}#f0fdf4{% else %}#fef3c7{% endif %};border:1px solid {% if remaining > 3 %}#86efac{% else %}#fde68a{% endif %};border-radius:20px;padding:5px 14px;margin-top:12px;font-size:0.8rem;color:{% if remaining > 3 %}#166534{% else %}#92400e{% endif %};">
+      <span>{{ remaining }} generation{{ remaining|pluralize }} remaining this month</span>
+    </div>
+  </div>
+  {% if error %}
+  <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 16px;margin-bottom:20px;color:#dc2626;font-size:0.86rem;">⚠ {{ error }}</div>
+  {% endif %}
+  <div style="background:#fff;border-radius:12px;padding:32px;box-shadow:0 4px 20px rgba(0,0,0,0.07);">
+    <form method="post" id="gen-form">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label" style="color:#57534e;">Blog Topic / Title</label>
+        <input type="text" name="topic" class="form-input" required placeholder="e.g. 10 Tips for Better Photography in 2025" style="border-color:#e2ddd7;color:#1c1917;background:#f9f9f8;" autofocus>
+        <div style="font-size:0.76rem;color:#a8a29e;margin-top:6px;">AI will generate a full article, excerpt, and relevant tags.</div>
+      </div>
+      <button type="submit" id="gen-btn" class="btn btn-lg" style="background:#d97706;color:#fff;width:100%;justify-content:center;">✨ Generate Blog Post</button>
+    </form>
+    <div id="generating" style="display:none;text-align:center;padding:32px 0;">
+      <div style="font-size:2rem;animation:spin 1.5s linear infinite;display:inline-block;margin-bottom:12px;">⚙️</div>
+      <div style="color:#57534e;font-size:0.9rem;">Writing your blog post… this may take 15-30 seconds.</div>
+    </div>
+  </div>
+  <div style="text-align:center;margin-top:20px;">
+    <a href="/blog/my-posts/" style="color:#d97706;text-decoration:none;font-size:0.84rem;">← View My Posts</a>
+  </div>
+</div>
+</div>
+<style>@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}</style>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('gen-form').addEventListener('submit',function(){
+  document.getElementById('gen-btn').style.display='none';
+  document.getElementById('generating').style.display='block';
+});
+</script>
+{% endblock %}

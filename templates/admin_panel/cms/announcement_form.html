@@ -1,0 +1,45 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}New Announcement{% endblock %}
+{% block topbar_title %}📢 Create Announcement{% endblock %}
+{% block content %}
+<div style="max-width:680px;">
+<form method="post">{% csrf_token %}
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">Announcement Details</span></div>
+    <div class="panel-body">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Type</label>
+          <select class="form-control" name="announcement_type">
+            {% for val, label in types %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Title</label><input class="form-control" name="title" required></div>
+      </div>
+      <div class="form-group"><label class="form-label">Message</label><textarea class="form-control" name="message" required></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Link Text <span class="form-hint">Optional CTA</span></label><input class="form-control" name="link_text" placeholder="Learn More"></div>
+        <div class="form-group"><label class="form-label">Link URL</label><input class="form-control" name="link_url" placeholder="/page/about/"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Background Color</label><div style="display:flex;gap:8px;"><input type="color" name="bg_color" value="#6c47ff" style="width:48px;height:38px;border-radius:6px;border:1px solid var(--border);cursor:pointer;"><input class="form-control" value="#6c47ff" style="flex:1;font-family:monospace;"></div></div>
+        <div class="form-group"><label class="form-label">Text Color</label><div style="display:flex;gap:8px;"><input type="color" name="text_color" value="#ffffff" style="width:48px;height:38px;border-radius:6px;border:1px solid var(--border);cursor:pointer;"><input class="form-control" value="#ffffff" style="flex:1;font-family:monospace;"></div></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Start Date/Time <span class="form-hint">Leave blank for immediate</span></label><input class="form-control" type="datetime-local" name="starts_at"></div>
+        <div class="form-group"><label class="form-label">End Date/Time <span class="form-hint">Leave blank for no expiry</span></label><input class="form-control" type="datetime-local" name="ends_at"></div>
+      </div>
+      <div style="display:flex;gap:24px;flex-wrap:wrap;">
+        <label class="form-check"><input type="checkbox" name="is_active" checked> Active</label>
+        <label class="form-check"><input type="checkbox" name="is_dismissible" checked> User can dismiss</label>
+        <label class="form-check"><input type="checkbox" name="show_to_logged_in" checked> Show to logged-in users</label>
+        <label class="form-check"><input type="checkbox" name="show_to_guests" checked> Show to guests</label>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;gap:12px;margin-top:4px;">
+    <button type="submit" class="btn btn-primary">📢 Create Announcement</button>
+    <a href="/admin-panel/cms/announcements/" class="btn btn-ghost">Cancel</a>
+  </div>
+</form>
+</div>
+{% endblock %}

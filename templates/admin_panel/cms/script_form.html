@@ -1,0 +1,33 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}{{ action }} Script{% endblock %}
+{% block topbar_title %}{{ action }} Script/Integration{% endblock %}
+{% block content %}
+<div style="max-width:700px;">
+<form method="post">{% csrf_token %}
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">Script Details</span></div>
+    <div class="panel-body">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Name</label><input class="form-control" name="name" value="{{ script.name|default:'' }}" required placeholder="e.g. Google Analytics"></div>
+        <div class="form-group"><label class="form-label">Position</label>
+          <select class="form-control" name="position">
+            {% for val, label in positions %}<option value="{{ val }}" {% if script and script.position == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Description <span class="form-hint">Optional internal note</span></label><input class="form-control" name="description" value="{{ script.description|default:'' }}" placeholder="e.g. Tracks page views via GA4"></div>
+      <div class="form-group"><label class="form-label">Load on Pages <span class="form-hint">Use * for all, or comma-separated paths like /blog/,/movies/</span></label><input class="form-control" name="load_on_pages" value="{{ script.load_on_pages|default:'*' }}"></div>
+      <div class="form-group"><label class="form-label">Script Code <span class="form-hint">Paste the full &lt;script&gt; tag or raw code</span></label><textarea class="form-control" name="script" style="min-height:200px;font-family:monospace;font-size:12px;" required>{{ script.script|default:'' }}</textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Order <span class="form-hint">Lower loads first</span></label><input class="form-control" type="number" name="order" value="{{ script.order|default:0 }}"></div>
+        <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:4px;"><label class="form-check"><input type="checkbox" name="is_active" {% if not script or script.is_active %}checked{% endif %}> Script is active</label></div>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;gap:12px;">
+    <button type="submit" class="btn btn-primary">💾 {{ action }} Script</button>
+    <a href="/admin-panel/cms/scripts/" class="btn btn-ghost">Cancel</a>
+  </div>
+</form>
+</div>
+{% endblock %}

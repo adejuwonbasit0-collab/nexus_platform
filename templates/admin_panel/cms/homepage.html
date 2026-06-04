@@ -1,0 +1,31 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Homepage{% endblock %}
+{% block topbar_title %}🏠 Homepage Manager{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+  <p style="color:var(--text2);font-size:13px;">Drag to reorder sections. Toggle visibility without deleting.</p>
+  <a href="/admin-panel/cms/homepage/section/create/" class="btn btn-primary">+ Add Section</a>
+</div>
+{% if sections %}
+<div id="sectionsList">
+  {% for s in sections %}
+  <div class="panel" style="margin-bottom:12px;cursor:grab;" data-pk="{{ s.pk }}">
+    <div style="display:flex;align-items:center;gap:14px;padding:14px 20px;">
+      <span style="color:var(--text2);font-size:18px;cursor:grab;">⠿</span>
+      <div style="flex:1;">
+        <div style="font-weight:600;margin-bottom:2px;">{{ s.title|default:"(untitled)" }}</div>
+        <div style="font-size:12px;color:var(--text2);">{{ s.get_section_type_display }} · order {{ s.order }}</div>
+      </div>
+      <span class="status-badge {% if s.is_visible %}s-approved{% else %}s-draft{% endif %}">{% if s.is_visible %}Visible{% else %}Hidden{% endif %}</span>
+      <a href="/admin-panel/cms/homepage/section/{{ s.pk }}/edit/" class="btn btn-ghost btn-sm">Edit</a>
+      <form method="post" action="/admin-panel/cms/homepage/section/{{ s.pk }}/delete/" onsubmit="return confirm('Delete this section?')">{% csrf_token %}
+        <button class="btn btn-ghost btn-sm" style="color:#e74c3c;">Delete</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state"><div class="empty-icon">🏠</div><h3>No homepage sections yet</h3><p>Create your first section to start building your homepage.</p><a href="/admin-panel/cms/homepage/section/create/" class="btn btn-primary" style="margin-top:16px;">+ Add First Section</a></div>
+{% endif %}
+{% endblock %}

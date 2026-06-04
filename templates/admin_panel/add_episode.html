@@ -1,0 +1,44 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block title %}Add Episode{% endblock %}
+{% block admin_content %}
+<h1 style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;margin-bottom:8px;">🎬 Add Episode</h1>
+<p style="color:var(--text2);margin-bottom:24px;">Series: <strong style="color:var(--accent);">{{ series.title }}</strong></p>
+<div class="card" style="padding:32px;max-width:600px;">
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div class="form-group">
+        <label class="form-label">Season Number</label>
+        <select name="season" class="form-select">
+          {% for s in seasons %}<option value="{{ s.number }}">Season {{ s.number }}</option>{% endfor %}
+          <option value="{{ seasons.count|add:1 }}">+ New Season {{ seasons.count|add:1 }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Episode Number</label>
+        <input type="number" name="episode_number" class="form-input" value="1" min="1">
+      </div>
+      <div class="form-group" style="grid-column:1/-1;">
+        <label class="form-label">Episode Title *</label>
+        <input type="text" name="title" class="form-input" required placeholder="Episode title">
+      </div>
+      <div class="form-group" style="grid-column:1/-1;">
+        <label class="form-label">Description</label>
+        <textarea name="description" class="form-textarea" placeholder="Brief episode description..."></textarea>
+      </div>
+      <div class="form-group" style="grid-column:1/-1;">
+        <label class="form-label">Video File *</label>
+        <input type="file" name="file" class="form-input" accept="video/*" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Thumbnail</label>
+        <input type="file" name="thumbnail" class="form-input" accept="image/*">
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:8px;">
+      <button type="submit" class="btn btn-primary">Add Episode</button>
+      <a href="/admin-panel/series/" class="btn btn-ghost">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

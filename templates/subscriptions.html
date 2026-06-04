@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+{% block title %}Subscription Plans — NEXUS{% endblock %}
+{% block extra_head %}
+<style>
+.plan-card{
+  background:rgba(255,255,255,.03);
+  backdrop-filter:blur(16px);
+  border:1px solid var(--bd);
+  border-radius:20px;padding:36px 32px;
+  transition:transform .25s,border-color .25s,box-shadow .25s;
+  position:relative;overflow:hidden;
+  box-shadow:0 4px 24px rgba(0,0,0,.3);
+}
+.plan-card:hover{
+  transform:translateY(-6px);
+  box-shadow:0 20px 60px rgba(0,0,0,.5);
+}
+.plan-card.featured{
+  border-color:rgba(124,92,252,.5);
+  box-shadow:0 8px 32px rgba(124,92,252,.2);
+  background:rgba(124,92,252,.06);
+}
+.plan-card.featured:hover{
+  box-shadow:0 24px 64px rgba(124,92,252,.35);
+}
+.plan-badge{
+  position:absolute;top:20px;right:20px;
+  background:linear-gradient(135deg,var(--ac),var(--ac2));
+  color:#fff;border-radius:20px;
+  padding:4px 12px;font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.05em;
+}
+.plan-price{
+  font-family:'Syne',sans-serif;
+  font-size:48px;font-weight:800;
+  line-height:1;margin:20px 0 6px;
+}
+.plan-price sup{font-size:22px;font-weight:700;vertical-align:super;margin-right:2px}
+.plan-price sub{font-size:14px;font-weight:400;color:var(--tx2);vertical-align:bottom;margin-left:3px}
+.plan-feature{
+  display:flex;align-items:flex-start;gap:10px;
+  font-size:14px;padding:8px 0;
+  border-bottom:1px solid var(--bd);
+  color:var(--tx2);
+}
+.plan-feature:last-child{border-bottom:none}
+.plan-feature .ck{color:#22c55e;flex-shrink:0;font-size:16px;margin-top:1px}
+.plan-feature .nx{color:var(--tx3);flex-shrink:0;font-size:16px;margin-top:1px}
+.plan-feature.active{color:var(--tx)}
+</style>
+{% endblock %}
+{% block content %}
+
+<div class="page-hero">
+  <div class="container" style="position:relative;z-index:1;text-align:center;">
+    <div style="font-size:52px;margin-bottom:14px;">💎</div>
+    <h1 style="font-family:'Syne',sans-serif;font-size:clamp(32px,5vw,52px);font-weight:800;margin-bottom:12px;">Choose Your Plan</h1>
+    <p style="color:var(--tx2);font-size:17px;max-width:520px;margin:0 auto;">Unlock premium content, download in HD, and support creators directly.</p>
+  </div>
+</div>
+
+<div class="container" style="padding-top:60px;padding-bottom:90px;max-width:1080px;">
+
+  {% if plans %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;align-items:start;">
+    {% for plan in plans %}
+    <div class="plan-card {% if plan.is_featured %}featured{% endif %}">
+      {% if plan.is_featured %}<div class="plan-badge">Most Popular</div>{% endif %}
+
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--tx2);margin-bottom:8px;">{{ plan.name }}</div>
+      <div style="font-size:14px;color:var(--tx2);min-height:40px;">{{ plan.description|default:'' }}</div>
+
+      <div class="plan-price">
+        <sup>$</sup>{{ plan.price }}<sub>/mo</sub>
+      </div>
+      {% if plan.price_yearly %}<div style="font-size:12px;color:var(--ac);margin-bottom:20px;">Save with yearly — ${{ plan.price_yearly }}/year</div>
+      {% else %}<div style="margin-bottom:20px;"></div>{% endif %}
+
+      <div style="margin-bottom:28px;">
+        {% if plan.features %}
+          {% for feat in plan.features_list %}
+          <div class="plan-feature active"><span class="ck">✓</span> {{ feat }}</div>
+          {% endfor %}
+        {% else %}
+        <div class="plan-feature active"><span class="ck">✓</span> Access all free content</div>
+        {% if plan.price > 0 %}
+        <div class="plan-feature active"><span class="ck">✓</span> Access all premium content</div>
+        <div class="plan-feature active"><span class="ck">✓</span> HD & 4K downloads</div>
+        <div class="plan-feature active"><span class="ck">✓</span> Support creators directly</div>
+        <div class="plan-feature active"><span class="ck">✓</span> Early access to new releases</div>
+        <div class="plan-feature active"><span class="ck">✓</span> AI Studio access</div>
+        {% if plan.is_featured %}
+        <div class="plan-feature active"><span class="ck">✓</span> Priority support</div>
+        <div class="plan-feature active"><span class="ck">✓</span> Creator tools & analytics</div>
+        {% endif %}
+        {% endif %}
+        {% endif %}
+      </div>
+
+      {% if user.is_authenticated %}
+        {% if plan.price == 0 %}
+        <a href="/" class="btn btn-outline" style="width:100%;justify-content:center;font-size:15px;padding:13px;">Current Free Plan</a>
+        {% else %}
+        <a href="/pay/subscribe/{{ plan.pk }}/" class="btn {% if plan.is_featured %}btn-primary{% else %}btn-outline{% endif %}" style="width:100%;justify-content:center;font-size:15px;padding:13px;">
+          {% if plan.is_featured %}✨ {% endif %}Subscribe — ${{ plan.price }}/mo
+        </a>
+        {% endif %}
+      {% else %}
+      <a href="/auth/register/?next=/subscriptions/" class="btn {% if plan.is_featured %}btn-primary{% else %}btn-outline{% endif %}" style="width:100%;justify-content:center;font-size:15px;padding:13px;">
+        Get Started
+      </a>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  {# Fallback default plans when none exist in DB #}
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;align-items:start;">
+
+    <div class="plan-card">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--tx2);margin-bottom:8px;">Free</div>
+      <div style="font-size:14px;color:var(--tx2);min-height:40px;">Explore the platform at no cost</div>
+      <div class="plan-price"><sup>$</sup>0<sub>/mo</sub></div>
+      <div style="margin-bottom:28px;margin-top:20px;">
+        <div class="plan-feature active"><span class="ck">✓</span> Access all free content</div>
+        <div class="plan-feature active"><span class="ck">✓</span> Browse movies, music & gallery</div>
+        <div class="plan-feature active"><span class="ck">✓</span> Standard definition streaming</div>
+        <div class="plan-feature"><span class="nx">✕</span> Premium content</div>
+        <div class="plan-feature"><span class="nx">✕</span> HD downloads</div>
+        <div class="plan-feature"><span class="nx">✕</span> AI Studio</div>
+      </div>
+      <a href="/auth/register/" class="btn btn-outline" style="width:100%;justify-content:center;font-size:15px;padding:13px;">Sign Up Free</a>
+    </div>
+
+    <div class="plan-card featured">
+      <div class="plan-badge">Most Popular</div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ac);margin-bottom:8px;">Premium</div>
+      <div style="font-size:14px;color:var(--tx2);min-height:40px;">Unlock the full NEXUS experience</div>
+      <div class="plan-price" style="background:linear-gradient(135deg,var(--ac),var(--ac2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;"><sup style="-webkit-text-fill-color:transparent;">$</sup>9.99<sub style="-webkit-text-fill-color:var(--tx2);">/mo</sub></div>
+      <div style="margin-bottom:28px;margin-top:20px;">
+        <div class="plan-feature active"><span class="ck">✓</span> Everything in Free</div>
+        <div class="plan-feature active"><span class="ck">✓</span> All premium content</div>
+        <div class="plan-feature active"><span class="ck">✓</span> HD & 4K downloads</div>
+        <div class="plan-feature active"><span class="ck">✓</span> AI Studio (image generation)</div>
+        <div class="plan-feature active"><span class="ck">✓</span> Early access to new releases</div>
+        <div class="plan-feature active"><span class="ck">✓</span> Support creators directly</div>
+      </div>
+      <a href="/auth/register/?next=/subscriptions/" class="btn btn-primary" style="width:100%;justify-content:center;font-size:15px;padding:13px;">✨ Get Premium</a>
+    </div>
+
+    <div class="plan-card">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--tx2);margin-bottom:8px;">Creator Pro</div>
+      <div style="font-size:14px;color:var(--tx2);min-height:40px;">For serious creators and power users</div>
+      <div class="plan-price"><sup>$</sup>24.99<sub>/mo</sub></div>
+      <div style="margin-bottom:28px;margin-top:20px;">
+        <div class="plan-feature active"><span class="ck">✓</span> Everything in Premium</div>
+        <div class="plan-feature active"><span class="ck">✓</span> Creator dashboard & analytics</div>
+        <div class="plan-feature active"><span class="ck">✓</span> Upload up to 500 MB/file</div>
+        <div class="plan-feature active"><span class="ck">✓</span> Revenue sharing</div>
+        <div class="plan-feature active"><span class="ck">✓</span> Priority support</div>
+        <div class="plan-feature active"><span class="ck">✓</span> Verified creator badge</div>
+      </div>
+      <a href="/auth/register/?role=creator" class="btn btn-outline" style="width:100%;justify-content:center;font-size:15px;padding:13px;">Become a Creator</a>
+    </div>
+  </div>
+  {% endif %}
+
+  {# FAQ strip #}
+  <div style="margin-top:72px;padding-top:52px;border-top:1px solid var(--bd);">
+    <h2 style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:28px;text-align:center;">Common Questions</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;">
+      {% for qa in faq %}
+      <div style="background:rgba(255,255,255,.025);border:1px solid var(--bd);border-radius:14px;padding:20px 22px;">
+        <div style="font-size:14px;font-weight:600;margin-bottom:8px;">{{ qa.q }}</div>
+        <div style="font-size:13px;color:var(--tx2);line-height:1.65;">{{ qa.a }}</div>
+      </div>
+      {% empty %}
+      <div style="background:rgba(255,255,255,.025);border:1px solid var(--bd);border-radius:14px;padding:20px 22px;">
+        <div style="font-size:14px;font-weight:600;margin-bottom:8px;">Can I cancel anytime?</div>
+        <div style="font-size:13px;color:var(--tx2);line-height:1.65;">Yes. You can cancel your subscription at any time from your account settings. Access continues until the end of your billing period.</div>
+      </div>
+      <div style="background:rgba(255,255,255,.025);border:1px solid var(--bd);border-radius:14px;padding:20px 22px;">
+        <div style="font-size:14px;font-weight:600;margin-bottom:8px;">What payment methods are accepted?</div>
+        <div style="font-size:13px;color:var(--tx2);line-height:1.65;">We accept all major debit/credit cards via Paystack, as well as bank transfers. More payment options coming soon.</div>
+      </div>
+      <div style="background:rgba(255,255,255,.025);border:1px solid var(--bd);border-radius:14px;padding:20px 22px;">
+        <div style="font-size:14px;font-weight:600;margin-bottom:8px;">Is there a free trial?</div>
+        <div style="font-size:13px;color:var(--tx2);line-height:1.65;">The Free plan lets you explore the platform with no time limit. You only need a paid plan to access premium content and downloads.</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}

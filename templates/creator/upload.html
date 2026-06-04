@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block title %}Upload Content — NEXUS{% endblock %}
+{% block content %}
+<div class="wrap" style="max-width:680px;padding-top:40px;padding-bottom:60px;">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
+    <a href="/creator/" style="color:var(--tx2);font-size:13px;">← Back to Studio</a>
+  </div>
+  <h1 style="font-size:22px;font-weight:800;margin-bottom:24px;">Upload Content</h1>
+  <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:14px;padding:28px;">
+    <form method="post" enctype="multipart/form-data" id="uploadForm">{% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">Content Type</label>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:4px;">
+          {% for v,l in content_types %}
+          <label style="border:1px solid var(--bd);border-radius:9px;padding:12px;text-align:center;cursor:pointer;transition:border-color .15s;" class="type-lbl" data-val="{{ v }}">
+            <input type="radio" name="content_type" value="{{ v }}" style="display:none;" onchange="updateType('{{ v }}')">
+            <div style="font-size:22px;margin-bottom:6px;">{% if v == 'video' %}🎬{% elif v == 'music' %}🎵{% elif v == 'image' %}🖼{% else %}📝{% endif %}</div>
+            <div style="font-size:12px;font-weight:600;">{{ l }}</div>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Title *</label><input class="form-input" name="title" required placeholder="Give your content a title"></div>
+      <div class="form-group"><label class="form-label">Description</label><textarea class="form-input" name="description" rows="3" placeholder="Describe your content..."></textarea></div>
+      <div id="blog-body-group" style="display:none;" class="form-group">
+        <label class="form-label">Blog Post Content</label>
+        <textarea class="form-input" name="body" style="min-height:200px;" placeholder="Full post content (HTML supported)..."></textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label">Tier</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;">
+            <label style="border:1px solid var(--ac);border-radius:9px;padding:12px;cursor:pointer;" id="tier-free">
+              <input type="radio" name="tier" value="free" checked style="display:none;">
+              <div style="font-weight:600;font-size:13px;">🆓 Free</div>
+              <div style="font-size:11px;color:var(--tx2);">All users</div>
+            </label>
+            <label style="border:1px solid var(--bd);border-radius:9px;padding:12px;cursor:pointer;" id="tier-premium" onclick="document.querySelector('[name=tier][value=premium]').checked=true;document.getElementById('tier-free').style.borderColor='var(--bd)';this.style.borderColor='var(--ac)'">
+              <input type="radio" name="tier" value="premium" style="display:none;">
+              <div style="font-weight:600;font-size:13px;">⭐ Premium</div>
+              <div style="font-size:11px;color:var(--tx2);">Subscribers only</div>
+            </label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Price (₦) <span style="font-weight:400;color:var(--tx2);text-transform:none;font-size:11px;letter-spacing:0;">0 = sub-only</span></label>
+          <input class="form-input" type="number" name="price" value="0" min="0" step="100" style="margin-top:4px;">
+        </div>
+      </div>
+      <div class="form-group" id="file-group">
+        <label class="form-label" id="file-label">File *</label>
+        <input class="form-input" type="file" name="file" id="file-input" style="cursor:pointer;">
+        <div style="font-size:11px;color:var(--tx2);margin-top:5px;" id="file-hint">Select a file to upload</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Thumbnail <span style="font-weight:400;color:var(--tx2);text-transform:none;font-size:11px;letter-spacing:0;">JPG/PNG/WebP — strongly recommended</span></label>
+        <input class="form-input" type="file" name="thumbnail" accept="image/*" style="cursor:pointer;">
+      </div>
+      <div style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:9px;padding:12px 14px;font-size:13px;color:#3b82f6;margin-bottom:18px;">
+        ℹ️ Your content will be reviewed before going live. This usually takes under 24 hours.
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;font-size:15px;">⬆ Submit for Review</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const specs = {
+  video:{label:'Video File *',hint:'MP4, WebM, MOV — max 500MB',accept:'video/*',showFile:true},
+  music:{label:'Audio File *',hint:'MP3, WAV, FLAC, AAC — max 100MB',accept:'audio/*',showFile:true},
+  image:{label:'Image File *',hint:'JPG, PNG, WebP, GIF — max 50MB',accept:'image/*',showFile:true},
+  blog: {label:'',hint:'',accept:'',showFile:false},
+};
+// init first type selected
+const lbls = document.querySelectorAll('.type-lbl');
+if(lbls.length){
+  lbls[0].style.borderColor='var(--ac)';
+  lbls[0].querySelector('input').checked=true;
+  updateType(lbls[0].dataset.val);
+}
+lbls.forEach(lbl=>{
+  lbl.addEventListener('click',()=>{
+    lbls.forEach(l=>l.style.borderColor='var(--bd)');
+    lbl.style.borderColor='var(--ac)';
+  });
+});
+function updateType(ct){
+  const s=specs[ct]||specs.video;
+  const fi=document.getElementById('file-input');
+  const fg=document.getElementById('file-group');
+  const bg=document.getElementById('blog-body-group');
+  document.getElementById('file-label').textContent=s.label;
+  document.getElementById('file-hint').textContent=s.hint;
+  fi.accept=s.accept;
+  fi.required=s.showFile;
+  fg.style.display=s.showFile?'block':'none';
+  bg.style.display=ct==='blog'?'block':'none';
+}
+document.querySelector('[name=tier][value=free]').addEventListener('change',()=>{
+  document.getElementById('tier-free').style.borderColor='var(--ac)';
+  document.getElementById('tier-premium').style.borderColor='var(--bd)';
+});
+</script>
+{% endblock %}

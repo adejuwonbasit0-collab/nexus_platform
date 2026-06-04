@@ -1,0 +1,51 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Audit Logs{% endblock %}
+{% block topbar_title %}📋 Audit Logs{% endblock %}
+{% block content %}
+<div class="panel" style="margin-bottom:16px;">
+  <div class="panel-body" style="padding:14px 20px;">
+    <form method="get" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+      <div class="form-group" style="margin:0;min-width:140px;"><label class="form-label">Action</label>
+        <select class="form-control" name="action">
+          <option value="">All actions</option>
+          {% for val, label in actions %}<option value="{{ val }}" {% if filter_action == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group" style="margin:0;flex:1;min-width:140px;"><label class="form-label">Username</label><input class="form-control" name="user" value="{{ filter_user }}" placeholder="Username…"></div>
+      <div class="form-group" style="margin:0;min-width:140px;"><label class="form-label">Date</label><input class="form-control" type="date" name="date" value="{{ filter_date }}"></div>
+      <button type="submit" class="btn btn-primary">Filter</button>
+      <a href="/admin-panel/observability/audit-logs/" class="btn btn-ghost">Clear</a>
+    </form>
+  </div>
+</div>
+<div class="panel">
+  <div class="panel-header"><span class="panel-title">Audit Trail <span style="color:var(--text2);font-size:13px;font-weight:400;">({{ page.paginator.count }} entries)</span></span></div>
+  <div class="table-wrap" style="border:none;border-radius:0;">
+    <table class="data-table">
+      <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Description</th><th>IP</th></tr></thead>
+      <tbody>
+      {% for log in page.object_list %}
+      <tr>
+        <td style="font-size:12px;color:var(--text2);white-space:nowrap;">{{ log.timestamp|date:"M d H:i:s" }}</td>
+        <td style="font-size:13px;">{% if log.user %}<a href="/admin-panel/users/{{ log.user.pk }}/" style="color:var(--accent);">{{ log.user.username }}</a>{% else %}<span style="color:var(--text2);">Anonymous</span>{% endif %}</td>
+        <td><span class="status-badge {% if log.action == 'login' %}s-approved{% elif log.action in 'delete,reject' %}s-rejected{% elif log.action in 'login_failed' %}s-rejected{% else %}s-draft{% endif %}" style="font-size:11px;">{{ log.action }}</span></td>
+        <td style="font-size:12px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ log.description }}</td>
+        <td style="font-family:monospace;font-size:11px;color:var(--text2);">{{ log.ip_address|default:'—' }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text2);">No audit log entries found.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if page.paginator.num_pages > 1 %}
+  <div class="panel-body" style="padding-top:0;">
+    <div class="pagination">
+      {% if page.has_previous %}<a href="?page={{ page.previous_page_number }}&action={{ filter_action }}&user={{ filter_user }}&date={{ filter_date }}" class="page-btn">‹</a>{% endif %}
+      <span style="font-size:13px;color:var(--text2);padding:0 8px;">{{ page.number }} / {{ page.paginator.num_pages }}</span>
+      {% if page.has_next %}<a href="?page={{ page.next_page_number }}&action={{ filter_action }}&user={{ filter_user }}&date={{ filter_date }}" class="page-btn">›</a>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

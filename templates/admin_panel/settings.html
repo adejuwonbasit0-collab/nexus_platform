@@ -1,0 +1,39 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Settings{% endblock %}
+{% block topbar_title %}⚙️ General Settings{% endblock %}
+{% block content %}
+<div style="max-width:700px;">
+<form method="post">{% csrf_token %}
+  <div class="panel" style="margin-bottom:20px;">
+    <div class="panel-header"><span class="panel-title">Site Settings</span></div>
+    <div class="panel-body">
+      <div class="form-group"><label class="form-label">Site Name</label><input class="form-control" name="site_name" value="{{ site.site_name|default:'' }}"></div>
+      <div class="form-group"><label class="form-label">Site Description</label><textarea class="form-control" name="site_description">{{ site.site_description|default:'' }}</textarea></div>
+      <div class="form-group"><label class="form-label">Site URL <span class="form-hint">e.g. https://yourdomain.com</span></label><input class="form-control" name="site_url" value="{{ site.site_url|default:'' }}"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Contact Email</label><input class="form-control" type="email" name="contact_email" value="{{ site.contact_email|default:'' }}"></div>
+        <div class="form-group"><label class="form-label">Support Email</label><input class="form-control" type="email" name="support_email" value="{{ site.support_email|default:'' }}"></div>
+      </div>
+    </div>
+  </div>
+  <div class="panel" style="margin-bottom:20px;">
+    <div class="panel-header"><span class="panel-title">Upload & Content Settings</span></div>
+    <div class="panel-body">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Max Upload Size (MB)</label><input class="form-control" type="number" name="max_upload_size_mb" value="{{ site.max_upload_size_mb|default:'500' }}"></div>
+        <div class="form-group"><label class="form-label">Default Content Tier</label>
+          <select class="form-control" name="default_content_tier">
+            <option value="free" {% if site.default_content_tier == 'free' %}selected{% endif %}>Free</option>
+            <option value="premium" {% if site.default_content_tier == 'premium' %}selected{% endif %}>Premium</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-check"><input type="checkbox" name="enable_registration" {% if site.enable_registration != 'false' %}checked{% endif %}> Enable new user registration</label>
+      </div>
+    </div>
+  </div>
+  <button type="submit" class="btn btn-primary">💾 Save Settings</button>
+</form>
+</div>
+{% endblock %}

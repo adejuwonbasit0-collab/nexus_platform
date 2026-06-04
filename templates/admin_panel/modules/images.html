@@ -1,0 +1,232 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Gallery{% endblock %}
+{% block topbar_title %}🖼 Gallery Management{% endblock %}
+{% block content %}
+
+<div class="tab-bar" style="display:flex;gap:4px;margin-bottom:20px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:4px;">
+  <button class="itab-btn active" onclick="switchImgTab('list',this)">📋 All Images ({{ page.paginator.count }})</button>
+  <button class="itab-btn" onclick="switchImgTab('upload',this)">⬆ Upload Image</button>
+  <button class="itab-btn" onclick="switchImgTab('cats',this)">📁 Categories</button>
+</div>
+
+{# ── Images list tab ── #}
+<div class="itab-panel active" data-itab="list">
+  <div class="panel" style="margin-bottom:12px;"><div class="panel-body" style="padding:12px 16px;">
+    <form method="get" style="display:flex;gap:10px;">
+      <input type="hidden" name="tab" value="list">
+      <input class="finput" name="q" value="{{ q }}" placeholder="Search images..." style="flex:1;">
+      <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+      {% if q %}<a href="?tab=list" class="btn btn-ghost btn-sm">Clear</a>{% endif %}
+    </form>
+  </div></div>
+
+  <div class="table-wrap"><table class="dt">
+    <thead><tr>
+      <th style="width:90px;">Preview</th>
+      <th>Title</th>
+      <th>Uploader</th>
+      <th>Category</th>
+      <th>Resolution</th>
+      <th>Downloads</th>
+      <th>Status</th>
+      <th>Actions</th>
+    </tr></thead>
+    <tbody>
+    {% for img in page.object_list %}
+    <tr>
+      <td>
+        {% if img.image_file %}<img src="{{ img.image_file.url }}" style="width:76px;height:52px;object-fit:cover;border-radius:6px;cursor:pointer;" onclick="window.open('{{ img.image_file.url }}','_blank')">
+        {% elif img.thumbnail %}<img src="{{ img.thumbnail.url }}" style="width:76px;height:52px;object-fit:cover;border-radius:6px;">
+        {% else %}<div style="width:76px;height:52px;background:rgba(124,92,252,.08);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:22px;">🖼</div>{% endif %}
+      </td>
+      <td>
+        <div style="font-weight:600;font-size:13px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ img.title }}</div>
+        {% if img.is_featured %}<span class="badge badge-yellow" style="font-size:9px;">⭐ Featured</span>{% endif %}
+        {% if img.is_premium %}<span class="badge badge-purple" style="font-size:9px;">PRO</span>{% endif %}
+      </td>
+      <td style="font-size:12px;"><a href="/admin-panel/users/{{ img.uploaded_by.pk }}/" style="color:var(--accent);">{{ img.uploaded_by.username }}</a></td>
+      <td style="font-size:12px;color:var(--text2);">{{ img.category.name|default:'—' }}</td>
+      <td style="font-size:12px;color:var(--text2);">{{ img.resolution|upper }}{% if img.width and img.height %}<br><span style="font-size:10px;">{{ img.width }}×{{ img.height }}</span>{% endif %}</td>
+      <td style="font-size:12px;color:var(--text2);">⬇ {{ img.downloads_count }}</td>
+      <td>
+        <button id="ipub-{{ img.pk }}" onclick="imgToggle('toggle_publish',{{ img.pk }},'ipub-{{ img.pk }}','Live','Draft','badge-green','badge-gray')" class="badge {% if img.is_published %}badge-green{% else %}badge-gray{% endif %}" style="border:none;cursor:pointer;font-size:9px;">{% if img.is_published %}Live{% else %}Draft{% endif %}</button>
+      </td>
+      <td>
+        <div style="display:flex;gap:4px;">
+          <a href="/images/view/{{ img.slug }}/" target="_blank" class="btn btn-ghost btn-xs">View</a>
+          <button id="ifeat-{{ img.pk }}" onclick="imgToggle('toggle_featured',{{ img.pk }},'ifeat-{{ img.pk }}','★','☆',null,null)" class="btn btn-ghost btn-xs">{% if img.is_featured %}★{% else %}☆{% endif %}</button>
+          <button class="btn btn-ghost btn-xs" onclick="openEditImg({{ img.pk }},'{{ img.title|escapejs }}','{{ img.description|escapejs }}','{{ img.resolution }}',{{ img.is_published|lower }},{{ img.is_premium|lower }},{{ img.is_featured|lower }})">Edit</button>
+          <form method="post" style="display:inline;" onsubmit="return confirm('Delete this image?')">
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="pk" value="{{ img.pk }}">{% csrf_token %}
+            <button class="btn btn-danger btn-xs">Del</button>
+          </form>
+        </div>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="8"><div class="empty" style="padding:40px;"><div class="empty-icon">🖼</div><h3>No images yet</h3><p>Upload images using the "Upload Image" tab above.</p></div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+
+  {% if page.paginator.num_pages > 1 %}
+  <div class="pager">
+    {% if page.has_previous %}<a href="?tab=list&page={{ page.previous_page_number }}&q={{ q }}">‹ Prev</a>{% endif %}
+    <span class="current">{{ page.number }} / {{ page.paginator.num_pages }}</span>
+    {% if page.has_next %}<a href="?tab=list&page={{ page.next_page_number }}&q={{ q }}">Next ›</a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+
+{# ── Upload tab ── #}
+<div class="itab-panel" data-itab="upload">
+  <div class="panel"><div class="panel-head"><span class="panel-title">⬆ Upload Image to Gallery</span></div><div class="panel-body">
+    <form method="post" enctype="multipart/form-data">
+      <input type="hidden" name="action" value="upload_image">{% csrf_token %}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="fg"><label>Image File * <span style="color:var(--text2);font-weight:400;font-size:10px;">(JPG, PNG, WEBP, GIF)</span></label><input class="finput" type="file" name="image_file" accept="image/*" required></div>
+        <div class="fg"><label>Thumbnail (optional)</label><input class="finput" type="file" name="thumbnail" accept="image/*"></div>
+        <div class="fg"><label>Title *</label><input class="finput" name="title" required placeholder="Descriptive title"></div>
+        <div class="fg">
+          <label>Category</label>
+          <select class="finput" name="category_pk">
+            <option value="">No category</option>
+            {% for cat in image_cats %}<option value="{{ cat.pk }}">{{ cat.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="fg">
+          <label>Resolution</label>
+          <select class="finput" name="resolution">
+            <option value="hd">HD (1080p)</option>
+            <option value="4k">4K / Ultra HD</option>
+            <option value="2k">2K</option>
+            <option value="sd">SD (≤720p)</option>
+          </select>
+        </div>
+        <div class="fg"><label>Tags <span style="color:var(--text2);font-weight:400;font-size:10px;">(comma-separated)</span></label><input class="finput" name="tags" placeholder="landscape, nature, dark"></div>
+        <div class="fg" style="grid-column:span 2;"><label>Description</label><textarea class="finput" name="description" rows="3" placeholder="Image description…"></textarea></div>
+        <div class="fg" style="display:flex;flex-direction:column;gap:10px;">
+          <label class="fcheck"><input type="checkbox" name="is_published" checked> Published (visible to users)</label>
+          <label class="fcheck"><input type="checkbox" name="is_premium"> Premium (requires subscription)</label>
+          <label class="fcheck"><input type="checkbox" name="is_featured"> Featured image</label>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary" style="margin-top:16px;">⬆ Upload Image</button>
+    </form>
+  </div></div>
+</div>
+
+{# ── Categories tab ── #}
+<div class="itab-panel" data-itab="cats">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div class="panel">
+      <div class="panel-head"><span class="panel-title">+ New Category</span></div>
+      <div class="panel-body">
+        <form method="post">
+          <input type="hidden" name="action" value="create_image_cat">{% csrf_token %}
+          <div class="fg"><label>Name *</label><input class="finput" name="name" required placeholder="e.g. Wallpapers"></div>
+          <button type="submit" class="btn btn-primary btn-sm">Create</button>
+        </form>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><span class="panel-title">All Categories</span></div>
+      <div style="max-height:320px;overflow-y:auto;">
+        {% for cat in image_cats %}
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 18px;border-bottom:1px solid var(--border);">
+          <span style="flex:1;font-size:13px;font-weight:500;">{{ cat.name }}</span>
+          <span style="font-size:11px;color:var(--text2);">{{ cat.image_set.count }} images</span>
+          <form method="post" style="display:inline;" onsubmit="return confirm('Delete category?')">
+            <input type="hidden" name="action" value="delete_image_cat">
+            <input type="hidden" name="pk" value="{{ cat.pk }}">{% csrf_token %}
+            <button class="btn btn-danger btn-xs">Del</button>
+          </form>
+        </div>
+        {% empty %}
+        <div class="empty" style="padding:32px;"><div class="empty-icon">📁</div><h3>No categories</h3></div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchImgTab(id, btn) {
+  document.querySelectorAll('[data-itab]').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.itab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-itab="${id}"]`).classList.add('active');
+  btn.classList.add('active');
+}
+function imgToggle(action, pk, btnId, labelOn, labelOff, classOn, classOff) {
+  const btn = document.getElementById(btnId);
+  const fd = new FormData();
+  fd.append('action', action); fd.append('pk', pk);
+  fd.append('csrfmiddlewaretoken', (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '');
+  fetch(window.location.pathname, {method:'POST', body:fd})
+    .then(r => r.json())
+    .then(data => {
+      const isOn = Object.values(data)[0];
+      btn.textContent = isOn ? labelOn : labelOff;
+      if (classOn && classOff) { btn.classList.toggle(classOn, isOn); btn.classList.toggle(classOff, !isOn); }
+    }).catch(() => window.location.reload());
+}
+</script>
+<style>
+.itab-btn{padding:7px 14px;border-radius:8px;font-size:13px;font-weight:500;background:none;border:none;color:var(--text2);cursor:pointer;transition:all .15s}
+.itab-btn:hover{color:var(--text);background:rgba(255,255,255,.05)}
+.itab-btn.active{background:var(--accent);color:#fff}
+.itab-panel{display:none}.itab-panel.active{display:block}
+.fg{margin-bottom:12px}
+.fg label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);margin-bottom:5px}
+.fcheck{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text2)}
+.fcheck input{cursor:pointer;width:14px;height:14px;accent-color:var(--accent)}
+</style>
+
+{# Edit Image Modal #}
+<div id="edit-img-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+  <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:28px;width:500px;max-width:95vw;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <h3 style="font-size:16px;font-weight:700;">✏️ Edit Image</h3>
+      <button onclick="document.getElementById('edit-img-modal').style.display='none'" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;">×</button>
+    </div>
+    <form method="post" enctype="multipart/form-data" action="/admin-panel/images/?tab=list">
+      <input type="hidden" name="action" value="edit_image">
+      <input type="hidden" name="pk" id="ei-pk">{% csrf_token %}
+      <div style="display:grid;gap:12px;">
+        <div class="fg"><label>Title</label><input class="finput" name="title" id="ei-title"></div>
+        <div class="fg"><label>Description</label><textarea class="finput" name="description" id="ei-desc" rows="3"></textarea></div>
+        <div class="fg"><label>Resolution</label>
+          <select class="finput" name="resolution" id="ei-resolution">
+            <option value="hd">HD</option><option value="2k">2K</option><option value="4k">4K</option>
+          </select>
+        </div>
+        <div class="fg"><label>Replace Thumbnail</label><input class="finput" type="file" name="thumbnail" accept="image/*"></div>
+        <div class="fg" style="display:flex;flex-direction:column;gap:8px;">
+          <label class="fcheck"><input type="checkbox" name="is_published" id="ei-published"> Published</label>
+          <label class="fcheck"><input type="checkbox" name="is_premium" id="ei-premium"> Premium</label>
+          <label class="fcheck"><input type="checkbox" name="is_featured" id="ei-featured"> Featured</label>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px;">
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+        <button type="button" onclick="document.getElementById('edit-img-modal').style.display='none'" class="btn btn-ghost">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openEditImg(pk, title, desc, res, published, premium, featured) {
+  document.getElementById('ei-pk').value = pk;
+  document.getElementById('ei-title').value = title;
+  document.getElementById('ei-desc').value = desc;
+  document.getElementById('ei-published').checked = published;
+  document.getElementById('ei-premium').checked = premium;
+  document.getElementById('ei-featured').checked = featured;
+  const sel = document.getElementById('ei-resolution');
+  if (sel) { for (let o of sel.options) { if (o.value === res) { o.selected = true; break; } } }
+  document.getElementById('edit-img-modal').style.display = 'flex';
+}
+</script>
+{% endblock %}

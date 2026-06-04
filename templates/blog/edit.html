@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}Edit Post{% endblock %}
+{% block content %}
+<div style="background:#fafaf8;min-height:100vh;color:#1c1917;padding:36px 0 60px;">
+<div class="container" style="max-width:800px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+    <h1 style="font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;">✏️ Edit Post</h1>
+    {% if post.status == 'published' %}<a href="/blog/post/{{ post.slug }}/" class="btn btn-ghost btn-sm">View Live →</a>{% endif %}
+  </div>
+  <div style="background:#fff;border-radius:12px;padding:32px;box-shadow:0 4px 20px rgba(0,0,0,0.07);">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label" style="color:#57534e;">Title</label>
+        <input type="text" name="title" value="{{ post.title }}" class="form-input" required style="border-color:#e2ddd7;color:#1c1917;">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="form-group">
+          <label class="form-label" style="color:#57534e;">Category</label>
+          <select name="category" class="form-select" style="border-color:#e2ddd7;color:#1c1917;background:#fff;">
+            <option value="">— None —</option>
+            {% for c in cats %}<option value="{{ c.pk }}" {% if post.category and post.category.pk == c.pk %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="color:#57534e;">Status</label>
+          <select name="status" class="form-select" style="border-color:#e2ddd7;color:#1c1917;background:#fff;">
+            <option value="draft" {% if post.status == 'draft' %}selected{% endif %}>Draft</option>
+            <option value="published" {% if post.status == 'published' %}selected{% endif %}>Published</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="color:#57534e;">Tags (comma-separated)</label>
+        <input type="text" name="tags" value="{% for t in post.tags.all %}{{ t.name }}{% if not forloop.last %}, {% endif %}{% endfor %}" class="form-input" placeholder="tag1, tag2, tag3" style="border-color:#e2ddd7;color:#1c1917;">
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="color:#57534e;">Excerpt</label>
+        <textarea name="excerpt" class="form-textarea" rows="2" style="border-color:#e2ddd7;color:#1c1917;">{{ post.excerpt }}</textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="color:#57534e;">Featured Image</label>
+        <input type="file" name="featured_img" class="form-input" accept="image/*" style="border-color:#e2ddd7;">
+        {% if post.featured_img %}<div style="margin-top:8px;"><img src="{{ post.featured_img.url }}" style="max-width:200px;border-radius:6px;border:1px solid #e2ddd7;"></div>{% endif %}
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="color:#57534e;">Content</label>
+        <textarea name="content" class="form-textarea" rows="20" style="border-color:#e2ddd7;color:#1c1917;font-family:monospace;font-size:0.88rem;">{{ post.content }}</textarea>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button type="submit" class="btn" style="background:#d97706;color:#fff;">💾 Save Post</button>
+        <a href="/blog/my-posts/" class="btn" style="background:#f5f5f0;color:#57534e;border:1px solid #e2ddd7;">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+</div>
+{% endblock %}

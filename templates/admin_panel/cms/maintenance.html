@@ -1,0 +1,29 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Maintenance{% endblock %}
+{% block topbar_title %}🔧 Maintenance Mode{% endblock %}
+{% block content %}
+<div style="max-width:680px;">
+{% if cfg.is_active %}
+<div class="alert alert-warning">⚠️ <strong>Maintenance mode is currently ACTIVE.</strong> Non-admin visitors see the maintenance page.</div>
+{% endif %}
+<form method="post">{% csrf_token %}
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">Maintenance Mode Settings</span></div>
+    <div class="panel-body">
+      <div class="form-group">
+        <label class="form-check" style="font-size:15px;">
+          <input type="checkbox" name="is_active" {% if cfg.is_active %}checked{% endif %} style="width:18px;height:18px;">
+          <strong>Enable Maintenance Mode</strong>
+        </label>
+      </div>
+      <div class="form-group"><label class="form-label">Page Title</label><input class="form-control" name="title" value="{{ cfg.title }}"></div>
+      <div class="form-group"><label class="form-label">Message</label><textarea class="form-control" name="message">{{ cfg.message }}</textarea></div>
+      <div class="form-group"><label class="form-label">Estimated Return Time <span class="form-hint">Optional</span></label><input class="form-control" type="datetime-local" name="estimated_return" {% if cfg.estimated_return %}value="{{ cfg.estimated_return|date:'Y-m-d\TH:i' }}"{% endif %}></div>
+      <div class="form-group"><label class="form-check"><input type="checkbox" name="allow_admins" {% if cfg.allow_admins %}checked{% endif %}> Allow admin users to bypass maintenance page</label></div>
+      <div class="form-group"><label class="form-label">Bypass IPs <span class="form-hint">Comma-separated IP addresses</span></label><input class="form-control" name="allowed_ips" value="{{ cfg.allowed_ips }}" placeholder="192.168.1.1, 10.0.0.1"></div>
+    </div>
+  </div>
+  <button type="submit" class="btn btn-primary">💾 Save Settings</button>
+</form>
+</div>
+{% endblock %}

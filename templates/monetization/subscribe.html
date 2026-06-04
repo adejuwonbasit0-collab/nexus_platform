@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}Subscribe — {{ plan.name }} — NEXUS{% endblock %}
+{% block content %}
+<div class="container" style="max-width:560px;padding-top:48px;padding-bottom:60px;text-align:center;">
+  <h1 style="font-size:28px;margin-bottom:8px;">{{ plan.name }}</h1>
+  <div style="font-size:40px;font-weight:800;margin:16px 0;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">{{ plan.currency }} {{ plan.price }}<span style="font-size:16px;font-weight:400;-webkit-text-fill-color:var(--text2);">/{{ plan.interval }}</span></div>
+  {% if plan.features %}
+  <ul style="list-style:none;margin-bottom:32px;text-align:left;max-width:360px;margin-left:auto;margin-right:auto;">
+    {% for feature in plan.features %}
+    <li style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);display:flex;gap:10px;align-items:center;font-size:14px;"><span style="color:#27ae60;">✓</span> {{ feature }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% if paystack_public_key %}
+  <button id="pay-btn" class="btn btn-primary" style="font-size:16px;padding:14px 40px;width:100%;justify-content:center;">Subscribe Now</button>
+  <script src="https://js.paystack.co/v1/inline.js"></script>
+  <script>
+  document.getElementById('pay-btn').onclick = function() {
+    var handler = PaystackPop.setup({
+      key: '{{ paystack_public_key }}',
+      email: '{{ user.email }}',
+      amount: {{ plan.price|floatformat:0 }}00,
+      currency: '{{ plan.currency }}',
+      ref: 'NEXUS-SUB-' + Date.now(),
+      callback: function(response) { window.location = '/pay/verify/?reference=' + response.reference + '&plan={{ plan.slug }}'; },
+      onClose: function() { alert('Payment cancelled.'); }
+    });
+    handler.openIframe();
+  };
+  </script>
+  {% else %}
+  <div class="alert alert-warning">Payment gateway not configured. Please contact support.</div>
+  {% endif %}
+</div>
+{% endblock %}

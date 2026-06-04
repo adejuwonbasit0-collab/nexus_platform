@@ -1,0 +1,61 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Scripts{% endblock %}
+{% block topbar_title %}⚙️ Scripts & Integrations{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+  <a href="/admin-panel/cms/scripts/create/" class="btn btn-primary">+ Add Script</a>
+</div>
+{% if scripts %}
+<div class="panel">
+  <div class="table-wrap" style="border:none;border-radius:0;">
+    <table class="data-table">
+      <thead><tr><th>Name</th><th>Position</th><th>Pages</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
+      {% for s in scripts %}
+      <tr>
+        <td><div style="font-weight:500;">{{ s.name }}</div>{% if s.description %}<div style="font-size:12px;color:var(--text2);">{{ s.description }}</div>{% endif %}</td>
+        <td><span class="status-badge s-draft">{{ s.get_position_display }}</span></td>
+        <td style="font-size:12px;color:var(--text2);">{{ s.load_on_pages }}</td>
+        <td>
+          <button onclick="toggleScript({{ s.pk }}, this)" class="status-badge {% if s.is_active %}s-approved{% else %}s-draft{% endif %}" style="border:none;cursor:pointer;background:none;">
+            {% if s.is_active %}Active{% else %}Inactive{% endif %}
+          </button>
+        </td>
+        <td style="display:flex;gap:6px;">
+          <a href="/admin-panel/cms/scripts/{{ s.pk }}/edit/" class="btn btn-ghost btn-sm">Edit</a>
+          <form method="post" action="/admin-panel/cms/scripts/{{ s.pk }}/delete/" onsubmit="return confirm('Delete this script?')">{% csrf_token %}
+            <button class="btn btn-ghost btn-sm" style="color:#e74c3c;">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="empty-state"><div class="empty-icon">⚙️</div><h3>No scripts yet</h3><p>Add Google Analytics, Meta Pixel, and other tracking codes here.</p></div>
+{% endif %}
+<div class="panel" style="margin-top:20px;">
+  <div class="panel-header"><span class="panel-title">💡 Common Integrations</span></div>
+  <div class="panel-body" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+    {% for name, desc in integrations %}{% empty %}
+    {% for item in integration_list %}{% empty %}
+    <a href="/admin-panel/cms/scripts/create/" style="border:1px solid var(--border);border-radius:8px;padding:14px;display:block;transition:border-color .2s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"><div style="font-weight:600;margin-bottom:4px;">📊 Google Analytics</div><div style="font-size:12px;color:var(--text2);">Track visitors and page views</div></a>
+    <a href="/admin-panel/cms/scripts/create/" style="border:1px solid var(--border);border-radius:8px;padding:14px;display:block;transition:border-color .2s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"><div style="font-weight:600;margin-bottom:4px;">📘 Meta Pixel</div><div style="font-size:12px;color:var(--text2);">Facebook/Instagram conversion tracking</div></a>
+    <a href="/admin-panel/cms/scripts/create/" style="border:1px solid var(--border);border-radius:8px;padding:14px;display:block;transition:border-color .2s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"><div style="font-weight:600;margin-bottom:4px;">🎵 TikTok Pixel</div><div style="font-size:12px;color:var(--text2);">TikTok ads conversion tracking</div></a>
+    <a href="/admin-panel/cms/scripts/create/" style="border:1px solid var(--border);border-radius:8px;padding:14px;display:block;transition:border-color .2s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"><div style="font-weight:600;margin-bottom:4px;">💬 Live Chat</div><div style="font-size:12px;color:var(--text2);">Intercom, Crisp, Tawk.to widget</div></a>
+    <a href="/admin-panel/cms/scripts/create/" style="border:1px solid var(--border);border-radius:8px;padding:14px;display:block;transition:border-color .2s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"><div style="font-weight:600;margin-bottom:4px;">🔍 Search Console</div><div style="font-size:12px;color:var(--text2);">Google Search Console verification</div></a>
+    <a href="/admin-panel/cms/scripts/create/" style="border:1px solid var(--border);border-radius:8px;padding:14px;display:block;transition:border-color .2s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"><div style="font-weight:600;margin-bottom:4px;">🎯 Custom Script</div><div style="font-size:12px;color:var(--text2);">Any custom JavaScript or HTML</div></a>
+    {% endfor %}{% endfor %}
+  </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+function toggleScript(pk, btn) {
+  fetch('/admin-panel/cms/scripts/' + pk + '/toggle/', { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' } })
+    .then(r => r.json()).then(d => { btn.textContent = d.active ? 'Active' : 'Inactive'; btn.className = 'status-badge ' + (d.active ? 's-approved' : 's-draft') + ' status-badge'; btn.style.cssText = 'border:none;cursor:pointer;background:none;'; });
+}
+</script>
+{% endblock %}

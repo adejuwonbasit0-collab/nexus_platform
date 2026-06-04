@@ -1,0 +1,54 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Announcements{% endblock %}
+{% block topbar_title %}📢 Announcements{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+  <a href="/admin-panel/cms/announcements/create/" class="btn btn-primary">+ New Announcement</a>
+</div>
+{% if announcements %}
+<div class="panel">
+  <div class="table-wrap" style="border:none;border-radius:0;">
+    <table class="data-table">
+      <thead><tr><th>Type</th><th>Title</th><th>Schedule</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
+      {% for a in announcements %}
+      <tr>
+        <td><span class="status-badge s-draft">{{ a.get_announcement_type_display }}</span></td>
+        <td style="font-weight:500;">{{ a.title }}</td>
+        <td style="font-size:12px;color:var(--text2);">
+          {% if a.starts_at %}From {{ a.starts_at|date:"M d H:i" }}{% endif %}
+          {% if a.ends_at %} until {{ a.ends_at|date:"M d H:i" }}{% endif %}
+          {% if not a.starts_at and not a.ends_at %}Always{% endif %}
+        </td>
+        <td>
+          <button onclick="toggleAnnouncement({{ a.pk }}, this)" class="status-badge {% if a.is_active %}s-approved{% else %}s-draft{% endif %}" style="border:none;cursor:pointer;background:none;" data-pk="{{ a.pk }}">
+            {% if a.is_active %}Active{% else %}Inactive{% endif %}
+          </button>
+        </td>
+        <td>
+          <form method="post" action="/admin-panel/cms/announcements/{{ a.pk }}/delete/" onsubmit="return confirm('Delete this announcement?')">{% csrf_token %}
+            <button class="btn btn-ghost btn-sm" style="color:#e74c3c;">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="empty-state"><div class="empty-icon">📢</div><h3>No announcements</h3><p>Create banners and popups to communicate with your users.</p></div>
+{% endif %}
+{% endblock %}
+{% block extra_scripts %}
+<script>
+function toggleAnnouncement(pk, btn) {
+  fetch('/admin-panel/cms/announcements/' + pk + '/toggle/', { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' } })
+    .then(r => r.json()).then(d => {
+      btn.textContent = d.active ? 'Active' : 'Inactive';
+      btn.className = 'status-badge ' + (d.active ? 's-approved' : 's-draft') + ' status-badge';
+      btn.style.cssText = 'border:none;cursor:pointer;background:none;';
+    });
+}
+</script>
+{% endblock %}

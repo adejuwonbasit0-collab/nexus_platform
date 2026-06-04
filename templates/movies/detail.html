@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% block title %}{{ movie.title }}{% endblock %}
+{% block content %}
+<div style="background:#0a0a0a;min-height:100vh;color:#fff;padding-top:0;">
+  <!-- Backdrop hero -->
+  <div style="position:relative;height:420px;overflow:hidden;">
+    {% if movie.thumbnail %}<div style="position:absolute;inset:0;background-image:url('{{ movie.thumbnail.url }}');background-size:cover;background-position:center;filter:brightness(0.3);"></div>{% endif %}
+    <div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 30%,#0a0a0a);"></div>
+    <div class="container" style="position:relative;z-index:2;height:100%;display:flex;align-items:flex-end;padding-bottom:36px;">
+      <div style="display:flex;gap:28px;align-items:flex-end;">
+        {% if movie.thumbnail %}<img src="{{ movie.thumbnail.url }}" style="width:160px;border-radius:10px;flex-shrink:0;box-shadow:0 20px 50px rgba(0,0,0,0.6);">{% endif %}
+        <div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+            {% for g in movie.genres.all %}<span style="background:rgba(229,9,20,0.25);color:#e50914;border:1px solid rgba(229,9,20,0.3);padding:2px 9px;border-radius:20px;font-size:0.7rem;font-weight:600;">{{ g.name }}</span>{% endfor %}
+            <span style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);padding:2px 9px;border-radius:20px;font-size:0.7rem;">{{ movie.release_year }}</span>
+            <span style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);padding:2px 9px;border-radius:20px;font-size:0.7rem;">{{ movie.quality }}</span>
+          </div>
+          <h1 style="font-family:'Syne',sans-serif;font-size:clamp(1.5rem,3vw,2.4rem);font-weight:800;color:#fff;margin-bottom:10px;">{{ movie.title }}</h1>
+          <div style="display:flex;gap:20px;font-size:0.8rem;color:rgba(255,255,255,0.5);margin-bottom:18px;">
+            <span>👁 {{ movie.views_count }} views</span>
+            <span>⬇ {{ movie.downloads_count }}</span>
+            {% if movie.country %}<span>🌍 {{ movie.country.name }}</span>{% endif %}
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            {% if movie.video_file %}
+            <a href="/movies/film/{{ movie.slug }}/#player" class="btn btn-lg" style="background:#e50914;color:#fff;">▶ Watch</a>
+            <a href="/movies/download/{{ movie.pk }}/" class="btn btn-outline btn-lg" style="color:#fff;border-color:rgba(255,255,255,0.3);">⬇ Download</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container" style="padding:36px 20px 60px;">
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:32px;">
+      <div>
+        <!-- Player -->
+        {% if movie.video_file %}
+        <div id="player" style="background:#000;border-radius:10px;overflow:hidden;margin-bottom:28px;aspect-ratio:16/9;">
+          <video id="movie-player" controls preload="metadata" style="width:100%;height:100%;display:block;"
+            {% if progress %}data-progress="{{ progress.progress }}"{% endif %}>
+            <source src="/movies/stream/movie/{{ movie.pk }}/" type="video/mp4">
+          </video>
+        </div>
+        {% endif %}
+
+        <div style="background:#111;border-radius:10px;padding:22px;margin-bottom:20px;">
+          <h3 style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:12px;font-size:1rem;color:#fff;">Synopsis</h3>
+          <p style="color:rgba(255,255,255,0.65);line-height:1.8;font-size:0.88rem;">{{ movie.description }}</p>
+        </div>
+
+        <!-- Comments -->
+        <div style="background:#111;border-radius:10px;padding:22px;">
+          <h3 style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:18px;font-size:1rem;color:#fff;">💬 Comments</h3>
+          {% if user.is_authenticated %}
+          <div style="display:flex;gap:10px;margin-bottom:20px;">
+            <input id="comment-input" type="text" placeholder="Add a comment…" style="flex:1;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:9px 13px;color:#fff;font-family:'Inter',sans-serif;font-size:0.85rem;outline:none;">
+            <button onclick="postComment({{ movie.pk }})" class="btn btn-sm" style="background:#e50914;color:#fff;">Post</button>
+          </div>
+          {% endif %}
+          <div id="comments-list">
+            {% for c in comments %}
+            <div style="display:flex;gap:10px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+              <div style="width:30px;height:30px;border-radius:50%;background:#e50914;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;flex-shrink:0;">{{ c.user.username.0|upper }}</div>
+              <div><div style="font-size:0.82rem;font-weight:500;color:#fff;margin-bottom:3px;">{{ c.user.username }}</div><div style="font-size:0.82rem;color:rgba(255,255,255,0.55);">{{ c.text }}</div></div>
+            </div>
+            {% empty %}<p style="color:rgba(255,255,255,0.35);font-size:0.82rem;">No comments yet. Be first!</p>{% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div>
+        <div style="background:#111;border-radius:10px;padding:18px;margin-bottom:18px;">
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.9rem;margin-bottom:14px;color:#fff;">Related Movies</div>
+          {% for r in related %}
+          <a href="/movies/film/{{ r.slug }}/" style="text-decoration:none;display:flex;gap:10px;margin-bottom:12px;align-items:center;">
+            {% if r.thumbnail %}<img src="{{ r.thumbnail.url }}" style="width:60px;height:38px;object-fit:cover;border-radius:5px;flex-shrink:0;">{% else %}<div style="width:60px;height:38px;background:#1a0808;border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.9rem;">🎬</div>{% endif %}
+            <div><div style="font-size:0.8rem;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px;">{{ r.title }}</div><div style="font-size:0.72rem;color:rgba(255,255,255,0.4);">{{ r.release_year }}</div></div>
+          </a>
+          {% empty %}<p style="color:rgba(255,255,255,0.3);font-size:0.8rem;">No related movies</p>{% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+  const v=document.getElementById('movie-player');
+  if(!v)return;
+  const saved=parseInt(v.dataset.progress||0);
+  if(saved>30)v.currentTime=saved;
+  v.addEventListener('timeupdate',()=>{
+    if(Math.floor(v.currentTime)%10===0&&v.currentTime>0){
+      const fd=new FormData();fd.append('progress',Math.floor(v.currentTime));fd.append('csrfmiddlewaretoken',getCookie('csrftoken'));
+      fetch('/movies/progress/{{ movie.pk }}/',{method:'POST',body:fd}).catch(()=>{});
+    }
+  });
+});
+async function postComment(pk){
+  const inp=document.getElementById('comment-input');const text=inp.value.trim();if(!text)return;
+  const fd=new FormData();fd.append('text',text);fd.append('csrfmiddlewaretoken',getCookie('csrftoken'));
+  const r=await fetch(`/movies/comment/${pk}/`,{method:'POST',body:fd});const d=await r.json();
+  if(d.ok){inp.value='';const list=document.getElementById('comments-list');const div=document.createElement('div');div.style.cssText='display:flex;gap:10px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);';div.innerHTML=`<div style="width:30px;height:30px;border-radius:50%;background:#e50914;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;flex-shrink:0;">${d.username[0].toUpperCase()}</div><div><div style="font-size:0.82rem;font-weight:500;color:#fff;margin-bottom:3px;">${d.username}</div><div style="font-size:0.82rem;color:rgba(255,255,255,0.55);">${d.text}</div></div>`;list.prepend(div);showToast('Comment posted!');}
+}
+</script>
+{% endblock %}
