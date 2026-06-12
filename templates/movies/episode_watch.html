@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+{% block title %}{{ episode.title }} — {{ series.title }} — NEXUS{% endblock %}
+{% block extra_head %}
+<style>
+.ep-layout{display:grid;grid-template-columns:1fr 320px;gap:24px;max-width:1100px;margin:0 auto;padding:24px 20px 80px;}
+.video-wrap{background:#000;border-radius:14px;overflow:hidden;aspect-ratio:16/9;margin-bottom:16px;}
+.video-wrap video{width:100%;height:100%;display:block;}
+.ep-info-card{background:rgba(255,255,255,.03);border:1px solid var(--bd);border-radius:14px;padding:22px;margin-bottom:16px;}
+.ep-breadcrumb{font-size:12px;color:var(--tx2);margin-bottom:10px;}
+.ep-breadcrumb a{color:var(--ac);text-decoration:none;}
+.ep-breadcrumb a:hover{text-decoration:underline;}
+.ep-title{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;margin-bottom:8px;}
+.ep-meta{font-size:13px;color:var(--tx2);}
+.ep-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+.btn-ep{padding:9px 20px;border-radius:9px;font-size:13px;font-weight:600;border:none;cursor:pointer;transition:all .18s;text-decoration:none;display:inline-flex;align-items:center;gap:7px;}
+.btn-ep-dl{background:rgba(0,212,170,.12);color:var(--ac3);border:1px solid rgba(0,212,170,.2);}
+.btn-ep-dl:hover{background:rgba(0,212,170,.2);}
+.btn-ep-share{background:rgba(255,255,255,.07);color:var(--tx2);border:1px solid var(--bd);}
+.btn-ep-share:hover{background:rgba(255,255,255,.12);color:var(--tx);}
+
+/* Episode sidebar */
+.ep-list-card{background:rgba(255,255,255,.03);border:1px solid var(--bd);border-radius:14px;overflow:hidden;}
+.ep-list-head{padding:14px 18px;border-bottom:1px solid var(--bd);font-weight:700;font-size:14px;}
+.ep-list-item{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.04);text-decoration:none;transition:background .12s;cursor:pointer;}
+.ep-list-item:hover{background:rgba(124,92,252,.07);}
+.ep-list-item.active{background:rgba(124,92,252,.12);border-left:3px solid var(--ac);}
+.ep-list-thumb{width:60px;height:36px;border-radius:5px;object-fit:cover;flex-shrink:0;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:14px;}
+.ep-list-info{flex:1;min-width:0;}
+.ep-list-title{font-size:12px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ep-list-sub{font-size:10px;color:var(--tx2);margin-top:2px;}
+.ep-play-icon{width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;}
+.ep-list-item.active .ep-play-icon{background:var(--ac);color:#fff;}
+
+/* Comment section */
+.comment-item{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--bd);}
+.comment-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--ac),var(--ac2));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0;}
+
+@media(max-width:768px){.ep-layout{grid-template-columns:1fr;}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="ep-layout">
+  <div>
+    {# VIDEO PLAYER #}
+    <div class="video-wrap">
+      {% if episode.video_file %}
+      <video id="ep-player" controls preload="metadata" style="width:100%;height:100%;">
+        <source src="/movies/stream/episode/{{ episode.pk }}/" type="video/mp4">
+        Your browser does not support video playback.
+      </video>
+      {% else %}
+      <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;color:var(--tx2);">
+        <div style="font-size:3rem;">🎬</div>
+        <div style="font-size:14px;">Video not yet uploaded</div>
+      </div>
+      {% endif %}
+    </div>
+
+    {# EPISODE INFO #}
+    <div class="ep-info-card">
+      <div class="ep-breadcrumb">
+        <a href="/movies/series/{{ series.slug }}/">{{ series.title }}</a>
+        <span> › Season {{ episode.season.number }} › Episode {{ episode.number }}</span>
+      </div>
+      <div class="ep-title">S{{ episode.season.number }}E{{ episode.number }}: {{ episode.title }}</div>
+      <div class="ep-meta">
+        Season {{ episode.season.number }}, Episode {{ episode.number }} of {{ series.title }}
+        {% if episode.duration %} · {{ episode.duration }} min{% endif %}
+        · 👁 {{ episode.views_count }} views
+      </div>
+      {% if episode.description %}
+      <p style="color:var(--tx2);font-size:13px;line-height:1.7;margin-top:12px;">{{ episode.description }}</p>
+      {% endif %}
+      <div class="ep-actions">
+        <a href="/movies/episode/download/{{ episode.pk }}/" class="btn-ep btn-ep-dl">⬇ Download Episode</a>
+        <button onclick="shareContent('{{ episode.title|escapejs }} — {{ series.title|escapejs }}', window.location.pathname)" class="btn-ep btn-ep-share">↗ Share</button>
+        <a href="/movies/series/{{ series.slug }}/" class="btn-ep btn-ep-share">← Back to Series</a>
+      </div>
+    </div>
+
+    {# COMMENTS #}
+    <div style="background:rgba(255,255,255,.03);border:1px solid var(--bd);border-radius:14px;padding:22px;">
+      <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin-bottom:18px;">💬 Comments</div>
+      {% if user.is_authenticated %}
+      <div style="display:flex;gap:10px;margin-bottom:22px;">
+        <div class="comment-avatar">{{ user.username|slice:":1"|upper }}</div>
+        <div style="flex:1;">
+          <input id="comment-input" type="text" placeholder="Add a comment…" style="width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:9px;padding:10px 14px;color:var(--tx);font-size:13px;outline:none;transition:border-color .15s;" onfocus="this.style.borderColor='var(--ac)'" onblur="this.style.borderColor='var(--bd)'">
+          <button onclick="postComment({{ episode.pk }})" class="btn btn-primary btn-sm" style="margin-top:8px;">Post Comment</button>
+        </div>
+      </div>
+      {% else %}
+      <p style="color:var(--tx2);font-size:13px;margin-bottom:16px;"><a href="/auth/login/" style="color:var(--ac);">Log in</a> to comment.</p>
+      {% endif %}
+      <div id="comments-list">
+        {% for cmt in episode.comments.all %}
+        <div class="comment-item">
+          <div class="comment-avatar">{{ cmt.user.username|slice:":1"|upper }}</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--tx);margin-bottom:3px;">
+              {{ cmt.user.username }} <span style="font-size:11px;color:var(--tx3);font-weight:400;">· {{ cmt.created_at|timesince }} ago</span>
+            </div>
+            <div style="font-size:13px;color:var(--tx2);line-height:1.6;">{{ cmt.text }}</div>
+          </div>
+        </div>
+        {% empty %}
+        <p style="color:var(--tx3);font-size:13px;">No comments yet. Be the first!</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {# SIDEBAR — Episode List #}
+  <aside>
+    <div class="ep-list-card">
+      <div class="ep-list-head">📺 More Episodes</div>
+      <div style="max-height:600px;overflow-y:auto;">
+        {% for ep in all_episodes %}
+        <a href="/movies/episode/{{ ep.pk }}/" class="ep-list-item {% if ep.pk == episode.pk %}active{% endif %}">
+          <div class="ep-play-icon">{% if ep.pk == episode.pk %}▶{% else %}▷{% endif %}</div>
+          <div class="ep-list-thumb">
+            {% if ep.thumbnail %}<img src="{{ ep.thumbnail.url }}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:5px;">
+            {% else %}🎬{% endif %}
+          </div>
+          <div class="ep-list-info">
+            <div class="ep-list-title">E{{ ep.number }}: {{ ep.title }}</div>
+            <div class="ep-list-sub">S{{ ep.season.number }}{% if ep.duration %} · {{ ep.duration }}min{% endif %} · 👁 {{ ep.views_count }}</div>
+          </div>
+        </a>
+        {% empty %}
+        <div style="padding:20px;color:var(--tx3);font-size:13px;text-align:center;">No other episodes yet</div>
+        {% endfor %}
+      </div>
+    </div>
+  </aside>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+async function postComment(epPk) {
+  const inp = document.getElementById('comment-input');
+  const text = inp.value.trim();
+  if (!text) return;
+  const fd = new FormData();
+  fd.append('text', text);
+  fd.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+  const r = await fetch(`/movies/episode-comment/${epPk}/`, {method: 'POST', body: fd});
+  const d = await r.json();
+  if (d.ok) {
+    inp.value = '';
+    const list = document.getElementById('comments-list');
+    const div = document.createElement('div');
+    div.className = 'comment-item';
+    div.innerHTML = `<div class="comment-avatar">${d.username[0].toUpperCase()}</div><div><div style="font-size:13px;font-weight:600;color:var(--tx);margin-bottom:3px;">${d.username} <span style="font-size:11px;color:var(--tx3);font-weight:400;">· just now</span></div><div style="font-size:13px;color:var(--tx2);line-height:1.6;">${d.text}</div></div>`;
+    list.prepend(div);
+    showToast('Comment posted!');
+  }
+}
+// shareContent defined globally in base.html
+// Resume playback position
+document.addEventListener('DOMContentLoaded', () => {
+  const v = document.getElementById('ep-player');
+  if (!v) return;
+  const key = `ep_progress_{{ episode.pk }}`;
+  const saved = parseFloat(localStorage.getItem(key) || 0);
+  if (saved > 5) v.currentTime = saved;
+  v.addEventListener('timeupdate', () => {
+    if (Math.floor(v.currentTime) % 5 === 0 && v.currentTime > 0) {
+      localStorage.setItem(key, v.currentTime);
+    }
+  });
+});
+</script>
+{% endblock %}

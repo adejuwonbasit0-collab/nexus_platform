@@ -85,9 +85,10 @@ body { background: #0a0d12; }
         <a href="/music/download/{{ track.pk }}/" class="btn btn-outline btn-lg" style="color:#fff;border-color:rgba(255,255,255,0.25);">⬇ Download MP3</a>
         {% if user.is_authenticated %}
         <button onclick="toggleLike({{ track.pk }})" id="like-btn" class="btn btn-lg" style="{% if user_liked %}background:rgba(29,185,84,0.2);color:#1db954;border:1px solid rgba(29,185,84,0.4);{% else %}background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.1);{% endif %}">
-          ♥ {% if user_liked %}Liked{% else %}Like{% endif %}
+          ♥ <span id="like-count">{{ track.likes_count }}</span>
         </button>
         {% endif %}
+        <button onclick="shareContent('{{ track.title|escapejs }}','/music/track/{{ track.slug }}/')" class="btn btn-lg" style="background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.1);">↗ Share</button>
       </div>
     </div>
   </div>
@@ -243,18 +244,31 @@ body { background: #0a0d12; }
 {% block scripts %}
 <script>
 function startPlay() {
+  const audioUrl = '{{ track.audio_file.url|default:"" }}';
+  if (!audioUrl) { showToast('No audio file available', 'e'); return; }
+  // Use page-level audio
   const audio = document.getElementById('track-audio');
   if (audio) audio.play();
-  const bar = document.getElementById('player-bar');
+  const bar  = document.getElementById('player-bar');
   const main = document.getElementById('main-player');
-  main.src = '{{ track.audio_file.url|default:"" }}';
-  bar.style.display = 'flex';
-  main.play();
+  if (main) { main.src = audioUrl; main.play(); }
+  if (bar) bar.style.display = 'flex';
   {% if track.cover_image %}
-  document.getElementById('pb-cover').innerHTML = '<img src="{{ track.cover_image.url }}" style="width:48px;height:48px;border-radius:6px;object-fit:cover;">';
+  const pbCover = document.getElementById('pb-cover');
+  if (pbCover) pbCover.innerHTML = '<img src="{{ track.cover_image.url }}" style="width:48px;height:48px;border-radius:6px;object-fit:cover;">';
   {% elif track.album and track.album.cover_image %}
-  document.getElementById('pb-cover').innerHTML = '<img src="{{ track.album.cover_image.url }}" style="width:48px;height:48px;border-radius:6px;object-fit:cover;">';
+  const pbCover2 = document.getElementById('pb-cover');
+  if (pbCover2) pbCover2.innerHTML = '<img src="{{ track.album.cover_image.url }}" style="width:48px;height:48px;border-radius:6px;object-fit:cover;">';
   {% endif %}
+  // Also trigger global mini player
+  if (typeof playMiniTrack === 'function') {
+    playMiniTrack(
+      audioUrl,
+      '{{ track.title|escapejs }}',
+      '{{ track.artist.name|escapejs }}',
+      '{% if track.cover_image %}{{ track.cover_image.url }}{% elif track.album and track.album.cover_image %}{{ track.album.cover_image.url }}{% endif %}'
+    );
+  }
 }
 function playRelated(url, title, artist, cover) {
   if (!url) { showToast('No audio file', 'error'); return; }
@@ -270,10 +284,11 @@ async function toggleLike(pk) {
   const fd = new FormData(); fd.append('csrfmiddlewaretoken', getCookie('csrftoken'));
   const r = await fetch(`/music/like/${pk}/`, {method:'POST', body:fd});
   const d = await r.json();
-  document.getElementById('like-count').textContent = d.count;
+  const countEl = document.getElementById('like-count');
+  if (countEl) countEl.textContent = d.count;
   const btn = document.getElementById('like-btn');
-  if (d.liked) { btn.style.background='rgba(29,185,84,0.2)'; btn.style.color='#1db954'; btn.style.borderColor='rgba(29,185,84,0.4)'; btn.textContent='♥ Liked'; }
-  else { btn.style.background='rgba(255,255,255,0.07)'; btn.style.color='rgba(255,255,255,0.6)'; btn.style.borderColor='rgba(255,255,255,0.1)'; btn.textContent='♥ Like'; }
+  if (d.liked) { btn.style.background='rgba(29,185,84,0.2)'; btn.style.color='#1db954'; btn.style.borderColor='rgba(29,185,84,0.4)'; }
+  else { btn.style.background='rgba(255,255,255,0.07)'; btn.style.color='rgba(255,255,255,0.6)'; btn.style.borderColor='rgba(255,255,255,0.1)'; }
 }
 async function postComment(pk) {
   const inp = document.getElementById('comment-input');
@@ -294,9 +309,7 @@ async function postComment(pk) {
 {% if track.audio_file %}
 document.getElementById('main-player').src = '{{ track.audio_file.url }}';
 {% endif %}
-function shareContent(title, path) {
-  const url = window.location.origin + path;
-  if (navigator.share) { navigator.share({title, url}).catch(()=>{}); return; }
+// shareContent defined globally in base.html).catch(()=>{}); return; }
   navigator.clipboard.writeText(url).then(()=>showToast('Link copied!','s')).catch(()=>{});
 }
 </script>

@@ -1,88 +1,114 @@
 {% extends 'admin_panel/base_admin.html' %}
 {% block admin_title %}Movies{% endblock %}
-{% block topbar_title %}🎬 Movies Management{% endblock %}
+{% block topbar_title %}🎬 Movies & Series{% endblock %}
 {% block content %}
 
-<div class="tab-bar" style="display:flex;gap:4px;margin-bottom:20px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:4px;">
-  <button class="mtab-btn active" onclick="switchTab('movies','list',this)">🎬 Movies ({{ page.paginator.count }})</button>
-  <button class="mtab-btn" onclick="switchTab('movies','add',this)">+ Add Movie</button>
+<div class="tab-bar">
+  <button class="tab-btn {% if not request.GET.tab or request.GET.tab == 'list' %}active{% endif %}" data-group="mv" data-id="list" onclick="switchTab('mv','list',this)">🎬 Movies ({{ page.paginator.count }})</button>
+  <button class="tab-btn {% if request.GET.tab == 'series' %}active{% endif %}" data-group="mv" data-id="series" onclick="switchTab('mv','series',this)">📺 Series ({{ all_series|length }})</button>
+  <button class="tab-btn {% if request.GET.tab == 'add' %}active{% endif %}" data-group="mv" data-id="add" onclick="switchTab('mv','add',this)">+ Add Movie</button>
+  <button class="tab-btn {% if request.GET.tab == 'add_series' %}active{% endif %}" data-group="mv" data-id="add_series" onclick="switchTab('mv','add_series',this)">+ Create Series</button>
 </div>
 
-{# LIST #}
-<div class="mtab-panel active" data-group="movies" data-id="list">
+{# ─── MOVIES LIST ─── #}
+<div class="tab-panel {% if not request.GET.tab or request.GET.tab == 'list' %}active{% endif %}" data-group="mv" data-id="list">
   <div class="panel" style="margin-bottom:12px;"><div class="panel-body" style="padding:12px 16px;">
     <form method="get" style="display:flex;gap:10px;">
       <input type="hidden" name="tab" value="list">
-      <input class="finput" name="q" value="{{ q }}" placeholder="Search movies..." style="flex:1;padding:8px 12px;">
+      <input class="finput" name="q" value="{{ q }}" placeholder="Search movies…" style="flex:1;padding:8px 12px;">
       <button type="submit" class="btn btn-secondary btn-sm">Search</button>
       {% if q %}<a href="/admin-panel/movies/" class="btn btn-ghost btn-sm">Clear</a>{% endif %}
     </form>
   </div></div>
-
   <div class="table-wrap"><table class="dt">
-    <thead><tr><th style="width:70px;">Thumb</th><th>Title</th><th>Year</th><th>Quality</th><th>Views</th><th>Status</th><th>Actions</th></tr></thead>
+    <thead><tr><th style="width:60px;">Thumb</th><th>Title</th><th>Year</th><th>Quality</th><th>Views</th><th>Status</th><th>Actions</th></tr></thead>
     <tbody>
     {% for m in page.object_list %}
     <tr>
-      <td>
-        {% if m.thumbnail %}<img src="{{ m.thumbnail.url }}" style="width:60px;height:40px;object-fit:cover;border-radius:5px;">
-        {% else %}<div style="width:60px;height:40px;background:rgba(124,92,252,.08);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:20px;">🎬</div>{% endif %}
-      </td>
-      <td>
-        <div style="font-weight:600;font-size:13px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ m.title }}</div>
-        {% if m.is_featured %}<span class="badge badge-yellow" style="font-size:9px;">Featured</span>{% endif %}
-        {% if m.is_premium %}<span class="badge badge-purple" style="font-size:9px;">Premium</span>{% endif %}
-      </td>
+      <td>{% if m.thumbnail %}<img src="{{ m.thumbnail.url }}" style="width:56px;height:36px;object-fit:cover;border-radius:5px;">
+      {% else %}<div style="width:56px;height:36px;background:rgba(124,92,252,.08);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:18px;">🎬</div>{% endif %}</td>
+      <td><div style="font-weight:600;font-size:13px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ m.title }}</div>{% if m.is_featured %}<span class="badge badge-yellow" style="font-size:9px;">Featured</span>{% endif %}{% if m.is_premium %}<span class="badge badge-purple" style="font-size:9px;">Pro</span>{% endif %}</td>
       <td style="font-size:12px;color:var(--text2);">{{ m.release_year }}</td>
       <td style="font-size:12px;color:var(--text2);">{{ m.quality }}</td>
       <td style="font-size:12px;color:var(--text2);">{{ m.views_count }}</td>
-      <td>
-        <button id="mpub-{{ m.pk }}" onclick="adminToggle('toggle_publish',{{ m.pk }},'mpub-{{ m.pk }}','Live','Draft','badge-green','badge-gray')" class="badge {% if m.is_published %}badge-green{% else %}badge-gray{% endif %}" style="border:none;cursor:pointer;font-size:9px;">{% if m.is_published %}Live{% else %}Draft{% endif %}</button>
-      </td>
+      <td><button id="mpub-{{ m.pk }}" onclick="adminToggle('toggle_publish',{{ m.pk }},'mpub-{{ m.pk }}','Live','Draft','badge-green','badge-gray')" class="badge {% if m.is_published %}badge-green{% else %}badge-gray{% endif %}" style="border:none;cursor:pointer;font-size:9px;">{% if m.is_published %}Live{% else %}Draft{% endif %}</button></td>
       <td>
         <div style="display:flex;gap:4px;">
           <a href="/movies/film/{{ m.slug }}/" target="_blank" class="btn btn-ghost btn-xs">View</a>
           <button id="mfeat-{{ m.pk }}" onclick="adminToggle('toggle_featured',{{ m.pk }},'mfeat-{{ m.pk }}','★','☆',null,null)" class="btn btn-ghost btn-xs">{% if m.is_featured %}★{% else %}☆{% endif %}</button>
           <button class="btn btn-ghost btn-xs" onclick="openEditMovie({{ m.pk }},'{{ m.title|escapejs }}',{{ m.release_year }},'{{ m.quality }}','{{ m.trailer_url|escapejs }}','{{ m.description|escapejs }}',{{ m.is_premium|lower }},{{ m.is_published|lower }})">Edit</button>
-          <form method="post" style="display:inline;" onsubmit="return confirm('Delete movie?')"><input type="hidden" name="action" value="delete"><input type="hidden" name="pk" value="{{ m.pk }}">{% csrf_token %}
-            <button class="btn btn-danger btn-xs">Del</button>
-          </form>
+          <form method="post" style="display:inline;" onsubmit="return confirm('Delete movie?')"><input type="hidden" name="action" value="delete"><input type="hidden" name="pk" value="{{ m.pk }}">{% csrf_token %}<button class="btn btn-danger btn-xs">Del</button></form>
         </div>
       </td>
     </tr>
     {% empty %}
-    <tr><td colspan="7"><div class="empty" style="padding:48px;"><div class="empty-icon">🎬</div><h3>No movies yet</h3></div></td></tr>
+    <tr><td colspan="7"><div class="empty" style="padding:40px;"><div class="empty-icon">🎬</div><h3>No movies yet</h3></div></td></tr>
     {% endfor %}
     </tbody>
   </table></div>
   {% if page.paginator.num_pages > 1 %}
-  <div class="pager">
-    {% if page.has_previous %}<a href="?page={{ page.previous_page_number }}&q={{ q }}">‹</a>{% endif %}
-    <span class="current">{{ page.number }} / {{ page.paginator.num_pages }}</span>
-    {% if page.has_next %}<a href="?page={{ page.next_page_number }}&q={{ q }}">›</a>{% endif %}
-  </div>
+  <div class="pager">{% if page.has_previous %}<a href="?tab=list&page={{ page.previous_page_number }}&q={{ q }}">‹</a>{% endif %}<span class="current">{{ page.number }}/{{ page.paginator.num_pages }}</span>{% if page.has_next %}<a href="?tab=list&page={{ page.next_page_number }}&q={{ q }}">›</a>{% endif %}</div>
   {% endif %}
 </div>
 
-{# ADD MOVIE #}
-<div class="mtab-panel" data-group="movies" data-id="add">
+{# ─── SERIES LIST ─── #}
+<div class="tab-panel {% if request.GET.tab == 'series' %}active{% endif %}" data-group="mv" data-id="series">
+  {% for s in all_series %}
+  <div class="panel" style="margin-bottom:14px;">
+    <div class="panel-head" style="display:flex;justify-content:space-between;align-items:center;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        {% if s.thumbnail %}<img src="{{ s.thumbnail.url }}" style="width:48px;height:72px;object-fit:cover;border-radius:7px;flex-shrink:0;">{% endif %}
+        <div>
+          <span class="panel-title">{{ s.title }}</span>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px;">{{ s.release_year }} · {{ s.seasons.count }} season{{ s.seasons.count|pluralize }} · {% if s.is_published %}<span style="color:#22c55e;">Live</span>{% else %}<span style="color:var(--text3);">Draft</span>{% endif %}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-primary btn-sm" onclick="openAddEpisode({{ s.pk }},'{{ s.title|escapejs }}',{{ s.seasons.count|add:1 }})">+ Add Episode</button>
+        <button class="btn btn-ghost btn-sm" onclick="openEditSeries({{ s.pk }},'{{ s.title|escapejs }}',{{ s.release_year }},'{{ s.description|escapejs }}',{{ s.is_published|lower }},{{ s.is_premium|lower }})">Edit</button>
+        <form method="post" style="display:inline;" onsubmit="return confirm('Delete series and ALL episodes?')"><input type="hidden" name="action" value="delete_series"><input type="hidden" name="pk" value="{{ s.pk }}">{% csrf_token %}<button class="btn btn-danger btn-sm">Delete</button></form>
+      </div>
+    </div>
+    <div class="panel-body" style="padding:0;">
+      {% for season in s.seasons.all %}
+      <div style="border-bottom:1px solid var(--border);">
+        <div style="padding:10px 20px;background:rgba(124,92,252,.04);font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;">Season {{ season.number }} · {{ season.episodes.count }} Episode{{ season.episodes.count|pluralize }}</div>
+        {% for ep in season.episodes.all %}
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 20px;border-top:1px solid var(--border);">
+          <div style="font-size:11px;font-weight:700;color:var(--text3);width:24px;">{{ ep.number }}</div>
+          {% if ep.thumbnail %}<img src="{{ ep.thumbnail.url }}" style="width:64px;height:36px;object-fit:cover;border-radius:5px;">{% else %}<div style="width:64px;height:36px;background:var(--bg3);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:14px;">🎬</div>{% endif %}
+          <div style="flex:1;"><div style="font-size:13px;font-weight:600;">{{ ep.title }}</div><div style="font-size:11px;color:var(--text2);">{{ ep.duration }}min · {% if ep.is_published %}<span style="color:#22c55e;">Live</span>{% else %}<span style="color:var(--text3);">Draft</span>{% endif %}</div></div>
+          <div style="display:flex;gap:5px;">
+            <button class="btn btn-ghost btn-xs" onclick="openEditEpisode({{ ep.pk }},'{{ ep.title|escapejs }}',{{ ep.number }},{{ ep.duration }},{{ ep.is_published|lower }})">Edit</button>
+            <form method="post" style="display:inline;" onsubmit="return confirm('Delete episode?')"><input type="hidden" name="action" value="delete_episode"><input type="hidden" name="pk" value="{{ ep.pk }}">{% csrf_token %}<button class="btn btn-danger btn-xs">Del</button></form>
+          </div>
+        </div>
+        {% empty %}
+        <div style="padding:12px 20px;font-size:12px;color:var(--text3);">No episodes yet — click "+ Add Episode" above</div>
+        {% endfor %}
+      </div>
+      {% empty %}
+      <div style="padding:16px 20px;font-size:13px;color:var(--text2);">No seasons yet — click "+ Add Episode" to start adding content</div>
+      {% endfor %}
+    </div>
+  </div>
+  {% empty %}
+  <div class="empty" style="padding:60px;"><div class="empty-icon">📺</div><h3>No series yet</h3><p>Use "+ Create Series" tab above to get started.</p></div>
+  {% endfor %}
+</div>
+
+{# ─── ADD MOVIE ─── #}
+<div class="tab-panel {% if request.GET.tab == 'add' %}active{% endif %}" data-group="mv" data-id="add">
 <div class="panel"><div class="panel-head"><span class="panel-title">🎬 Add Movie</span></div><div class="panel-body">
 <form method="post" enctype="multipart/form-data"><input type="hidden" name="action" value="create">{% csrf_token %}
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
     <div class="fg"><label>Title *</label><input class="finput" name="title" required placeholder="Movie title"></div>
     <div class="fg"><label>Release Year</label><input class="finput" type="number" name="release_year" value="2024" min="1900" max="2030"></div>
-    <div class="fg"><label>Quality</label>
-      <select class="finput" name="quality">
-        {% for q_val in qualities %}<option value="{{ q_val.0 }}">{{ q_val.1 }}</option>{% endfor %}
-      </select>
-    </div>
+    <div class="fg"><label>Quality</label><select class="finput" name="quality">{% for q_val in qualities %}<option value="{{ q_val.0 }}">{{ q_val.1 }}</option>{% endfor %}</select></div>
     <div class="fg"><label>Trailer URL</label><input class="finput" type="url" name="trailer_url" placeholder="https://youtube.com/..."></div>
-    <div class="fg"><label>Thumbnail</label><input class="finput" type="file" name="thumbnail" accept="image/*"></div>
+    <div class="fg"><label>Thumbnail / Poster</label><input class="finput" type="file" name="thumbnail" accept="image/*"></div>
     <div class="fg"><label>Video File</label><input class="finput" type="file" name="video_file" accept="video/*"></div>
-    <div class="fg" style="display:flex;flex-direction:column;gap:10px;">
-      <label class="fcheck"><input type="checkbox" name="is_published" checked> Published</label>
-      <label class="fcheck"><input type="checkbox" name="is_premium"> Premium</label>
-    </div>
+    <div class="fg" style="display:flex;flex-direction:column;gap:10px;"><label class="fcheck"><input type="checkbox" name="is_published" checked> Published</label><label class="fcheck"><input type="checkbox" name="is_premium"> Premium</label></div>
     <div class="fg" style="grid-column:span 2;"><label>Description</label><textarea class="finput" name="description" rows="4" placeholder="Movie synopsis…"></textarea></div>
   </div>
   <button type="submit" class="btn btn-primary" style="margin-top:8px;">🎬 Add Movie</button>
@@ -90,37 +116,98 @@
 </div></div>
 </div>
 
-{# Edit Movie Modal #}
-<div id="edit-movie-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
-  <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:28px;width:560px;max-width:95vw;max-height:90vh;overflow-y:auto;position:relative;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-      <h3 style="font-size:16px;font-weight:700;">✏️ Edit Movie</h3>
-      <button onclick="document.getElementById('edit-movie-modal').style.display='none'" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;">×</button>
+{# ─── CREATE SERIES ─── #}
+<div class="tab-panel {% if request.GET.tab == 'add_series' %}active{% endif %}" data-group="mv" data-id="add_series">
+<div class="panel"><div class="panel-head"><span class="panel-title">📺 Create Series</span></div><div class="panel-body">
+  <div style="background:rgba(124,92,252,.07);border:1px solid rgba(124,92,252,.15);border-radius:10px;padding:13px 16px;margin-bottom:18px;font-size:13px;color:var(--text2);">
+    ℹ️ Create the series here, then find it in the Series tab and click <strong style="color:var(--text);">"+ Add Episode"</strong> to add seasons and episodes.
+  </div>
+  <form method="post" enctype="multipart/form-data"><input type="hidden" name="action" value="create_series">{% csrf_token %}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+      <div class="fg" style="grid-column:span 2;"><label>Series Title *</label><input class="finput" name="title" required placeholder="e.g. Echoes of Tomorrow"></div>
+      <div class="fg"><label>Release Year</label><input class="finput" type="number" name="release_year" value="2024" min="1900" max="2030"></div>
+      <div class="fg"><label>Access</label><select class="finput" name="tier"><option value="free">Free</option><option value="premium">Premium</option></select></div>
+      <div class="fg"><label>Genre</label><select class="finput" name="genres"><option value="">Select genre…</option>{% for g in genres %}<option value="{{ g.pk }}">{{ g.name }}</option>{% endfor %}</select></div>
+      <div class="fg"><label>Poster / Thumbnail</label><input class="finput" type="file" name="thumbnail" accept="image/*"></div>
+      <div class="fg" style="display:flex;align-items:flex-end;"><label class="fcheck"><input type="checkbox" name="is_published" checked> Publish immediately</label></div>
+      <div class="fg" style="grid-column:span 2;"><label>Description / Synopsis</label><textarea class="finput" name="description" rows="4" placeholder="Series overview…"></textarea></div>
     </div>
-    <form method="post" enctype="multipart/form-data">
-      <input type="hidden" name="action" value="edit_movie">
-      <input type="hidden" name="pk" id="em-pk">{% csrf_token %}
+    <button type="submit" class="btn btn-primary" style="margin-top:8px;">📺 Create Series</button>
+  </form>
+</div></div>
+</div>
+
+{# ─── Edit Movie Modal ─── #}
+<div id="edit-movie-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+  <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:28px;width:560px;max-width:95vw;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><h3 style="font-size:16px;font-weight:700;">✏️ Edit Movie</h3><button onclick="document.getElementById('edit-movie-modal').style.display='none'" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;">×</button></div>
+    <form method="post" enctype="multipart/form-data"><input type="hidden" name="action" value="edit_movie"><input type="hidden" name="pk" id="em-pk">{% csrf_token %}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div class="fg"><label>Title *</label><input class="finput" name="title" id="em-title" required></div>
-        <div class="fg"><label>Release Year</label><input class="finput" type="number" name="release_year" id="em-year" min="1900" max="2030"></div>
-        <div class="fg"><label>Quality</label>
-          <select class="finput" name="quality" id="em-quality">
-            {% for q_val in qualities %}<option value="{{ q_val.0 }}">{{ q_val.1 }}</option>{% endfor %}
-          </select>
-        </div>
+        <div class="fg"><label>Release Year</label><input class="finput" type="number" name="release_year" id="em-year"></div>
+        <div class="fg"><label>Quality</label><select class="finput" name="quality" id="em-quality">{% for q_val in qualities %}<option value="{{ q_val.0 }}">{{ q_val.1 }}</option>{% endfor %}</select></div>
         <div class="fg"><label>Trailer URL</label><input class="finput" type="url" name="trailer_url" id="em-trailer"></div>
         <div class="fg"><label>New Thumbnail</label><input class="finput" type="file" name="thumbnail" accept="image/*"></div>
         <div class="fg"><label>New Video File</label><input class="finput" type="file" name="video_file" accept="video/*"></div>
-        <div class="fg" style="display:flex;flex-direction:column;gap:8px;">
-          <label class="fcheck"><input type="checkbox" name="is_published" id="em-published"> Published</label>
-          <label class="fcheck"><input type="checkbox" name="is_premium" id="em-premium"> Premium</label>
-        </div>
+        <div class="fg" style="display:flex;flex-direction:column;gap:8px;"><label class="fcheck"><input type="checkbox" name="is_published" id="em-published"> Published</label><label class="fcheck"><input type="checkbox" name="is_premium" id="em-premium"> Premium</label></div>
         <div class="fg" style="grid-column:span 2;"><label>Description</label><textarea class="finput" name="description" id="em-desc" rows="4"></textarea></div>
       </div>
-      <div style="display:flex;gap:10px;margin-top:16px;">
-        <button type="submit" class="btn btn-primary">Save Changes</button>
-        <button type="button" onclick="document.getElementById('edit-movie-modal').style.display='none'" class="btn btn-ghost">Cancel</button>
+      <div style="display:flex;gap:10px;margin-top:16px;"><button type="submit" class="btn btn-primary">Save Changes</button><button type="button" onclick="document.getElementById('edit-movie-modal').style.display='none'" class="btn btn-ghost">Cancel</button></div>
+    </form>
+  </div>
+</div>
+
+{# ─── Edit Series Modal ─── #}
+<div id="edit-series-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+  <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:28px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><h3 style="font-size:16px;font-weight:700;">✏️ Edit Series</h3><button onclick="document.getElementById('edit-series-modal').style.display='none'" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;">×</button></div>
+    <form method="post" enctype="multipart/form-data"><input type="hidden" name="action" value="edit_series"><input type="hidden" name="pk" id="es-pk">{% csrf_token %}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="fg" style="grid-column:span 2;"><label>Title *</label><input class="finput" name="title" id="es-title" required></div>
+        <div class="fg"><label>Release Year</label><input class="finput" type="number" name="release_year" id="es-year"></div>
+        <div class="fg"><label>New Poster</label><input class="finput" type="file" name="thumbnail" accept="image/*"></div>
+        <div class="fg" style="display:flex;flex-direction:column;gap:8px;"><label class="fcheck"><input type="checkbox" name="is_published" id="es-published"> Published</label><label class="fcheck"><input type="checkbox" name="tier" id="es-premium" value="premium"> Premium</label></div>
+        <div class="fg" style="grid-column:span 2;"><label>Description</label><textarea class="finput" name="description" id="es-desc" rows="3"></textarea></div>
       </div>
+      <div style="display:flex;gap:10px;margin-top:16px;"><button type="submit" class="btn btn-primary">Save Series</button><button type="button" onclick="document.getElementById('edit-series-modal').style.display='none'" class="btn btn-ghost">Cancel</button></div>
+    </form>
+  </div>
+</div>
+
+{# ─── Add Episode Modal ─── #}
+<div id="add-ep-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+  <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:28px;width:560px;max-width:95vw;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><h3 style="font-size:16px;font-weight:700;">🎬 Add Episode</h3><button onclick="document.getElementById('add-ep-modal').style.display='none'" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;">×</button></div>
+    <form method="post" enctype="multipart/form-data"><input type="hidden" name="action" value="add_episode"><input type="hidden" name="series_pk" id="aep-series-pk">{% csrf_token %}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="fg"><label>Season Number</label><input class="finput" type="number" name="season" id="aep-season" value="1" min="1"></div>
+        <div class="fg"><label>Episode Number</label><input class="finput" type="number" name="episode_number" value="1" min="1"></div>
+        <div class="fg" style="grid-column:span 2;"><label>Episode Title *</label><input class="finput" name="title" required placeholder="e.g. The Beginning"></div>
+        <div class="fg"><label>Video File</label><input class="finput" type="file" name="file" accept="video/*"></div>
+        <div class="fg"><label>Thumbnail</label><input class="finput" type="file" name="thumbnail" accept="image/*"></div>
+        <div class="fg"><label>Duration (minutes)</label><input class="finput" type="number" name="duration" placeholder="45" min="0"></div>
+        <div class="fg" style="display:flex;align-items:flex-end;"><label class="fcheck"><input type="checkbox" name="is_published" checked> Published</label></div>
+        <div class="fg" style="grid-column:span 2;"><label>Description</label><textarea class="finput" name="description" rows="3" placeholder="Episode summary…"></textarea></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px;"><button type="submit" class="btn btn-primary">Add Episode</button><button type="button" onclick="document.getElementById('add-ep-modal').style.display='none'" class="btn btn-ghost">Cancel</button></div>
+    </form>
+  </div>
+</div>
+
+{# ─── Edit Episode Modal ─── #}
+<div id="edit-ep-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+  <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:28px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><h3 style="font-size:16px;font-weight:700;">✏️ Edit Episode</h3><button onclick="document.getElementById('edit-ep-modal').style.display='none'" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;">×</button></div>
+    <form method="post" enctype="multipart/form-data"><input type="hidden" name="action" value="edit_episode"><input type="hidden" name="pk" id="eep-pk">{% csrf_token %}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="fg"><label>Episode Number</label><input class="finput" type="number" name="episode_number" id="eep-num" min="1"></div>
+        <div class="fg"><label>Duration (min)</label><input class="finput" type="number" name="duration" id="eep-dur" min="0"></div>
+        <div class="fg" style="grid-column:span 2;"><label>Title *</label><input class="finput" name="title" id="eep-title" required></div>
+        <div class="fg"><label>New Video File</label><input class="finput" type="file" name="file" accept="video/*"></div>
+        <div class="fg"><label>New Thumbnail</label><input class="finput" type="file" name="thumbnail" accept="image/*"></div>
+        <div class="fg" style="grid-column:span 2;"><label class="fcheck"><input type="checkbox" name="is_published" id="eep-pub"> Published</label></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px;"><button type="submit" class="btn btn-primary">Save Episode</button><button type="button" onclick="document.getElementById('edit-ep-modal').style.display='none'" class="btn btn-ghost">Cancel</button></div>
     </form>
   </div>
 </div>
@@ -128,17 +215,11 @@
 {% endblock %}
 {% block scripts %}
 <script>
-function switchTab(group, id, btn) {
-  document.querySelectorAll(`[data-group="${group}"]`).forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.mtab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelector(`[data-group="${group}"][data-id="${id}"]`).classList.add('active');
-  btn.classList.add('active');
-}
 function adminToggle(action, pk, btnId, labelOn, labelOff, classOn, classOff) {
   const btn = document.getElementById(btnId);
   const fd = new FormData();
   fd.append('action', action); fd.append('pk', pk);
-  fd.append('csrfmiddlewaretoken', (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '');
+  fd.append('csrfmiddlewaretoken', getCsrf());
   fetch(window.location.pathname, {method:'POST', body:fd})
     .then(r => r.json())
     .then(data => {
@@ -147,6 +228,8 @@ function adminToggle(action, pk, btnId, labelOn, labelOff, classOn, classOff) {
       if (classOn && classOff) { btn.classList.toggle(classOn, isOn); btn.classList.toggle(classOff, !isOn); }
     }).catch(() => window.location.reload());
 }
+function getCsrf(){ return (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || ''; }
+
 function openEditMovie(pk, title, year, quality, trailer, desc, premium, published) {
   document.getElementById('em-pk').value = pk;
   document.getElementById('em-title').value = title;
@@ -156,19 +239,37 @@ function openEditMovie(pk, title, year, quality, trailer, desc, premium, publish
   document.getElementById('em-premium').checked = premium;
   document.getElementById('em-published').checked = published;
   const qs = document.getElementById('em-quality');
-  if (qs) { for (let o of qs.options) { if (o.value === quality) { o.selected = true; break; } } }
+  if (qs) for (let o of qs.options) { if (o.value === quality) { o.selected = true; break; } }
   document.getElementById('edit-movie-modal').style.display = 'flex';
+}
+function openEditSeries(pk, title, year, desc, published, premium) {
+  document.getElementById('es-pk').value = pk;
+  document.getElementById('es-title').value = title;
+  document.getElementById('es-year').value = year;
+  document.getElementById('es-desc').value = desc;
+  document.getElementById('es-published').checked = published;
+  document.getElementById('es-premium').checked = premium;
+  document.getElementById('edit-series-modal').style.display = 'flex';
+}
+function openAddEpisode(seriesPk, seriesTitle, nextSeason) {
+  document.getElementById('aep-series-pk').value = seriesPk;
+  document.getElementById('aep-season').value = Math.max(1, nextSeason - 1) || 1;
+  document.querySelector('#add-ep-modal h3').textContent = '🎬 Add Episode — ' + seriesTitle;
+  document.getElementById('add-ep-modal').style.display = 'flex';
+}
+function openEditEpisode(pk, title, num, dur, published) {
+  document.getElementById('eep-pk').value = pk;
+  document.getElementById('eep-title').value = title;
+  document.getElementById('eep-num').value = num;
+  document.getElementById('eep-dur').value = dur;
+  document.getElementById('eep-pub').checked = published;
+  document.getElementById('edit-ep-modal').style.display = 'flex';
 }
 </script>
 <style>
-.mtab-btn{padding:7px 14px;border-radius:8px;font-size:13px;font-weight:500;background:none;border:none;color:var(--text2);cursor:pointer;transition:all .15s}
-.mtab-btn:hover{color:var(--text);background:rgba(255,255,255,.05)}
-.mtab-btn.active{background:var(--accent);color:#fff}
-.mtab-panel{display:none}.mtab-panel.active{display:block}
-.finput{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:13px;outline:none;}
-.finput:focus{border-color:var(--accent)}
-.fg{margin-bottom:12px}
-.fg label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);margin-bottom:5px}
-.fcheck{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text2)}
+.finput{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:10px 13px;color:var(--text);font-size:13px;outline:none;transition:border-color .15s}
+.finput:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,92,252,.12)}
+.fg{margin-bottom:4px}.fg label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text2);margin-bottom:6px}
+.fcheck{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text2)}.fcheck input{width:15px;height:15px;accent-color:var(--accent);cursor:pointer}
 </style>
 {% endblock %}

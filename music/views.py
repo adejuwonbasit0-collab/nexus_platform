@@ -223,8 +223,9 @@ def track_detail(request, slug):
 # ── Like ──────────────────────────────────────────────────────────────────────
 
 @require_POST
-@login_required
 def toggle_like(request, pk):
+    if not request.user.is_authenticated:
+        return JsonResponse({"error":"login_required","count":0,"liked":False},status=401)
     track = get_object_or_404(Track, pk=pk)
     like, created = TrackLike.objects.get_or_create(user=request.user, track=track)
     if not created:
@@ -277,8 +278,9 @@ def download_track(request, pk):
 # ── Comment ───────────────────────────────────────────────────────────────────
 
 @require_POST
-@login_required
 def add_music_comment(request, pk):
+    if not request.user.is_authenticated:
+        return JsonResponse({"ok":False,"error":"login_required"},status=401)
     track = get_object_or_404(Track, pk=pk)
     text  = request.POST.get('text', '').strip()
     if text:

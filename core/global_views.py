@@ -20,10 +20,13 @@ def platform_home(request):
         cms_sections = []
 
     # Fetch content per module - cached 5 min
-    cache_key = 'homepage_content_v2'
+    cache_key = 'homepage_content_v3'
     content_data = cache.get(cache_key)
     if content_data is None:
-        base_qs = Content.objects.filter(status='approved').select_related('creator')
+        # Exclude AI-generated content — only show human-created content
+        base_qs = Content.objects.filter(
+            status='approved', is_ai_generated=False
+        ).select_related('creator')
         content_data = {
             'featured':  list(base_qs.filter(featured=True).order_by('-created_at')[:12]),
             'recent':    list(base_qs.order_by('-created_at')[:16]),
@@ -31,12 +34,24 @@ def platform_home(request):
         }
         cache.set(cache_key, content_data, 300)
 
-    # Movies
-    movie_list = []
+    # Movies + Series
+    movie_list  = []
+    series_list = []
     try:
-        from movies.models import Movie
-        movie_list = list(Movie.objects.filter(is_published=True)
-                          .select_related('uploaded_by').order_by('-created_at')[:8])
+        from movies.models import Movie, Series
+        movie_list  = list(Movie.objects.filter(is_published=True)
+                           .select_related('uploaded_by').order_by('-created_at')[:8])
+        series_list = list(Series.objects.filter(is_published=True)
+                           .prefetch_related('seasons').order_by('-created_at')[:8])
+    except Exception:
+        pass
+
+    # Images
+    images_list = []
+    try:
+        from images.models import Image
+        images_list = list(Image.objects.filter(is_published=True)
+                          .order_by('-created_at')[:8])
     except Exception:
         pass
 
@@ -49,24 +64,24 @@ def platform_home(request):
     except Exception:
         pass
 
-    # Blog
+    # Blog — exclude AI-generated
     blog_list = []
     try:
         from blog.models import Post
-        blog_list = list(Post.objects.filter(status='published')
+        blog_list = list(Post.objects.filter(status='published', is_ai_generated=False)
                          .select_related('author').order_by('-created_at')[:6])
     except Exception:
         pass
 
     # Platform stats - cached 10 min
-    stats = cache.get('platform_stats_v2')
+    stats = cache.get('platform_stats_v3')
     if stats is None:
         stats = {
-            'total_content':  Content.objects.filter(status='approved').count(),
+            'total_content':  Content.objects.filter(status='approved', is_ai_generated=False).count(),
             'total_creators': User.objects.filter(role='creator').count(),
             'total_members':  User.objects.count(),
         }
-        cache.set('platform_stats_v2', stats, 600)
+        cache.set('platform_stats_v3', stats, 600)
 
     return render(request, 'platform_home.html', {
         'cms_sections':  cms_sections,
@@ -74,7 +89,9 @@ def platform_home(request):
         'recent':        content_data['recent'],
         'trending':      content_data['trending'],
         'movie_list':    movie_list,
+        'series_list':   series_list,
         'music_list':    music_list,
+        'images_list':   images_list,
         'blog_list':     blog_list,
         'stats':         stats,
     })
@@ -135,6 +152,26 @@ def global_search(request):
             pass
 
         try:
+            from images.models import Image
+            img_qs = Image.objects.filter(is_published=True).filter(
+                Q(title__icontains=q) | Q(description__icontains=q))[:10]
+            if img_qs.exists():
+                results['Images'] = img_qs
+                total += img_qs.count()
+        except Exception:
+            pass
+
+        try:
+            from movies.models import Series
+            s_qs = Series.objects.filter(is_published=True).filter(
+                Q(title__icontains=q) | Q(description__icontains=q))[:6]
+            if s_qs.exists():
+                results['Series'] = s_qs
+                total += s_qs.count()
+        except Exception:
+            pass
+
+        try:
             cr_qs = User.objects.filter(role='creator', is_active=True).filter(
                 Q(username__icontains=q) | Q(first_name__icontains=q))[:6]
             if cr_qs.exists():
@@ -149,13 +186,44 @@ def global_search(request):
 
 
 def content_detail(request, pk):
-    """View for displaying individual content detail."""
-    content = get_object_or_404(Content, id=pk, is_published=True)
-    content.views = (content.views or 0) + 1
-    content.save(update_fields=['views'])
-    return render(request, 'content/detail.html', {
-        'content': content,
-    })
+    """Smart redirect to the proper detail page for this content type."""
+    try:
+        obj = Content.objects.get(pk=pk, status='approved')
+    except Content.DoesNotExist:
+        from django.http import Http404
+        raise Http404
+
+    # Redirect to proper page
+    if obj.slug:
+        if obj.content_type == 'video':
+            try:
+                from movies.models import Movie
+                m = Movie.objects.filter(slug=obj.slug).first()
+                if m: return redirect(f'/movies/film/{m.slug}/')
+            except Exception: pass
+        elif obj.content_type == 'music':
+            try:
+                from music.models import Track
+                t = Track.objects.filter(slug=obj.slug).first()
+                if t: return redirect(f'/music/track/{t.slug}/')
+            except Exception: pass
+        elif obj.content_type == 'image':
+            try:
+                from images.models import Image
+                img = Image.objects.filter(slug=obj.slug).first()
+                if img: return redirect(f'/images/view/{img.slug}/')
+            except Exception: pass
+        elif obj.content_type == 'blog':
+            try:
+                from blog.models import Post
+                p = Post.objects.filter(slug=obj.slug).first()
+                if p: return redirect(f'/blog/post/{p.slug}/')
+            except Exception: pass
+
+    # Fallback generic page
+    obj.views = (obj.views or 0) + 1
+    obj.save(update_fields=['views'])
+    return render(request, 'content/detail.html', {'content': obj, 'obj': obj})
 
 
 def trending_view(request):

@@ -54,6 +54,7 @@ class Image(models.Model):
     is_published    = models.BooleanField(default=True)
     views_count     = models.IntegerField(default=0)
     downloads_count = models.IntegerField(default=0)
+    likes_count     = models.IntegerField(default=0)
     uploaded_by     = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     created_at      = models.DateTimeField(auto_now_add=True)
 
@@ -78,3 +79,10 @@ class ImageComment(models.Model):
     text      = models.TextField()
     created_at= models.DateTimeField(auto_now_add=True)
     class Meta: ordering = ['-created_at']
+
+
+class ImageLike(models.Model):
+    user  = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    image = models.ForeignKey(Image, on_delete=models.CASCADE, related_name='liked_by')
+    created_at = models.DateTimeField(auto_now_add=True)
+    class Meta: unique_together = [('user', 'image')]

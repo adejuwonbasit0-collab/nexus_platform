@@ -1,65 +1,109 @@
 {% extends 'base.html' %}
-{% block title %}Browse{% endblock %}
+{% block title %}Browse Content — NEXUS{% endblock %}
+{% block extra_head %}
+<style>
+.browse-hero{background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(255,77,109,.06));border-bottom:1px solid var(--bd);padding:44px 0 32px;}
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.fsel{background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:7px 12px;color:var(--tx);font-size:13px;outline:none;cursor:pointer;}
+.fsel:focus{border-color:var(--ac);}
+.finp{background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:7px 13px;color:var(--tx);font-size:13px;outline:none;min-width:200px;}
+.finp:focus{border-color:var(--ac);}
+.type-pill{padding:5px 16px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid var(--bd);color:var(--tx2);background:none;cursor:pointer;transition:all .15s;text-decoration:none;white-space:nowrap;}
+.type-pill:hover,.type-pill.active{background:var(--ac);border-color:var(--ac);color:#fff;}
+
+.cg{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;}
+.cc{background:rgba(255,255,255,.03);border:1px solid var(--bd);border-radius:13px;overflow:hidden;transition:transform .2s,border-color .2s,box-shadow .2s;text-decoration:none;display:block;}
+.cc:hover{transform:translateY(-4px);border-color:rgba(124,92,252,.25);box-shadow:0 12px 40px rgba(0,0,0,.4);}
+.cc-thumb{position:relative;aspect-ratio:16/9;overflow:hidden;background:var(--bg3);}
+.cc-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .35s;}
+.cc:hover .cc-thumb img{transform:scale(1.06);}
+.cc-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2.5rem;}
+.cc-type{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.04em;}
+.cc-tier{position:absolute;top:8px;right:8px;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;}
+.cc-tier.free{background:rgba(34,197,94,.2);color:#86efac;}
+.cc-tier.premium{background:rgba(245,158,11,.2);color:#fcd34d;}
+.cc-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.35);opacity:0;transition:opacity .2s;}
+.cc:hover .cc-play{opacity:1;}
+.cc-play-icon{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;font-size:18px;color:#000;}
+.cc-body{padding:12px 14px 14px;}
+.cc-title{font-size:13px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px;}
+.cc-meta{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--tx2);}
+.cc-creator{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px;}
+</style>
+{% endblock %}
 {% block content %}
-<div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:32px 0;">
+
+<div class="browse-hero">
   <div class="container">
-    <h1 style="font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;margin-bottom:8px;">Browse Content</h1>
-    <p style="color:var(--text2);">Discover images, videos, music, and articles</p>
-  </div>
-</div>
-<div class="container" style="padding-top:32px;padding-bottom:60px;">
-  <!-- Filters -->
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px;align-items:center;">
-    <form method="get" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;flex:1;">
-      <input type="text" name="q" value="{{ q }}" placeholder="Search..." class="form-input" style="max-width:280px;">
-      <select name="type" class="form-select" style="width:auto;" onchange="this.form.submit()">
-        <option value="">All Types</option>
-        <option value="image" {% if active_type == 'image' %}selected{% endif %}>Images</option>
-        <option value="video" {% if active_type == 'video' %}selected{% endif %}>Videos</option>
-        <option value="music" {% if active_type == 'music' %}selected{% endif %}>Music</option>
-        <option value="blog" {% if active_type == 'blog' %}selected{% endif %}>Blog</option>
-      </select>
-      <select name="tier" class="form-select" style="width:auto;" onchange="this.form.submit()">
+    <h1 style="font-family:'Syne',sans-serif;font-size:clamp(1.6rem,4vw,2.4rem);font-weight:800;margin-bottom:6px;">Browse Content</h1>
+    <p style="color:var(--tx2);font-size:14px;margin-bottom:24px;">Discover images, videos, music, and articles from creators</p>
+    <form method="get" class="filter-bar">
+      <input class="finp" name="q" value="{{ q }}" placeholder="Search…">
+      <select class="fsel" name="tier" onchange="this.form.submit()">
         <option value="">All Tiers</option>
-        <option value="free">Free</option>
-        <option value="premium">Premium</option>
+        <option value="free" {% if active_tier == 'free' %}selected{% endif %}>Free</option>
+        <option value="premium" {% if active_tier == 'premium' %}selected{% endif %}>Premium</option>
       </select>
-      <select name="category" class="form-select" style="width:auto;" onchange="this.form.submit()">
-        <option value="">All Categories</option>
-        {% for cat in categories %}<option value="{{ cat.slug }}">{{ cat.name }}</option>{% endfor %}
+      <select class="fsel" name="sort" onchange="this.form.submit()">
+        <option value="-created_at" {% if sort == '-created_at' %}selected{% endif %}>Newest</option>
+        <option value="-views" {% if sort == '-views' %}selected{% endif %}>Most Viewed</option>
+        <option value="-likes_count" {% if sort == '-likes_count' %}selected{% endif %}>Most Liked</option>
       </select>
       <button type="submit" class="btn btn-primary btn-sm">Search</button>
+      {% if q or active_type or active_tier %}<a href="/content/browse/" class="btn btn-ghost btn-sm">✕ Clear</a>{% endif %}
     </form>
+    <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:16px;">
+      <a href="/content/browse/?{% if q %}q={{ q }}&{% endif %}" class="type-pill {% if not active_type %}active{% endif %}">All</a>
+      <a href="/content/browse/?type=video{% if q %}&q={{ q }}{% endif %}" class="type-pill {% if active_type == 'video' %}active{% endif %}">🎬 Videos</a>
+      <a href="/content/browse/?type=music{% if q %}&q={{ q }}{% endif %}" class="type-pill {% if active_type == 'music' %}active{% endif %}">🎵 Music</a>
+      <a href="/content/browse/?type=image{% if q %}&q={{ q }}{% endif %}" class="type-pill {% if active_type == 'image' %}active{% endif %}">🖼 Images</a>
+      <a href="/content/browse/?type=blog{% if q %}&q={{ q }}{% endif %}" class="type-pill {% if active_type == 'blog' %}active{% endif %}">📝 Blog</a>
+    </div>
   </div>
-  
-  {% if q %}<p style="color:var(--text2);margin-bottom:20px;font-size:0.9rem;">{{ items.count }} results for "<strong style="color:var(--text);">{{ q }}</strong>"</p>{% endif %}
-  
-  <div class="grid-4">
+</div>
+
+<div class="container" style="padding:28px 20px 80px;">
+  {% if q %}<p style="color:var(--tx2);font-size:13px;margin-bottom:20px;">{{ items.paginator.count }} result{{ items.paginator.count|pluralize }} for "<strong style="color:var(--tx);">{{ q }}</strong>"</p>{% endif %}
+
+  <div class="cg">
     {% for item in items %}
-    <a href="/content/{{ item.pk }}/" class="card" style="text-decoration:none;">
-      <div class="thumb-wrap">
-        {% if item.thumbnail %}<img src="{{ item.thumbnail.url }}" class="card-img" loading="lazy">
-        {% elif item.file and item.content_type == 'image' %}<img src="{{ item.file.url }}" class="card-img" loading="lazy">
-        {% else %}<div class="card-img img-placeholder">{% if item.content_type == 'image' %}🖼{% elif item.content_type == 'video' %}🎬{% elif item.content_type == 'music' %}🎵{% else %}📝{% endif %}</div>{% endif %}
-        <span class="card-badge badge-{{ item.tier }}">{{ item.tier|capfirst }}</span>
-        {% if item.content_type == 'video' or item.content_type == 'music' %}<div class="play-overlay"><div class="play-btn">▶</div></div>{% endif %}
+    {% if item.content_type == "video" %}<a href="/movies/film/{{ item.slug }}/" class="cc">
+    {% elif item.content_type == "music" %}<a href="/music/track/{{ item.slug }}/" class="cc">
+    {% elif item.content_type == "image" %}<a href="/images/view/{{ item.slug }}/" class="cc">
+    {% elif item.content_type == "blog" %}<a href="/blog/post/{{ item.slug }}/" class="cc">
+    {% else %}<a href="/content/{{ item.pk }}/" class="cc">{% endif %}
+      <div class="cc-thumb">
+        {% if item.thumbnail %}<img src="{{ item.thumbnail.url }}" alt="{{ item.title }}" loading="lazy">
+        {% else %}<div class="cc-ph">{% if item.content_type == 'video' %}🎬{% elif item.content_type == 'music' %}🎵{% elif item.content_type == 'image' %}🖼{% else %}📝{% endif %}</div>{% endif %}
+        <span class="cc-type">{{ item.get_content_type_display }}</span>
+        <span class="cc-tier {{ item.tier }}">{{ item.tier }}</span>
+        {% if item.content_type in 'video,music' %}
+        <div class="cc-play"><div class="cc-play-icon">▶</div></div>
+        {% endif %}
       </div>
-      <div class="card-body">
-        <div class="card-title">{{ item.title }}</div>
-        <div class="card-meta">
-          <span>{{ item.get_content_type_display }}</span>
-          <span>👁 {{ item.views }}</span>
-          <span>♥ {{ item.likes_count }}</span>
+      <div class="cc-body">
+        <div class="cc-title">{{ item.title }}</div>
+        <div class="cc-meta">
+          <span class="cc-creator">{{ item.creator.username }}</span>
+          <span>♥ {{ item.likes_count }} · 👁 {{ item.views }}</span>
         </div>
       </div>
     </a>
     {% empty %}
-    <div style="grid-column:1/-1;text-align:center;padding:80px 0;color:var(--text2);">
-      <div style="font-size:3rem;margin-bottom:16px;">🔍</div>
-      <div style="font-size:1.1rem;">No content found</div>
-      <p style="font-size:0.85rem;margin-top:8px;">Try different filters or <a href="/browse/" style="color:var(--accent);">clear all</a></p>
+    <div style="grid-column:1/-1;text-align:center;padding:80px 20px;color:var(--tx2);">
+      <div style="font-size:3.5rem;margin-bottom:16px;opacity:.2;">🔍</div>
+      <h3 style="font-size:18px;font-weight:700;margin-bottom:8px;">Nothing found</h3>
+      <p style="font-size:14px;">Try different filters or <a href="/content/browse/" style="color:var(--ac);">clear search</a></p>
     </div>
     {% endfor %}
   </div>
+
+  {% if items.paginator.num_pages > 1 %}
+  <div style="display:flex;gap:6px;justify-content:center;margin-top:36px;flex-wrap:wrap;">
+    {% if items.has_previous %}<a href="?page={{ items.previous_page_number }}&q={{ q }}&type={{ active_type }}&tier={{ active_tier }}" class="btn btn-ghost btn-sm">‹ Prev</a>{% endif %}
+    <span style="padding:6px 14px;font-size:13px;color:var(--tx2);">{{ items.number }} / {{ items.paginator.num_pages }}</span>
+    {% if items.has_next %}<a href="?page={{ items.next_page_number }}&q={{ q }}&type={{ active_type }}&tier={{ active_tier }}" class="btn btn-ghost btn-sm">Next ›</a>{% endif %}
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

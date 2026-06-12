@@ -2,110 +2,106 @@
 {% block title %}Image Gallery — NEXUS{% endblock %}
 {% block extra_head %}
 <style>
-.img-card{
-  position:relative;border-radius:14px;overflow:hidden;
-  background:var(--bg3);
-  box-shadow:0 4px 20px rgba(0,0,0,.4);
-  transition:transform .25s,box-shadow .25s;
-  cursor:pointer;
-}
-.img-card:hover{
-  transform:translateY(-5px);
-  box-shadow:0 16px 48px rgba(0,0,0,.6),0 0 0 1px rgba(124,92,252,.15);
-}
-.img-card img{width:100%;display:block;transition:transform .35s}
-.img-card:hover img{transform:scale(1.04)}
-.img-card-overlay{
-  position:absolute;inset:0;
-  background:linear-gradient(to top,rgba(0,0,0,.85) 0%,rgba(0,0,0,.2) 40%,transparent 70%);
-  opacity:0;transition:opacity .25s;
-  display:flex;flex-direction:column;justify-content:flex-end;padding:14px;
-}
-.img-card:hover .img-card-overlay{opacity:1}
+.ig-hero{background:linear-gradient(160deg,rgba(124,92,252,.12) 0%,rgba(0,212,170,.06) 60%,transparent 100%);border-bottom:1px solid var(--bd);padding:48px 0 36px;}
+.ig-hero h1{font-family:'Syne',sans-serif;font-size:clamp(1.8rem,4vw,2.8rem);font-weight:800;margin-bottom:8px;}
+/* Category pills */
+.cat-strip{display:flex;gap:7px;flex-wrap:wrap;margin-top:18px;}
+.cat-pill{padding:5px 15px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid var(--bd);color:var(--tx2);background:rgba(255,255,255,.03);text-decoration:none;transition:all .15s;}
+.cat-pill:hover,.cat-pill.active{background:var(--ac);border-color:var(--ac);color:#fff;}
+/* Masonry grid */
+.masonry{columns:5 160px;gap:12px;}
+@media(max-width:900px){.masonry{columns:3 140px;}}
+@media(max-width:560px){.masonry{columns:2 130px;}}
+/* Image card */
+.img-card{display:block;break-inside:avoid;margin-bottom:12px;border-radius:12px;overflow:hidden;position:relative;text-decoration:none;background:var(--bg3);}
+.img-card img{width:100%;display:block;transition:transform .35s;}
+.img-card:hover img{transform:scale(1.04);}
+.img-card-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.82) 0%,rgba(0,0,0,.15) 50%,transparent 100%);opacity:0;transition:opacity .25s;display:flex;flex-direction:column;justify-content:flex-end;padding:12px;}
+.img-card:hover .img-card-overlay{opacity:1;}
+/* Placeholder */
+.img-ph{aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;font-size:2.5rem;background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(255,77,109,.07));}
+/* Section title */
+.stitle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.stitle-row h2{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;}
+.stitle-row a{font-size:13px;color:var(--ac);text-decoration:none;}
 </style>
 {% endblock %}
 {% block content %}
 
-<div class="page-hero">
-  <div class="container" style="text-align:center;position:relative;z-index:1;">
-    <div style="font-size:52px;margin-bottom:14px;">🖼</div>
-    <h1 style="font-family:'Syne',sans-serif;font-size:clamp(32px,5vw,52px);font-weight:800;margin-bottom:12px;">Image Gallery</h1>
-    <p style="color:var(--tx2);font-size:16px;margin-bottom:28px;max-width:500px;margin-left:auto;margin-right:auto;">Browse HD photos, wallpapers, and AI-generated art. Free & premium downloads.</p>
-
-    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:24px;">
-      <form action="/images/browse/" method="get" style="display:flex;gap:8px;flex:1;max-width:500px;">
-        <input name="q" placeholder="Search images…" class="form-input" style="flex:1;border-radius:24px;padding:11px 20px;">
-        <button type="submit" class="btn btn-primary" style="border-radius:24px;">Search</button>
-      </form>
-      <a href="/ai/studio/" class="btn btn-outline" style="border-radius:24px;border-color:rgba(124,92,252,.4);color:var(--ac);">✨ Generate with AI</a>
-    </div>
-
-    {% if cats %}
-    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
-      <a href="/images/" class="tag" style="background:var(--ac);border-color:var(--ac);color:#fff;">All</a>
-      {% for c in cats %}<a href="/images/browse/?cat={{ c.slug }}" class="tag">{{ c.name }}</a>{% endfor %}
-    </div>
-    {% endif %}
-  </div>
-</div>
-
-{# AI Generate CTA strip #}
-<div style="background:linear-gradient(135deg,rgba(124,92,252,.1),rgba(255,77,109,.07));border-bottom:1px solid var(--bd);padding:20px 0;">
-  <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
-    <div>
-      <div style="font-size:15px;font-weight:600;margin-bottom:3px;">✨ Create AI-Generated Images</div>
-      <div style="font-size:13px;color:var(--tx2);">Describe anything and watch AI bring it to life in seconds</div>
-    </div>
-    <a href="/ai/studio/" class="btn btn-primary">Open AI Studio →</a>
-  </div>
-</div>
-
-{% if featured %}
-<section class="sec" style="padding-bottom:0;">
+<div class="ig-hero">
   <div class="container">
-    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:22px;">
-      <h2 style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;">⭐ Featured</h2>
-      <a href="/images/browse/" style="font-size:13px;color:var(--ac);">Browse All →</a>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;">
+      <div>
+        <h1>🖼 Image <span style="background:linear-gradient(135deg,var(--ac),var(--ac2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Gallery</span></h1>
+        <p style="color:var(--tx2);font-size:14px;">Browse, download and share high-quality images</p>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <a href="/ai/studio/" class="btn btn-outline" style="border-color:rgba(124,92,252,.4);color:var(--ac);">✨ AI Generate</a>
+        <a href="/images/browse/" class="btn btn-primary">Browse All</a>
+      </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;">
+    <div class="cat-strip">
+      <a href="/images/" class="cat-pill active">All</a>
+      {% for c in cats %}<a href="/images/browse/?cat={{ c.slug }}" class="cat-pill">{{ c.name }}</a>{% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="container" style="padding-top:36px;padding-bottom:80px;">
+
+  {# Featured #}
+  {% if featured %}
+  <div style="margin-bottom:44px;">
+    <div class="stitle-row">
+      <h2>⭐ Featured Images</h2>
+      <a href="/images/browse/">Browse All →</a>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">
       {% for img in featured %}
-      <div class="img-card" onclick="window.location.href='/images/view/{{ img.slug }}/'">
-        {% if img.image_file %}<img src="{{ img.image_file.url }}" style="aspect-ratio:4/3;object-fit:cover;">
-        {% else %}<div style="aspect-ratio:4/3;background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(255,77,109,.08));display:flex;align-items:center;justify-content:center;font-size:48px;">🖼</div>{% endif %}
+      <a href="/images/view/{{ img.slug }}/" class="img-card">
+        {% if img.image_file %}
+        <img src="{{ img.image_file.url }}" alt="{{ img.title }}" style="aspect-ratio:4/3;object-fit:cover;">
+        {% else %}<div class="img-ph">🖼</div>{% endif %}
         <div class="img-card-overlay">
           <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ img.title }}</div>
           <div style="display:flex;gap:8px;align-items:center;">
-            <span style="font-size:11px;color:rgba(255,255,255,.7);">{{ img.resolution|upper }}</span>
-            {% if img.is_premium %}<span style="font-size:10px;background:rgba(124,92,252,.5);color:#fff;padding:1px 7px;border-radius:4px;font-weight:700;">PRO</span>{% else %}<span style="font-size:10px;background:rgba(34,197,94,.4);color:#fff;padding:1px 7px;border-radius:4px;font-weight:700;">FREE</span>{% endif %}
+            <span style="font-size:11px;color:rgba(255,255,255,.7);">{{ img.resolution|default:"HD"|upper }}</span>
+            {% if img.is_premium %}<span style="font-size:10px;background:rgba(124,92,252,.6);color:#fff;padding:1px 7px;border-radius:4px;font-weight:700;">PRO</span>
+            {% else %}<span style="font-size:10px;background:rgba(34,197,94,.4);color:#fff;padding:1px 7px;border-radius:4px;font-weight:700;">FREE</span>{% endif %}
           </div>
         </div>
-      </div>
+      </a>
       {% endfor %}
     </div>
   </div>
-</section>
-{% endif %}
+  {% endif %}
 
-{% if recent %}
-<section class="sec">
-  <div class="container">
-    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:22px;">
-      <h2 style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;">🆕 Latest Images</h2>
-      <a href="/images/browse/" style="font-size:13px;color:var(--ac);">Browse All →</a>
+  {# Recent - masonry #}
+  <div>
+    <div class="stitle-row">
+      <h2>🆕 Latest Uploads</h2>
+      <a href="/images/browse/">See all →</a>
     </div>
-    <div style="columns:5 200px;gap:16px;">
+    {% if recent %}
+    <div class="masonry">
       {% for img in recent %}
-      <div class="img-card" style="break-inside:avoid;margin-bottom:16px;" onclick="window.location.href='/images/view/{{ img.slug }}/'">
-        {% if img.image_file %}<img src="{{ img.image_file.url }}">
-        {% else %}<div style="aspect-ratio:4/3;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:40px;">🖼</div>{% endif %}
+      <a href="/images/view/{{ img.slug }}/" class="img-card">
+        {% if img.image_file %}
+        <img src="{{ img.image_file.url }}" alt="{{ img.title }}">
+        {% else %}<div class="img-ph" style="aspect-ratio:{% cycle '3/4' '4/3' '1/1' %};">🖼</div>{% endif %}
         <div class="img-card-overlay">
           <div style="font-size:12px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ img.title }}</div>
         </div>
-      </div>
+      </a>
       {% endfor %}
     </div>
+    {% else %}
+    <div style="text-align:center;padding:80px 20px;color:var(--tx2);">
+      <div style="font-size:3rem;margin-bottom:12px;opacity:.3;">🖼</div>
+      <p>No images uploaded yet.</p>
+    </div>
+    {% endif %}
   </div>
-</section>
-{% endif %}
 
+</div>
 {% endblock %}

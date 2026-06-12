@@ -1,0 +1,41 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Add Episode{% endblock %}
+{% block topbar_title %}🎬 Add Episode — {{ series.title }}{% endblock %}
+{% block content %}
+<div style="max-width:700px;">
+  <div style="background:rgba(0,212,170,.06);border:1px solid rgba(0,212,170,.15);border-radius:12px;padding:14px 20px;margin-bottom:22px;font-size:13px;color:var(--text2);">
+    Adding episode to: <strong style="color:var(--text);">{{ series.title }}</strong>
+    {% if seasons %} · {{ seasons.count }} season{{ seasons.count|pluralize }} so far{% endif %}
+  </div>
+  <div class="panel">
+    <div class="panel-head"><span class="panel-title">🎬 Episode Details</span></div>
+    <div class="panel-body">
+      <form method="post" enctype="multipart/form-data">{% csrf_token %}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="fg">
+            <label>Season Number *</label>
+            <select class="finput" name="season">
+              {% for s in seasons %}
+              <option value="{{ s.number }}">Season {{ s.number }}{% if s.title %}: {{ s.title }}{% endif %} ({{ s.episodes.count }} eps)</option>
+              {% endfor %}
+              <option value="{{ seasons.count|add:1 }}" {% if not seasons %}selected{% endif %}>+ New Season {{ seasons.count|add:1 }}</option>
+            </select>
+          </div>
+          <div class="fg"><label>Episode Number *</label><input class="finput" type="number" name="episode_number" value="{{ next_episode_number|default:1 }}" min="1" required></div>
+          <div class="fg" style="grid-column:span 2;"><label>Episode Title *</label><input class="finput" name="title" required placeholder="e.g. The Beginning"></div>
+          <div class="fg"><label>Video File</label><input class="finput" type="file" name="file" accept="video/*"></div>
+          <div class="fg"><label>Thumbnail</label><input class="finput" type="file" name="thumbnail" accept="image/*"></div>
+          <div class="fg"><label>Duration (minutes)</label><input class="finput" type="number" name="duration" placeholder="45" min="1"></div>
+          <div class="fg" style="display:flex;align-items:flex-end;"><label class="fcheck"><input type="checkbox" name="is_published" checked> Published</label></div>
+          <div class="fg" style="grid-column:span 2;"><label>Description</label><textarea class="finput" name="description" rows="3" placeholder="Episode summary…"></textarea></div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:8px;">
+          <button type="submit" class="btn btn-primary">🎬 Add Episode</button>
+          <button type="submit" name="add_another" value="1" class="btn btn-secondary">Add & Continue →</button>
+          <a href="/admin-panel/series/" class="btn btn-ghost">Back to Series</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

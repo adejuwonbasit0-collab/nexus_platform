@@ -235,9 +235,13 @@ async function toggleLike(pk, btn) {
   fd.append('csrfmiddlewaretoken', getCookie('csrftoken'));
   try {
     const r = await fetch(`/content/${pk}/like/`, {method:'POST', body:fd});
+    if (r.status === 401) { showToast('Sign in to like ❤️', 'w'); return; }
     const d = await r.json();
-    document.getElementById(`like-count-${pk}`).textContent = d.count;
-    document.getElementById('sidebar-likes').textContent = d.count;
+    if (d.error === 'login_required') { showToast('Sign in to like ❤️', 'w'); return; }
+    const likeCountEl = document.getElementById(`like-count-${pk}`);
+    const sidebarLikes = document.getElementById('sidebar-likes');
+    if (likeCountEl) likeCountEl.textContent = d.count;
+    if (sidebarLikes) sidebarLikes.textContent = d.count;
     btn.classList.toggle('liked', d.liked);
     const heart = btn.querySelector('svg');
     if (heart) heart.setAttribute('fill', d.liked ? '#ef4444' : 'none');
@@ -257,6 +261,7 @@ async function submitComment(pk) {
 
   try {
     const r = await fetch(`/content/${pk}/comment/`, {method:'POST', body:fd});
+    if (r.status === 401) { showToast('Sign in to comment', 'w'); return; }
     const d = await r.json();
     if (d.success) {
       inp.value = '';

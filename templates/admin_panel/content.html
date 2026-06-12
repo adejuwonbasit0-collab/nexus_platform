@@ -1,78 +1,101 @@
 {% extends 'admin_panel/base_admin.html' %}
-{% block admin_title %}Content{% endblock %}
-{% block topbar_title %}Content Management{% endblock %}
+{% block admin_title %}All Content{% endblock %}
+{% block topbar_title %}📦 All Content{% endblock %}
 {% block content %}
+
 <div class="panel" style="margin-bottom:14px;">
   <div class="panel-body" style="padding:12px 18px;">
-    <form method="get" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
-      <div class="fg" style="margin:0;flex:2;min-width:160px;"><input class="finput" name="q" value="{{ filter_q }}" placeholder="Search title or creator…" style="padding:8px 12px;"></div>
-      <div class="fg" style="margin:0;min-width:130px;">
-        <select class="finput" name="status" style="padding:8px 12px;">
-          <option value="">All statuses</option>
-          <option value="pending"  {% if filter_status == 'pending'  %}selected{% endif %}>Pending</option>
-          <option value="approved" {% if filter_status == 'approved' %}selected{% endif %}>Approved</option>
-          <option value="rejected" {% if filter_status == 'rejected' %}selected{% endif %}>Rejected</option>
-        </select>
-      </div>
-      <div class="fg" style="margin:0;min-width:120px;">
-        <select class="finput" name="type" style="padding:8px 12px;">
-          <option value="">All types</option>
-          <option value="video" {% if filter_type == 'video' %}selected{% endif %}>Video</option>
-          <option value="music" {% if filter_type == 'music' %}selected{% endif %}>Music</option>
-          <option value="image" {% if filter_type == 'image' %}selected{% endif %}>Image</option>
-          <option value="blog"  {% if filter_type == 'blog'  %}selected{% endif %}>Blog</option>
-        </select>
-      </div>
+    <form method="get" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
+      <input class="finput" name="q" value="{{ filter_q }}" placeholder="Search title…" style="flex:2;min-width:140px;padding:8px 12px;">
+      <input class="finput" name="creator" value="{{ filter_creator }}" placeholder="Creator username…" style="flex:1;min-width:130px;padding:8px 12px;">
+      <select class="finput" name="status" style="min-width:130px;padding:8px 12px;">
+        <option value="">All statuses</option>
+        <option value="pending"  {% if filter_status == 'pending' %}selected{% endif %}>⏳ Pending</option>
+        <option value="approved" {% if filter_status == 'approved' %}selected{% endif %}>✅ Approved</option>
+        <option value="rejected" {% if filter_status == 'rejected' %}selected{% endif %}>❌ Rejected</option>
+      </select>
+      <select class="finput" name="type" style="min-width:110px;padding:8px 12px;">
+        <option value="">All types</option>
+        <option value="video" {% if filter_type == 'video' %}selected{% endif %}>🎬 Video</option>
+        <option value="music" {% if filter_type == 'music' %}selected{% endif %}>🎵 Music</option>
+        <option value="image" {% if filter_type == 'image' %}selected{% endif %}>🖼 Image</option>
+        <option value="blog"  {% if filter_type == 'blog' %}selected{% endif %}>📝 Blog</option>
+      </select>
       <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
       <a href="/admin-panel/content/" class="btn btn-ghost btn-sm">Clear</a>
-      <a href="/admin-panel/upload/" class="btn btn-primary btn-sm" style="margin-left:auto;">⬆ Upload</a>
     </form>
   </div>
 </div>
 
 <div class="table-wrap">
 <table class="dt">
-  <thead><tr><th style="width:56px;">Thumb</th><th>Title</th><th>Creator</th><th>Type</th><th>Tier</th><th>Views</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+  <thead><tr>
+    <th style="width:52px;">Thumb</th>
+    <th>Title</th>
+    <th>Creator</th>
+    <th>Type</th>
+    <th>Tier</th>
+    <th>Views</th>
+    <th>Status</th>
+    <th>Date</th>
+    <th>Actions</th>
+  </tr></thead>
   <tbody>
   {% for c in page.object_list %}
   <tr>
     <td>
       {% if c.thumbnail %}<img src="{{ c.thumbnail.url }}" style="width:46px;height:30px;object-fit:cover;border-radius:5px;">
-      {% else %}<div style="width:46px;height:30px;background:var(--bg3);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:16px;">{% if c.content_type == 'video' %}🎬{% elif c.content_type == 'music' %}🎵{% elif c.content_type == 'image' %}🖼{% else %}📝{% endif %}</div>{% endif %}
+      {% else %}<div style="width:46px;height:30px;background:var(--bg3);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:16px;">
+        {% if c.content_type == 'video' %}🎬{% elif c.content_type == 'music' %}🎵{% elif c.content_type == 'image' %}🖼{% else %}📝{% endif %}
+      </div>{% endif %}
     </td>
     <td>
       <div style="font-weight:600;font-size:13px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ c.title }}</div>
-      {% if c.featured %}<span class="badge badge-yellow" style="font-size:9px;">Featured</span>{% endif %}
+      {% if c.featured %}<span class="badge badge-yellow" style="font-size:9px;">⭐ Featured</span>{% endif %}
     </td>
-    <td><a href="/admin-panel/users/{{ c.creator.pk }}/" style="color:var(--ac);font-size:13px;">{{ c.creator.username }}</a></td>
+    <td><a href="/admin-panel/users/{{ c.creator.pk }}/" style="color:var(--accent);font-size:13px;">{{ c.creator.username }}</a></td>
     <td><span class="badge badge-purple" style="font-size:10px;text-transform:uppercase;">{{ c.content_type }}</span></td>
     <td><span class="badge {% if c.tier == 'premium' %}badge-purple{% else %}badge-green{% endif %}" style="font-size:10px;">{{ c.tier }}</span></td>
-    <td style="font-size:12px;color:var(--tx2);">{{ c.views }}</td>
+    <td style="font-size:12px;color:var(--text2);">{{ c.views }}</td>
     <td><span class="badge {% if c.status == 'approved' %}badge-green{% elif c.status == 'pending' %}badge-yellow{% else %}badge-red{% endif %}" style="font-size:10px;">{{ c.status }}</span></td>
-    <td style="font-size:11px;color:var(--tx2);white-space:nowrap;">{{ c.created_at|date:"M d, Y" }}</td>
+    <td style="font-size:11px;color:var(--text2);white-space:nowrap;">{{ c.created_at|date:"M d, Y" }}</td>
     <td>
       <div style="display:flex;gap:4px;">
         {% if c.status == 'pending' %}
-        <form method="post" action="/admin-panel/content/{{ c.pk }}/approve/" style="display:inline;">{% csrf_token %}<button class="btn btn-success btn-xs" title="Approve">✓</button></form>
-        <form method="post" action="/admin-panel/content/{{ c.pk }}/reject/" style="display:inline;">{% csrf_token %}<input type="hidden" name="reason" value="Does not meet platform guidelines."><button class="btn btn-danger btn-xs" title="Reject">✕</button></form>
+        <form method="post" action="/admin-panel/content/{{ c.pk }}/approve/" style="display:inline;">{% csrf_token %}
+          <button class="btn btn-success btn-xs" title="Approve">✓ Approve</button>
+        </form>
+        <form method="post" action="/admin-panel/content/{{ c.pk }}/reject/" style="display:inline;">{% csrf_token %}
+          <input type="hidden" name="reason" value="Does not meet platform guidelines.">
+          <button class="btn btn-danger btn-xs" title="Reject">✕ Reject</button>
+        </form>
         {% endif %}
         <a href="/content/{{ c.pk }}/" target="_blank" class="btn btn-ghost btn-xs">View</a>
-        <form method="post" action="/admin-panel/content/{{ c.pk }}/delete/" style="display:inline;" onsubmit="return confirm('Delete permanently?')">{% csrf_token %}<button class="btn btn-danger btn-xs">Del</button></form>
+        <form method="post" action="/admin-panel/content/{{ c.pk }}/delete/" style="display:inline;" onsubmit="return confirm('Delete permanently?')">{% csrf_token %}
+          <button class="btn btn-danger btn-xs">Del</button>
+        </form>
       </div>
     </td>
   </tr>
   {% empty %}
-  <tr><td colspan="9"><div class="empty" style="padding:48px;"><div class="empty-icon">📭</div><h3>No content found</h3><p>Try different filters or <a href="/admin-panel/upload/" style="color:var(--ac);">upload content</a>.</p></div></td></tr>
+  <tr><td colspan="9">
+    <div class="empty" style="padding:56px;">
+      <div class="empty-icon">📭</div>
+      <h3>No content found</h3>
+      <p>Content created from Music, Movies, Images, and Blog tabs appears here automatically.</p>
+    </div>
+  </td></tr>
   {% endfor %}
   </tbody>
 </table>
 </div>
+
 {% if page.paginator.num_pages > 1 %}
 <div class="pager">
-  {% if page.has_previous %}<a href="?page={{ page.previous_page_number }}&q={{ filter_q }}&status={{ filter_status }}&type={{ filter_type }}">‹ Prev</a>{% endif %}
+  {% if page.has_previous %}<a href="?page={{ page.previous_page_number }}&q={{ filter_q }}&status={{ filter_status }}&type={{ filter_type }}&creator={{ filter_creator }}">‹ Prev</a>{% endif %}
   <span class="current">{{ page.number }}</span>
-  <span style="color:var(--tx2);">of {{ page.paginator.num_pages }}</span>
-  {% if page.has_next %}<a href="?page={{ page.next_page_number }}&q={{ filter_q }}&status={{ filter_status }}&type={{ filter_type }}">Next ›</a>{% endif %}
+  <span style="color:var(--text2);">of {{ page.paginator.num_pages }}</span>
+  {% if page.has_next %}<a href="?page={{ page.next_page_number }}&q={{ filter_q }}&status={{ filter_status }}&type={{ filter_type }}&creator={{ filter_creator }}">Next ›</a>{% endif %}
 </div>
 {% endif %}
 {% endblock %}

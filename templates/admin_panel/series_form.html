@@ -1,0 +1,52 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Create Series{% endblock %}
+{% block topbar_title %}📺 Create New Series{% endblock %}
+{% block content %}
+<div style="max-width:700px;">
+  <div style="background:rgba(124,92,252,.07);border:1px solid rgba(124,92,252,.2);border-radius:12px;padding:16px 20px;margin-bottom:22px;font-size:13px;color:var(--text2);line-height:1.6;">
+    <strong style="color:var(--text);">How it works:</strong> Create the series here, then go back to the Series list and click <strong>"+ Add Episode"</strong> on the series to add seasons and episodes.
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><span class="panel-title">📺 Series Details</span></div>
+    <div class="panel-body">
+      <form method="post" enctype="multipart/form-data">{% csrf_token %}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="fg" style="grid-column:span 2;"><label>Series Title *</label><input class="finput" name="title" required placeholder="e.g. Legend of the Blue Sea"></div>
+          <div class="fg"><label>Release Year</label><input class="finput" type="number" name="release_year" value="2024" min="1900" max="2030"></div>
+          <div class="fg"><label>Access Tier</label>
+            <select class="finput" name="tier">
+              <option value="free">Free</option>
+              <option value="premium">Premium</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Genres</label>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;padding:10px;background:var(--bg3);border:1px solid var(--border);border-radius:9px;">
+              {% for g in genres %}
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text2);">
+                <input type="checkbox" name="genres" value="{{ g.pk }}" style="accent-color:var(--accent);"> {{ g.name }}
+              </label>
+              {% empty %}
+              <span style="color:var(--text3);font-size:13px;">No genres yet — <a href="/admin-panel/movies/?tab=genres" style="color:var(--accent);">add some first</a></span>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="fg">
+            <label>Cover Poster / Thumbnail *</label>
+            <input class="finput" type="file" name="thumbnail" accept="image/*">
+          </div>
+          <div class="fg" style="grid-column:span 2;"><label>Description / Synopsis</label><textarea class="finput" name="description" rows="4" placeholder="Series overview and synopsis…"></textarea></div>
+          <div class="fg" style="display:flex;gap:16px;">
+            <label class="fcheck"><input type="checkbox" name="is_published" checked> Publish immediately</label>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:8px;">
+          <button type="submit" class="btn btn-primary">📺 Create Series</button>
+          <a href="/admin-panel/series/" class="btn btn-ghost">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

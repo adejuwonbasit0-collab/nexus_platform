@@ -53,8 +53,9 @@ def post_detail(request, slug):
 
 
 @require_POST
-@login_required
 def toggle_like(request, pk):
+    if not request.user.is_authenticated:
+        return JsonResponse({"error":"login_required","count":0,"liked":False},status=401)
     post = get_object_or_404(Post, pk=pk)
     like, created = PostLike.objects.get_or_create(user=request.user, post=post)
     if not created:
@@ -62,12 +63,13 @@ def toggle_like(request, pk):
     else:
         post.likes_count += 1; liked = True
     post.save(update_fields=['likes_count'])
-    return JsonResponse({'liked': liked, 'count': post.likes_count})
+    return JsonResponse({'ok': True, 'liked': liked, 'likes_count': post.likes_count, 'count': post.likes_count})
 
 
 @require_POST
-@login_required
 def add_comment(request, pk):
+    if not request.user.is_authenticated:
+        return JsonResponse({"ok":False,"error":"login_required"},status=401)
     post      = get_object_or_404(Post, pk=pk)
     text      = request.POST.get('text','').strip()
     parent_id = request.POST.get('parent_id')
@@ -166,8 +168,8 @@ def ai_blog_generator(request):
 @login_required
 def blog_edit(request, pk):
     post = get_object_or_404(Post, pk=pk)
-    # Allow post author or admin
-    if post.author != request.user and not request.user.is_staff and not getattr(request.user, 'role', '') == 'admin':
+    # Only the author can edit
+    if post.author != request.user:
         from django.http import Http404
         raise Http404
     cats = Category.objects.all()

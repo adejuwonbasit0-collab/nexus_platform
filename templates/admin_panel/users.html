@@ -36,10 +36,10 @@
       </td>
       <td style="font-size:12px;color:var(--tx2);">{{ u.email }}</td>
       <td><span class="badge {% if u.role == 'admin' %}badge-red{% elif u.role == 'creator' %}badge-purple{% else %}badge-gray{% endif %}" style="font-size:10px;">{{ u.role }}</span></td>
-      <td><span class="badge {% if u.is_active %}badge-green{% else %}badge-red{% endif %}" style="font-size:10px;">{% if u.is_active %}Active{% else %}Inactive{% endif %}</span></td>
+      <td><button id="uactive-{{ u.pk }}" onclick="toggleUserActive({{ u.pk }},this)" class="badge {% if u.is_active %}badge-green{% else %}badge-red{% endif %}" style="font-size:10px;border:none;cursor:pointer;">{% if u.is_active %}Active{% else %}Inactive{% endif %}</button></td>
       <td style="font-size:12px;">{% if u.is_premium %}⭐{% else %}—{% endif %}</td>
       <td style="font-size:11px;color:var(--tx2);">{{ u.date_joined|date:"M d, Y" }}</td>
-      <td><a href="/admin-panel/users/{{ u.pk }}/" class="btn btn-ghost btn-xs">View →</a></td>
+      <td style="display:flex;gap:4px;"><a href="/admin-panel/users/{{ u.pk }}/" class="btn btn-ghost btn-xs">View →</a></td>
     </tr>
     {% empty %}
     <tr><td colspan="7"><div class="empty" style="padding:40px;"><div class="empty-icon">👥</div><h3>No users found</h3></div></td></tr>
@@ -56,4 +56,23 @@
   </div>
   {% endif %}
 </div>
+{% endblock %}
+{% block scripts %}
+<script>
+function toggleUserActive(pk, btn) {
+  const fd = new FormData();
+  fd.append('action', 'toggle_active');
+  fd.append('pk', pk);
+  fd.append('csrfmiddlewaretoken', (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '');
+  fetch('/admin-panel/users/' + pk + '/', {method: 'POST', body: fd})
+    .then(r => { if (r.ok) return r.text(); throw new Error('fail'); })
+    .then(() => {
+      const isActive = btn.classList.contains('badge-green');
+      btn.classList.toggle('badge-green', !isActive);
+      btn.classList.toggle('badge-red', isActive);
+      btn.textContent = isActive ? 'Inactive' : 'Active';
+    })
+    .catch(() => window.location.reload());
+}
+</script>
 {% endblock %}

@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+{% block title %}Write Blog Post — Creator Studio{% endblock %}
+{% block extra_head %}
+<style>
+.write-layout{max-width:860px;margin:0 auto;padding:36px 20px 80px;}
+.write-card{background:rgba(255,255,255,.03);border:1px solid var(--bd);border-radius:16px;padding:28px;margin-bottom:18px;}
+.write-label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--tx2);margin-bottom:8px;}
+.write-input{width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:10px;padding:12px 16px;color:var(--tx);font-size:14px;outline:none;transition:border-color .15s;}
+.write-input:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(124,92,252,.12);}
+textarea.write-input{resize:vertical;min-height:80px;font-family:inherit;line-height:1.6;}
+#content-editor{min-height:380px;font-family:inherit;font-size:15px;line-height:1.8;}
+.toolbar{display:flex;gap:6px;flex-wrap:wrap;padding:10px 14px;background:var(--bg3);border:1px solid var(--bd);border-radius:10px 10px 0 0;border-bottom:none;}
+.tb-btn{padding:5px 10px;border-radius:6px;background:rgba(255,255,255,.06);border:1px solid var(--bd);color:var(--tx2);cursor:pointer;font-size:12px;font-weight:600;transition:all .12s;}
+.tb-btn:hover{background:rgba(124,92,252,.15);color:var(--ac);border-color:rgba(124,92,252,.3);}
+.tag-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px 3px 12px;border-radius:20px;background:rgba(124,92,252,.12);border:1px solid rgba(124,92,252,.2);color:var(--ac);font-size:12px;margin:3px;}
+.tag-pill button{background:none;border:none;cursor:pointer;color:rgba(124,92,252,.6);font-size:14px;padding:0;line-height:1;}
+.tag-pill button:hover{color:var(--ac2);}
+</style>
+{% endblock %}
+{% block content %}
+<div class="write-layout">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px;">
+    <div>
+      <h1 style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;margin-bottom:4px;">✍️ Write Blog Post</h1>
+      <p style="font-size:13px;color:var(--tx2);">Published posts go live immediately. Drafts are saved privately.</p>
+    </div>
+    <a href="/creator/" class="btn btn-ghost btn-sm">← Back to Studio</a>
+  </div>
+
+  {% for msg in messages %}
+  <div class="alert alert-{{ msg.tags }}" style="margin-bottom:16px;">{{ msg }}</div>
+  {% endfor %}
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <div class="write-card">
+      <label class="write-label">Post Title *</label>
+      <input type="text" name="title" class="write-input" placeholder="Enter a compelling title…" required style="font-size:18px;font-weight:600;padding:14px 16px;">
+    </div>
+
+    <div class="write-card">
+      <label class="write-label">Content *</label>
+      <div class="toolbar">
+        <button type="button" class="tb-btn" onclick="fmt('bold')"><b>B</b></button>
+        <button type="button" class="tb-btn" onclick="fmt('italic')"><i>I</i></button>
+        <button type="button" class="tb-btn" onclick="fmt('underline')"><u>U</u></button>
+        <button type="button" class="tb-btn" onclick="fmtBlock('h2')">H2</button>
+        <button type="button" class="tb-btn" onclick="fmtBlock('h3')">H3</button>
+        <button type="button" class="tb-btn" onclick="fmt('insertUnorderedList')">• List</button>
+        <button type="button" class="tb-btn" onclick="fmt('insertOrderedList')">1. List</button>
+        <button type="button" class="tb-btn" onclick="fmtBlock('blockquote')">" Quote</button>
+        <button type="button" class="tb-btn" onclick="insertLink()">🔗 Link</button>
+      </div>
+      <div id="content-editor" contenteditable="true" class="write-input" style="border-radius:0 0 10px 10px;min-height:380px;" oninput="syncContent()"></div>
+      <input type="hidden" name="content" id="content-hidden">
+    </div>
+
+    <div class="write-card">
+      <label class="write-label">Excerpt <span style="color:var(--tx3);font-weight:400;">(auto-generated if blank)</span></label>
+      <textarea name="excerpt" class="write-input" rows="3" placeholder="Short description shown in listings…" style="min-height:80px;"></textarea>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+      <div class="write-card">
+        <label class="write-label">Category</label>
+        <select name="category" class="write-input">
+          <option value="">— Select category —</option>
+          {% for cat in cats %}<option value="{{ cat.pk }}">{{ cat.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="write-card">
+        <label class="write-label">Status</label>
+        <select name="status" class="write-input">
+          <option value="draft">💾 Draft (private)</option>
+          <option value="published">🚀 Published (live)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="write-card">
+      <label class="write-label">Featured Image</label>
+      <input type="file" name="featured_img" accept="image/*" class="write-input" style="padding:10px;">
+    </div>
+
+    <div class="write-card">
+      <label class="write-label">Tags <span style="color:var(--tx3);font-weight:400;">(comma-separated)</span></label>
+      <input type="text" id="tag-input" class="write-input" placeholder="e.g. technology, music, movies…" oninput="updateTagPreview()">
+      <input type="hidden" name="tags" id="tags-hidden">
+      <div id="tag-preview" style="margin-top:10px;min-height:28px;"></div>
+    </div>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+      <button type="submit" class="btn btn-primary" style="padding:13px 32px;font-size:15px;">
+        🚀 Publish / Save Post
+      </button>
+      <a href="/creator/" class="btn btn-ghost" style="padding:13px 24px;">Cancel</a>
+    </div>
+  </form>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+function fmt(cmd) { document.execCommand(cmd, false, null); syncContent(); }
+function fmtBlock(tag) { document.execCommand('formatBlock', false, tag); syncContent(); }
+function syncContent() {
+  document.getElementById('content-hidden').value = document.getElementById('content-editor').innerHTML;
+}
+function insertLink() {
+  const url = prompt('Enter URL:');
+  if (url) document.execCommand('createLink', false, url);
+  syncContent();
+}
+function updateTagPreview() {
+  const raw = document.getElementById('tag-input').value;
+  const tags = raw.split(',').map(t=>t.trim()).filter(Boolean);
+  document.getElementById('tags-hidden').value = tags.join(',');
+  const preview = document.getElementById('tag-preview');
+  preview.innerHTML = tags.map(t=>`<span class="tag-pill">#${t}</span>`).join('');
+}
+// Sync before form submit
+document.querySelector('form').addEventListener('submit', () => {
+  syncContent();
+  document.getElementById('tags-hidden').value = document.getElementById('tag-input').value;
+});
+</script>
+{% endblock %}

@@ -1,71 +1,131 @@
 {% extends 'base.html' %}
-{% block title %}Blog{% endblock %}
+{% block title %}Blog & Articles — NEXUS{% endblock %}
+{% block extra_head %}
+<style>
+.blog-hero{background:linear-gradient(160deg,rgba(124,92,252,.14) 0%,rgba(0,212,170,.07) 60%,transparent 100%);padding:72px 0 52px;border-bottom:1px solid var(--bd);}
+.blog-cat-pill{padding:5px 16px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid var(--bd);color:var(--tx2);background:rgba(255,255,255,.04);transition:all .15s;text-decoration:none;}
+.blog-cat-pill:hover,.blog-cat-pill.active{background:var(--ac);border-color:var(--ac);color:#fff;}
+.bcard{background:rgba(255,255,255,.03);border:1px solid var(--bd);border-radius:16px;overflow:hidden;transition:transform .22s,border-color .22s,box-shadow .22s;}
+.bcard:hover{transform:translateY(-5px);border-color:rgba(124,92,252,.25);box-shadow:0 20px 50px rgba(0,0,0,.4);}
+.featured-bcard{background:rgba(255,255,255,.03);border:1px solid var(--bd);border-radius:18px;overflow:hidden;transition:transform .22s,border-color .22s;display:grid;grid-template-columns:1fr 1fr;min-height:320px;}
+.featured-bcard:hover{transform:translateY(-4px);border-color:rgba(124,92,252,.25);}
+@media(max-width:700px){.featured-bcard{grid-template-columns:1fr;}}
+.cat-badge{display:inline-block;padding:3px 11px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(124,92,252,.15);color:var(--ac);border:1px solid rgba(124,92,252,.2);}
+.sidebar-panel{background:rgba(255,255,255,.03);border:1px solid var(--bd);border-radius:14px;padding:20px;}
+</style>
+{% endblock %}
 {% block content %}
-<div style="background:#fafaf8;min-height:100vh;color:#1c1917;">
-<div style="background:var(--bg2);border-bottom:1px solid #e2ddd7;padding:36px 0;">
-  <div class="container" style="max-width:900px;">
-    <h1 style="font-family:'Syne',sans-serif;font-size:2.2rem;font-weight:800;color:#1c1917;margin-bottom:8px;">✍️ Blog & Articles</h1>
-    <p style="color:#57534e;font-size:0.9rem;margin-bottom:18px;">Insights, tutorials, and stories from the community.</p>
+
+{# HERO #}
+<section class="blog-hero">
+  <div class="container" style="max-width:1100px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:24px;">
+      <div>
+        <h1 style="font-family:'Syne',sans-serif;font-size:clamp(28px,5vw,48px);font-weight:800;line-height:1.1;margin-bottom:10px;">
+          ✍️ Blog &amp; <span style="background:linear-gradient(135deg,var(--ac),var(--ac2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Articles</span>
+        </h1>
+        <p style="color:var(--tx2);font-size:15px;">Insights, tutorials, and stories from the community.</p>
+      </div>
+      {# Write Post is ONLY available to creators and admins via their dashboards — not public #}
+      {% if user.is_authenticated and user.role in 'creator,admin,staff' %}
+      <a href="/creator/" class="btn btn-primary">✏️ Creator Studio</a>
+      {% endif %}
+    </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <a href="/blog/" style="padding:5px 14px;border-radius:20px;background:#d97706;color:#fff;text-decoration:none;font-size:0.76rem;font-weight:600;">All Posts</a>
-      {% for c in cats %}<a href="/blog/browse/?cat={{ c.slug }}" style="padding:5px 14px;border-radius:20px;background:#f5f5f0;color:#57534e;text-decoration:none;font-size:0.76px;border:1px solid #e2ddd7;">{{ c.name }}</a>{% endfor %}
+      <a href="/blog/" class="blog-cat-pill {% if not active_cat %}active{% endif %}">All Posts</a>
+      {% for c in cats %}<a href="/blog/browse/?cat={{ c.slug }}" class="blog-cat-pill">{{ c.name }}</a>{% endfor %}
     </div>
   </div>
-</div>
-<div class="container" style="max-width:1100px;padding:36px 20px 60px;display:grid;grid-template-columns:1fr 300px;gap:36px;">
+</section>
+
+<div class="container" style="max-width:1100px;padding:36px 20px 80px;display:grid;grid-template-columns:1fr 300px;gap:36px;align-items:start;">
+
+  {# MAIN #}
   <div>
-    <!-- Featured -->
-    {% if featured %}
-    {% with p=featured.0 %}
-    <a href="/blog/post/{{ p.slug }}/" style="text-decoration:none;display:block;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);margin-bottom:32px;background:var(--bg2);">
-      {% if p.featured_img %}<img src="{{ p.featured_img.url }}" style="width:100%;height:280px;object-fit:cover;display:block;">
-      {% else %}<div style="width:100%;height:220px;background:linear-gradient(135deg,#fef3c7,#fed7aa);display:flex;align-items:center;justify-content:center;font-size:3rem;">✍️</div>{% endif %}
-      <div style="padding:22px;">
-        {% if p.category %}<span style="display:inline-block;background:#fef3c7;color:#d97706;border:1px solid #fde68a;padding:2px 10px;border-radius:20px;font-size:0.72rem;font-weight:600;margin-bottom:10px;">{{ p.category.name }}</span>{% endif %}
-        <h2 style="font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;color:#1c1917;margin-bottom:8px;line-height:1.3;">{{ p.title }}</h2>
-        <p style="color:#57534e;font-size:0.88rem;line-height:1.7;margin-bottom:12px;">{{ p.excerpt }}</p>
-        <div style="font-size:0.76rem;color:#a8a29e;">by {{ p.author.username }} · {{ p.created_at|date:"M d, Y" }} · 👁 {{ p.views_count }}</div>
+    {# Featured Post #}
+    {% if featured %}{% with p=featured.0 %}
+    <a href="/blog/post/{{ p.slug }}/" style="text-decoration:none;display:block;margin-bottom:32px;">
+      <div class="featured-bcard">
+        <div style="position:relative;overflow:hidden;min-height:220px;">
+          {% if p.featured_img %}<img src="{{ p.featured_img.url }}" style="width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s;" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='none'">
+          {% else %}<div style="width:100%;height:100%;min-height:220px;background:linear-gradient(135deg,rgba(124,92,252,.2),rgba(255,77,109,.15));display:flex;align-items:center;justify-content:center;font-size:4rem;">✍️</div>{% endif %}
+          <div style="position:absolute;top:14px;left:14px;"><span class="badge badge-purple" style="font-size:10px;">⭐ Featured</span></div>
+        </div>
+        <div style="padding:28px;display:flex;flex-direction:column;justify-content:center;">
+          {% if p.category %}<span class="cat-badge" style="margin-bottom:12px;">{{ p.category.name }}</span>{% endif %}
+          <h2 style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;line-height:1.3;margin-bottom:10px;color:var(--tx);">{{ p.title }}</h2>
+          <p style="color:var(--tx2);font-size:13px;line-height:1.7;margin-bottom:16px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">{{ p.excerpt }}</p>
+          <div style="font-size:12px;color:var(--tx3);">{{ p.author.username }} · {{ p.created_at|date:"M d, Y" }} · 👁 {{ p.views_count }}</div>
+        </div>
       </div>
     </a>
-    {% endwith %}
-    {% endif %}
-    <!-- Recent -->
-    <div style="display:flex;flex-direction:column;gap:18px;">
+    {% endwith %}{% endif %}
+
+    {# Recent Posts #}
+    <div style="display:flex;flex-direction:column;gap:16px;">
       {% for p in recent %}
-      <a href="/blog/post/{{ p.slug }}/" style="text-decoration:none;display:flex;gap:16px;background:var(--bg2);border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.06);transition:box-shadow 0.2s;" onmouseover="this.style.boxShadow='0 8px 24px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='0 2px 10px rgba(0,0,0,0.06)'">
-        {% if p.featured_img %}<img src="{{ p.featured_img.url }}" style="width:130px;height:100%;object-fit:cover;flex-shrink:0;">
-        {% else %}<div style="width:130px;background:linear-gradient(135deg,#fef3c7,#fed7aa);display:flex;align-items:center;justify-content:center;font-size:2rem;flex-shrink:0;">✍️</div>{% endif %}
-        <div style="padding:16px 16px 16px 0;flex:1;">
-          {% if p.category %}<span style="display:inline-block;background:#fef3c7;color:#d97706;border:1px solid #fde68a;padding:1px 8px;border-radius:20px;font-size:0.68rem;font-weight:600;margin-bottom:7px;">{{ p.category.name }}</span>{% endif %}
-          <div style="font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:700;color:#1c1917;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{{ p.title }}</div>
-          <p style="font-size:0.8rem;color:#57534e;line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:8px;">{{ p.excerpt }}</p>
-          <div style="font-size:0.72rem;color:#a8a29e;">{{ p.author.username }} · {{ p.created_at|date:"M d" }} · 👁 {{ p.views_count }} · ♥ {{ p.likes_count }}</div>
+      <a href="/blog/post/{{ p.slug }}/" style="text-decoration:none;">
+        <div class="bcard" style="display:flex;gap:0;overflow:hidden;">
+          <div style="width:140px;flex-shrink:0;position:relative;overflow:hidden;min-height:110px;">
+            {% if p.featured_img %}<img src="{{ p.featured_img.url }}" style="width:100%;height:100%;object-fit:cover;display:block;">
+            {% else %}<div style="width:100%;height:100%;min-height:110px;background:linear-gradient(135deg,rgba(124,92,252,.2),rgba(0,212,170,.1));display:flex;align-items:center;justify-content:center;font-size:2.5rem;">✍️</div>{% endif %}
+          </div>
+          <div style="padding:16px 20px;flex:1;">
+            {% if p.category %}<span class="cat-badge" style="font-size:10px;margin-bottom:8px;display:inline-block;">{{ p.category.name }}</span>{% endif %}
+            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;line-height:1.35;margin-bottom:7px;color:var(--tx);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{{ p.title }}</div>
+            <p style="font-size:12px;color:var(--tx2);line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:10px;">{{ p.excerpt }}</p>
+            <div style="font-size:11px;color:var(--tx3);">{{ p.author.username }} · {{ p.created_at|date:"M d, Y" }} · 👁 {{ p.views_count }} · ♥ {{ p.likes_count }}</div>
+          </div>
         </div>
       </a>
-      {% empty %}<p style="color:#a8a29e;">No posts yet</p>{% endfor %}
+      {% empty %}
+      <div style="text-align:center;padding:60px;color:var(--tx2);">
+        <div style="font-size:3rem;margin-bottom:12px;opacity:.3;">✍️</div>
+        <p>No posts yet. Check back soon!</p>
+      </div>
+      {% endfor %}
     </div>
-    <a href="/blog/browse/" style="display:block;text-align:center;margin-top:24px;padding:12px;background:var(--bg2);border-radius:8px;color:#d97706;text-decoration:none;font-weight:600;font-size:0.88rem;border:1px solid #e2ddd7;">View All Posts →</a>
+
+    <a href="/blog/browse/" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:28px;padding:13px;background:rgba(124,92,252,.08);border:1px solid rgba(124,92,252,.18);border-radius:10px;color:var(--ac);font-weight:600;font-size:14px;text-decoration:none;transition:all .15s;" onmouseover="this.style.background='rgba(124,92,252,.15)'" onmouseout="this.style.background='rgba(124,92,252,.08)'">
+      View All Posts →
+    </a>
   </div>
-  <!-- Sidebar -->
-  <div>
-    {% if user.is_authenticated and user.has_ai_access or user.is_admin %}
-    <div style="background:linear-gradient(135deg,#fef3c7,#fff7e6);border:1px solid #fde68a;border-radius:10px;padding:18px;margin-bottom:18px;">
-      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.9rem;color:#92400e;margin-bottom:8px;">✨ AI Blog Generator</div>
-      <p style="font-size:0.78rem;color:#78350f;line-height:1.6;margin-bottom:12px;">Generate blog posts with AI — Creator AI plan required.</p>
-      <a href="/blog/ai/" class="btn btn-sm" style="background:#d97706;color:#fff;width:100%;justify-content:center;">Open AI Generator</a>
+
+  {# SIDEBAR #}
+  <aside style="position:sticky;top:76px;display:flex;flex-direction:column;gap:16px;">
+    {# Creator/Admin CTA — no public "write post" link #}
+    {% if user.is_authenticated and user.role in 'creator,admin,staff' %}
+    <div class="sidebar-panel" style="background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(0,212,170,.08));border-color:rgba(124,92,252,.2);">
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;margin-bottom:8px;">✨ Creator Studio</div>
+      <p style="font-size:12px;color:var(--tx2);line-height:1.6;margin-bottom:14px;">Publish posts, upload content, and manage your uploads.</p>
+      <a href="/creator/" class="btn btn-primary btn-sm" style="width:100%;justify-content:center;">Go to Studio</a>
+    </div>
+    {% elif not user.is_authenticated %}
+    <div class="sidebar-panel">
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;margin-bottom:8px;">🚀 Join NEXUS</div>
+      <p style="font-size:12px;color:var(--tx2);line-height:1.6;margin-bottom:14px;">Sign up to like posts, leave comments, and access premium content.</p>
+      <a href="/auth/register/" class="btn btn-primary btn-sm" style="width:100%;justify-content:center;">Sign Up Free</a>
     </div>
     {% endif %}
-    <div style="background:var(--bg2);border-radius:10px;padding:18px;margin-bottom:18px;box-shadow:0 2px 10px rgba(0,0,0,0.06);">
-      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.88rem;color:#1c1917;margin-bottom:12px;">🔥 Trending</div>
-      {% for p in trending %}<a href="/blog/post/{{ p.slug }}/" style="text-decoration:none;display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #e2ddd7;"><span style="font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;color:#e2ddd7;width:22px;">{{ forloop.counter }}</span><div style="font-size:0.82rem;color:#1c1917;font-weight:500;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{{ p.title }}</div></a>{% endfor %}
+
+    <div class="sidebar-panel">
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;margin-bottom:14px;color:var(--tx);">🔥 Trending</div>
+      {% for p in trending %}
+      <a href="/blog/post/{{ p.slug }}/" style="text-decoration:none;display:flex;gap:12px;align-items:start;padding:9px 0;border-bottom:1px solid var(--bd);">
+        <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:var(--text3);width:20px;flex-shrink:0;line-height:1.3;">{{ forloop.counter }}</span>
+        <div style="font-size:13px;font-weight:500;color:var(--tx);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{{ p.title }}</div>
+      </a>
+      {% empty %}<p style="color:var(--tx2);font-size:13px;">No trending posts yet.</p>{% endfor %}
     </div>
-    <div style="background:var(--bg2);border-radius:10px;padding:18px;box-shadow:0 2px 10px rgba(0,0,0,0.06);">
-      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.88rem;color:#1c1917;margin-bottom:12px;">🏷 Tags</div>
+
+    <div class="sidebar-panel">
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;margin-bottom:14px;">🏷 Tags</div>
       <div style="display:flex;flex-wrap:wrap;gap:6px;">
-        {% for t in tags %}<a href="/blog/browse/?tag={{ t.slug }}" style="padding:3px 10px;border-radius:20px;background:#f5f5f0;color:#57534e;text-decoration:none;font-size:0.72rem;border:1px solid #e2ddd7;">#{{ t.name }}</a>{% endfor %}
+        {% for t in tags %}
+        <a href="/blog/browse/?tag={{ t.slug }}" style="padding:4px 11px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid var(--bd);color:var(--tx2);font-size:11px;text-decoration:none;transition:all .15s;" onmouseover="this.style.borderColor='var(--ac)';this.style.color='var(--ac)'" onmouseout="this.style.borderColor='var(--bd)';this.style.color='var(--tx2)'">#{{ t.name }}</a>
+        {% empty %}<span style="color:var(--tx2);font-size:12px;">No tags yet</span>{% endfor %}
       </div>
     </div>
-  </div>
-</div>
+  </aside>
 </div>
 {% endblock %}

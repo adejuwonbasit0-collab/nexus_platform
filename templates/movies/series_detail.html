@@ -1,41 +1,174 @@
 {% extends 'base.html' %}
-{% block title %}{{ series.title }}{% endblock %}
+{% block title %}{{ series.title }} — NEXUS{% endblock %}
+{% block extra_head %}
+<style>
+.movie-hero{position:relative;min-height:420px;overflow:hidden;background:#000;}
+.hero-backdrop{position:absolute;inset:0;background-size:cover;background-position:center top;filter:brightness(.22);}
+.hero-grad{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.3),rgba(0,0,0,.6) 60%,var(--bg) 100%);}
+.hero-content{position:relative;z-index:2;padding:48px 0 40px;display:flex;gap:32px;align-items:flex-end;}
+.series-poster{width:190px;flex-shrink:0;border-radius:12px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.7);aspect-ratio:2/3;}
+.series-poster img,.series-poster .ph{width:100%;height:100%;object-fit:cover;display:flex;align-items:center;justify-content:center;font-size:4rem;background:linear-gradient(135deg,rgba(124,92,252,.3),rgba(255,77,109,.2));}
+.meta-tag{padding:3px 11px;border-radius:20px;font-size:12px;font-weight:600;background:rgba(255,255,255,.1);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.15);}
+.meta-tag.genre{background:rgba(124,92,252,.25);color:#c4b5fd;border-color:rgba(124,92,252,.3);}
+
+.season-block{border:1px solid var(--bd);border-radius:12px;overflow:hidden;margin-bottom:12px;}
+.season-header{display:flex;align-items:center;justify-content:space-between;padding:15px 20px;background:rgba(255,255,255,.04);cursor:pointer;user-select:none;transition:background .15s;}
+.season-header:hover{background:rgba(255,255,255,.07);}
+.season-header.open{background:rgba(124,92,252,.08);border-bottom:1px solid var(--bd);}
+.season-arrow{transition:transform .25s;font-size:14px;color:var(--tx2);}
+.season-header.open .season-arrow{transform:rotate(90deg);}
+.season-body{display:none;}
+.season-body.open{display:block;}
+
+.ep-row{display:flex;align-items:center;gap:14px;padding:11px 20px;border-bottom:1px solid rgba(255,255,255,.04);transition:background .12s;}
+.ep-row:last-child{border-bottom:none;}
+.ep-row:hover{background:rgba(255,255,255,.03);}
+.ep-num{font-size:11px;font-weight:700;color:var(--tx3);width:28px;flex-shrink:0;text-align:right;}
+.ep-thumb{width:76px;height:44px;border-radius:6px;overflow:hidden;flex-shrink:0;background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;font-size:1.3rem;}
+.ep-thumb img{width:100%;height:100%;object-fit:cover;}
+.ep-info{flex:1;min-width:0;}
+.ep-title{font-size:13px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ep-meta{font-size:11px;color:var(--tx2);margin-top:2px;}
+.ep-acts{display:flex;gap:6px;flex-shrink:0;}
+.btn-ep-watch{padding:5px 13px;border-radius:7px;font-size:12px;font-weight:700;background:#e50914;color:#fff;border:none;cursor:pointer;text-decoration:none;transition:all .15s;display:inline-flex;align-items:center;gap:4px;}
+.btn-ep-watch:hover{background:#c4070f;}
+.btn-ep-dl{padding:5px 11px;border-radius:7px;font-size:12px;font-weight:600;background:rgba(255,255,255,.06);color:var(--tx2);border:1px solid var(--bd);cursor:pointer;text-decoration:none;transition:all .15s;display:inline-flex;align-items:center;gap:4px;}
+.btn-ep-dl:hover{background:rgba(255,255,255,.1);color:var(--tx);}
+
+.related-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;}
+.rcard{text-decoration:none;display:block;}
+.rcard img,.rcard .rph{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:9px;display:block;background:rgba(124,92,252,.1);transition:transform .3s;}
+.rcard:hover img{transform:scale(1.05);}
+@media(max-width:768px){.hero-content{flex-direction:column;gap:18px;}.series-poster{width:130px;}}
+</style>
+{% endblock %}
 {% block content %}
-<div style="background:#0a0a0a;min-height:100vh;color:#fff;">
-  <div style="position:relative;height:340px;overflow:hidden;">
-    {% if series.thumbnail %}<div style="position:absolute;inset:0;background-image:url('{{ series.thumbnail.url }}');background-size:cover;background-position:center;filter:brightness(0.25);"></div>{% endif %}
-    <div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 20%,#0a0a0a);"></div>
-    <div class="container" style="position:relative;z-index:2;height:100%;display:flex;align-items:flex-end;padding-bottom:32px;">
-      <div style="display:flex;gap:24px;align-items:flex-end;">
-        {% if series.thumbnail %}<img src="{{ series.thumbnail.url }}" style="width:130px;border-radius:8px;flex-shrink:0;box-shadow:0 16px 40px rgba(0,0,0,0.6);">{% endif %}
-        <div>
-          <div style="display:flex;gap:8px;margin-bottom:10px;">{% for g in series.genres.all %}<span style="background:rgba(229,9,20,0.25);color:#e50914;border:1px solid rgba(229,9,20,0.3);padding:2px 9px;border-radius:20px;font-size:0.7rem;font-weight:600;">{{ g.name }}</span>{% endfor %}</div>
-          <h1 style="font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;color:#fff;margin-bottom:8px;">{{ series.title }}</h1>
-          <p style="color:rgba(255,255,255,0.55);font-size:0.85rem;">{{ series.seasons.count }} Season{{ series.seasons.count|pluralize }} · {{ series.release_year }}</p>
+
+<div class="movie-hero">
+  {% if series.thumbnail %}
+  <div class="hero-backdrop" style="background-image:url('{{ series.thumbnail.url }}');"></div>
+  {% endif %}
+  <div class="hero-grad"></div>
+  <div class="container" style="max-width:1100px;">
+    <div class="hero-content">
+      <div class="series-poster">
+        {% if series.thumbnail %}<img src="{{ series.thumbnail.url }}" alt="{{ series.title }}">
+        {% else %}<div class="ph">📺</div>{% endif %}
+      </div>
+      <div>
+        <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px;">
+          {% for g in series.genres.all %}<span class="meta-tag genre">{{ g.name }}</span>{% endfor %}
+          <span class="meta-tag">{{ series.release_year }}</span>
+          <span class="meta-tag">{{ seasons|length }} Season{{ seasons|length|pluralize }}</span>
+          {% if series.is_premium %}<span class="meta-tag" style="background:rgba(245,158,11,.2);color:#fcd34d;border-color:rgba(245,158,11,.25);">⭐ Premium</span>{% endif %}
+        </div>
+        <h1 style="font-family:'Syne',sans-serif;font-size:clamp(1.5rem,3.5vw,2.6rem);font-weight:800;color:#fff;margin-bottom:12px;text-shadow:0 2px 20px rgba(0,0,0,.5);">{{ series.title }}</h1>
+        <p style="color:rgba(255,255,255,.6);font-size:14px;line-height:1.7;max-width:520px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">{{ series.description }}</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:18px;">
+          <button onclick="shareContent('{{ series.title|escapejs }}','/movies/series/{{ series.slug }}/')" style="padding:10px 20px;border-radius:9px;background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);cursor:pointer;font-size:13px;font-weight:600;">↗ Share</button>
         </div>
       </div>
     </div>
   </div>
-  <div class="container" style="padding:32px 20px 60px;">
-    <p style="color:rgba(255,255,255,0.6);margin-bottom:32px;max-width:700px;line-height:1.8;font-size:0.9rem;">{{ series.description }}</p>
+</div>
+
+<div class="container" style="max-width:1100px;padding:28px 20px 80px;display:grid;grid-template-columns:1fr 300px;gap:24px;">
+
+  <div>
+    {# SEASONS & EPISODES #}
+    <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:18px;">📺 Seasons & Episodes</div>
+
     {% for season in seasons %}
-    <div style="margin-bottom:32px;">
-      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;color:#fff;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.07);">Season {{ season.number }}{% if season.title %} — {{ season.title }}{% endif %}</div>
-      <div style="display:flex;flex-direction:column;gap:8px;">
+    <div class="season-block">
+      <div class="season-header {% if forloop.first %}open{% endif %}" onclick="toggleSeason(this)">
+        <div>
+          <div style="font-weight:700;font-size:15px;">Season {{ season.number }}{% if season.title %}: {{ season.title }}{% endif %}</div>
+          <div style="font-size:12px;color:var(--tx2);margin-top:2px;">{{ season.episodes.count }} Episode{{ season.episodes.count|pluralize }}</div>
+        </div>
+        <span class="season-arrow">▶</span>
+      </div>
+      <div class="season-body {% if forloop.first %}open{% endif %}">
         {% for ep in season.episodes.all %}
-        <a href="/movies/episode/{{ ep.pk }}/" style="text-decoration:none;display:flex;gap:14px;align-items:center;background:#111;border-radius:8px;padding:10px 14px;transition:background 0.2s;" onmouseover="this.style.background='#1a1a1a'" onmouseout="this.style.background='#111'">
-          {% if ep.thumbnail %}<img src="{{ ep.thumbnail.url }}" style="width:110px;height:62px;object-fit:cover;border-radius:6px;flex-shrink:0;">
-          {% else %}<div style="width:110px;height:62px;background:#1a0808;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.3rem;">▶</div>{% endif %}
-          <div style="flex:1;">
-            <div style="font-weight:500;font-size:0.88rem;color:#fff;margin-bottom:4px;">E{{ ep.number }} — {{ ep.title }}</div>
-            <div style="font-size:0.76rem;color:rgba(255,255,255,0.4);">{{ ep.description|truncatechars:100 }}</div>
+        <div class="ep-row">
+          <div class="ep-num">{{ ep.number }}</div>
+          <div class="ep-thumb">
+            {% if ep.thumbnail %}<img src="{{ ep.thumbnail.url }}" alt="">
+            {% else %}🎬{% endif %}
           </div>
-          <div style="width:36px;height:36px;border-radius:50%;background:#e50914;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.85rem;color:#fff;">▶</div>
-        </a>
-        {% empty %}<p style="color:rgba(255,255,255,0.3);font-size:0.82rem;padding:8px 0;">No episodes yet</p>{% endfor %}
+          <div class="ep-info">
+            <div class="ep-title">{{ ep.title }}</div>
+            <div class="ep-meta">
+              Episode {{ ep.number }}{% if ep.duration %} · {{ ep.duration }} min{% endif %}
+              · 👁 {{ ep.views_count }}
+            </div>
+          </div>
+          <div class="ep-acts">
+            <a href="/content/watch/{{ ep.pk }}/" class="btn-ep-watch">▶ Watch</a>
+            <a href="/movies/episode/download/{{ ep.pk }}/" class="btn-ep-dl">⬇ Download</a>
+          </div>
+        </div>
+        {% empty %}
+        <div style="padding:18px 20px;color:var(--tx3);font-size:13px;">No episodes added yet.</div>
+        {% endfor %}
       </div>
     </div>
+    {% empty %}
+    <div style="text-align:center;padding:60px;color:var(--tx2);">
+      <div style="font-size:3rem;margin-bottom:12px;opacity:.3;">📺</div>
+      <p>No seasons added yet.</p>
+    </div>
     {% endfor %}
+
+    {# DESCRIPTION #}
+    <div style="background:rgba(255,255,255,.03);border:1px solid var(--bd);border-radius:14px;padding:22px;margin-top:8px;">
+      <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:12px;">About</div>
+      <p style="color:var(--tx2);line-height:1.8;font-size:14px;">{{ series.description }}</p>
+    </div>
   </div>
+
+  {# SIDEBAR #}
+  <aside>
+    <div style="background:rgba(255,255,255,.03);border:1px solid var(--bd);border-radius:14px;padding:20px;margin-bottom:16px;">
+      <div style="font-weight:700;font-size:14px;margin-bottom:14px;">📋 Info</div>
+      <div style="font-size:13px;color:var(--tx2);display:flex;flex-direction:column;gap:7px;">
+        <div>📅 Year: <strong style="color:var(--tx);">{{ series.release_year }}</strong></div>
+        <div>📺 Seasons: <strong style="color:var(--tx);">{{ seasons|length }}</strong></div>
+        {% if series.country %}<div>🌍 Country: <strong style="color:var(--tx);">{{ series.country }}</strong></div>{% endif %}
+        {% for g in series.genres.all %}<div>🏷 Genre: <strong style="color:var(--tx);">{{ g.name }}</strong></div>{% endfor %}
+      </div>
+    </div>
+
+    {% if related %}
+    <div style="background:rgba(255,255,255,.03);border:1px solid var(--bd);border-radius:14px;padding:20px;">
+      <div style="font-weight:700;font-size:14px;margin-bottom:14px;">📺 Related Series</div>
+      <div class="related-grid">
+        {% for r in related %}
+        <a href="/movies/series/{{ r.slug }}/" class="rcard">
+          {% if r.thumbnail %}<img src="{{ r.thumbnail.url }}" alt="{{ r.title }}">
+          {% else %}<div class="rph" style="aspect-ratio:2/3;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:2.5rem;background:rgba(124,92,252,.1);">📺</div>{% endif %}
+          <div style="font-size:12px;font-weight:600;color:var(--tx);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ r.title }}</div>
+          <div style="font-size:11px;color:var(--tx2);">{{ r.release_year }}</div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </aside>
 </div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+function toggleSeason(header){
+  const body=header.nextElementSibling;
+  const isOpen=body.classList.contains('open');
+  header.classList.toggle('open',!isOpen);
+  body.classList.toggle('open',!isOpen);
+}
+function shareContent(title,path){
+  const url=window.location.origin+path;
+  if(navigator.share){navigator.share({title,url}).catch(()=>{});return;}
+  navigator.clipboard.writeText(url).then(()=>showToast('Link copied! ✓')).catch(()=>prompt('Copy link:',url));
+}
+</script>
 {% endblock %}

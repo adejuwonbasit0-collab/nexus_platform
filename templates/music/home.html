@@ -201,15 +201,17 @@ function playTrack(url, title, artist, cover, pk) {
   const audio = document.getElementById('main-player');
   const img   = document.getElementById('pb-cover-img');
   const icon  = document.getElementById('pb-cover-icon');
-  document.getElementById('pb-title').textContent  = title;
-  document.getElementById('pb-artist').textContent = artist;
-  if (cover) { img.src = cover; img.style.display = 'block'; icon.style.display = 'none'; }
-  else        { img.style.display = 'none'; icon.style.display = 'flex'; }
+  if (document.getElementById('pb-title'))  document.getElementById('pb-title').textContent  = title;
+  if (document.getElementById('pb-artist')) document.getElementById('pb-artist').textContent = artist;
+  if (img && icon) {
+    if (cover) { img.src = cover; img.style.display = 'block'; icon.style.display = 'none'; }
+    else        { img.style.display = 'none'; icon.style.display = 'flex'; }
+  }
   const link = document.getElementById('pb-detail-link');
-  if (pk && trackSlugs[pk]) link.href = '/music/track/' + trackSlugs[pk] + '/';
-  audio.src = url;
-  bar.style.display = 'flex';
-  audio.play();
+  if (link && pk && trackSlugs[pk]) link.href = '/music/track/' + trackSlugs[pk] + '/';
+  if (audio) { audio.src = url; if (bar) bar.style.display = 'flex'; audio.play(); }
+  // Global mini player
+  if (typeof playMiniTrack === 'function') playMiniTrack(url, title, artist, cover);
   showToast('▶ ' + title);
 }
 </script>

@@ -18,7 +18,34 @@ def site_settings(request):
             ).count()
             cache.set(f'unread_notifs_{request.user.pk}', unread_notifs, 60)
 
+    # CMS nav and footer pages
+    nav_pages    = cache.get('cms_nav_pages')
+    footer_pages = cache.get('cms_footer_pages')
+    if nav_pages is None:
+        try:
+            from cms.models import StaticPage
+            nav_pages    = list(StaticPage.objects.filter(show_in_nav=True,    status='published').values('title','slug'))
+            footer_pages = list(StaticPage.objects.filter(show_in_footer=True, status='published').values('title','slug'))
+        except Exception:
+            nav_pages = []
+            footer_pages = []
+        cache.set('cms_nav_pages',    nav_pages,    120)
+        cache.set('cms_footer_pages', footer_pages, 120)
+
+    # Branding
+    branding = cache.get('cms_branding')
+    if branding is None:
+        try:
+            from cms.models import BrandingConfig
+            branding = BrandingConfig.get()
+        except Exception:
+            branding = None
+        cache.set('cms_branding', branding, 300)
+
     return {
         'site_settings': settings_data,
         'unread_notifs': unread_notifs,
+        'nav_pages':     nav_pages or [],
+        'footer_pages':  footer_pages or [],
+        'branding':      branding,
     }

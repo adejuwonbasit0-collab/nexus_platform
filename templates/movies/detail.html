@@ -1,95 +1,217 @@
 {% extends 'base.html' %}
-{% block title %}{{ movie.title }}{% endblock %}
+{% block title %}{{ movie.title }} ({{ movie.release_year }}) — NEXUS{% endblock %}
+{% block extra_head %}
+<style>
+.movie-hero{position:relative;min-height:460px;overflow:hidden;background:#000;}
+.hero-backdrop{position:absolute;inset:0;background-size:cover;background-position:center top;filter:brightness(.25);}
+.hero-grad{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.3) 0%,rgba(0,0,0,.6) 50%,var(--bg) 100%);}
+.hero-content{position:relative;z-index:2;padding:48px 0 40px;display:flex;gap:32px;align-items:flex-end;}
+.movie-poster{width:200px;flex-shrink:0;border-radius:12px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.7);aspect-ratio:2/3;}
+.movie-poster img{width:100%;height:100%;object-fit:cover;display:block;}
+.poster-placeholder{width:100%;height:100%;background:linear-gradient(135deg,rgba(124,92,252,.3),rgba(255,77,109,.2));display:flex;align-items:center;justify-content:center;font-size:5rem;}
+.movie-info h1{font-family:'Syne',sans-serif;font-size:clamp(1.6rem,4vw,2.8rem);font-weight:800;color:#fff;margin-bottom:12px;text-shadow:0 2px 20px rgba(0,0,0,.5);}
+.meta-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+.meta-tag{padding:3px 11px;border-radius:20px;font-size:12px;font-weight:600;background:rgba(255,255,255,.1);color:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.15);}
+.meta-tag.genre{background:rgba(124,92,252,.25);color:#c4b5fd;border-color:rgba(124,92,252,.3);}
+.meta-tag.quality{background:rgba(0,212,170,.2);color:#6ee7d0;border-color:rgba(0,212,170,.25);}
+.meta-tag.premium{background:rgba(245,158,11,.2);color:#fcd34d;border-color:rgba(245,158,11,.25);}
+.action-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px;}
+.btn-watch{padding:12px 28px;border-radius:10px;font-size:14px;font-weight:700;background:#e50914;color:#fff;border:none;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:all .2s;}
+.btn-watch:hover{background:#c4070f;transform:translateY(-2px);box-shadow:0 8px 24px rgba(229,9,20,.4);}
+.btn-dl{padding:12px 22px;border-radius:10px;font-size:14px;font-weight:600;background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:all .2s;}
+.btn-dl:hover{background:rgba(255,255,255,.18);}
+.btn-like{padding:12px 18px;border-radius:10px;font-size:14px;font-weight:600;background:rgba(255,255,255,.07);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.12);cursor:pointer;transition:all .2s;}
+.btn-like.liked{background:rgba(229,9,20,.15);color:#f87171;border-color:rgba(229,9,20,.3);}
+.btn-like:hover{background:rgba(255,255,255,.12);}
+
+.section-block{background:rgba(255,255,255,.03);border:1px solid var(--bd);border-radius:14px;padding:24px;margin-bottom:18px;}
+.section-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--tx);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+
+/* Season accordion */
+.season-block{border:1px solid var(--bd);border-radius:12px;overflow:hidden;margin-bottom:10px;}
+.season-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:rgba(255,255,255,.04);cursor:pointer;transition:background .15s;}
+.season-header:hover{background:rgba(255,255,255,.07);}
+.season-title{font-weight:700;font-size:15px;}
+.season-count{font-size:12px;color:var(--tx2);}
+.season-arrow{transition:transform .25s;font-size:18px;color:var(--tx2);}
+.season-body{display:none;padding:0;}
+.season-body.open{display:block;}
+.episode-row{display:flex;align-items:center;gap:14px;padding:12px 20px;border-top:1px solid var(--bd);transition:background .12s;}
+.episode-row:hover{background:rgba(255,255,255,.04);}
+.ep-num{font-size:12px;font-weight:700;color:var(--tx3);min-width:30px;}
+.ep-thumb{width:80px;height:46px;border-radius:6px;object-fit:cover;flex-shrink:0;background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;font-size:1.4rem;}
+.ep-info{flex:1;}
+.ep-title{font-size:13px;font-weight:600;color:var(--tx);}
+.ep-meta{font-size:11px;color:var(--tx2);margin-top:2px;}
+.ep-actions{display:flex;gap:6px;flex-shrink:0;}
+.ep-btn{padding:5px 12px;border-radius:7px;font-size:12px;font-weight:600;border:none;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:5px;transition:all .15s;}
+.ep-btn-watch{background:#e50914;color:#fff;}
+.ep-btn-watch:hover{background:#c4070f;}
+.ep-btn-dl{background:rgba(255,255,255,.07);color:var(--tx2);border:1px solid var(--bd);}
+.ep-btn-dl:hover{background:rgba(255,255,255,.12);color:var(--tx);}
+
+/* Related grid */
+.related-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px;}
+.rcard{text-decoration:none;display:block;}
+.rcard-img{aspect-ratio:2/3;border-radius:10px;overflow:hidden;position:relative;background:var(--bg3);}
+.rcard-img img{width:100%;height:100%;object-fit:cover;transition:transform .3s;}
+.rcard:hover .rcard-img img{transform:scale(1.06);}
+.rcard-title{font-size:13px;font-weight:600;color:var(--tx);margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rcard-year{font-size:11px;color:var(--tx2);}
+
+/* Comments */
+.comment-item{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--bd);}
+.comment-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--ac),var(--ac2));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0;}
+
+@media(max-width:768px){
+  .hero-content{flex-direction:column;align-items:flex-start;gap:20px;}
+  .movie-poster{width:140px;}
+  .movie-info h1{font-size:1.4rem;}
+}
+</style>
+{% endblock %}
 {% block content %}
-<div style="background:#0a0a0a;min-height:100vh;color:#fff;padding-top:0;">
-  <!-- Backdrop hero -->
-  <div style="position:relative;height:420px;overflow:hidden;">
-    {% if movie.thumbnail %}<div style="position:absolute;inset:0;background-image:url('{{ movie.thumbnail.url }}');background-size:cover;background-position:center;filter:brightness(0.3);"></div>{% endif %}
-    <div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 30%,#0a0a0a);"></div>
-    <div class="container" style="position:relative;z-index:2;height:100%;display:flex;align-items:flex-end;padding-bottom:36px;">
-      <div style="display:flex;gap:28px;align-items:flex-end;">
-        {% if movie.thumbnail %}<img src="{{ movie.thumbnail.url }}" style="width:160px;border-radius:10px;flex-shrink:0;box-shadow:0 20px 50px rgba(0,0,0,0.6);">{% endif %}
-        <div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-            {% for g in movie.genres.all %}<span style="background:rgba(229,9,20,0.25);color:#e50914;border:1px solid rgba(229,9,20,0.3);padding:2px 9px;border-radius:20px;font-size:0.7rem;font-weight:600;">{{ g.name }}</span>{% endfor %}
-            <span style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);padding:2px 9px;border-radius:20px;font-size:0.7rem;">{{ movie.release_year }}</span>
-            <span style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);padding:2px 9px;border-radius:20px;font-size:0.7rem;">{{ movie.quality }}</span>
-          </div>
-          <h1 style="font-family:'Syne',sans-serif;font-size:clamp(1.5rem,3vw,2.4rem);font-weight:800;color:#fff;margin-bottom:10px;">{{ movie.title }}</h1>
-          <div style="display:flex;gap:20px;font-size:0.8rem;color:rgba(255,255,255,0.5);margin-bottom:18px;">
-            <span>👁 {{ movie.views_count }} views</span>
-            <span>⬇ {{ movie.downloads_count }}</span>
-            {% if movie.country %}<span>🌍 {{ movie.country.name }}</span>{% endif %}
-          </div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;">
-            {% if movie.video_file %}
-            <a href="/movies/film/{{ movie.slug }}/#player" class="btn btn-lg" style="background:#e50914;color:#fff;">▶ Watch</a>
-            <a href="/movies/download/{{ movie.pk }}/" class="btn btn-outline btn-lg" style="color:#fff;border-color:rgba(255,255,255,0.3);">⬇ Download</a>
-            {% endif %}
-          </div>
-        </div>
+
+{# HERO #}
+<div class="movie-hero">
+  {% if movie.thumbnail %}
+  <div class="hero-backdrop" style="background-image:url('{{ movie.thumbnail.url }}');"></div>
+  {% endif %}
+  <div class="hero-grad"></div>
+  <div class="container" style="max-width:1100px;">
+    <div class="hero-content">
+      <div class="movie-poster">
+        {% if movie.thumbnail %}<img src="{{ movie.thumbnail.url }}" alt="{{ movie.title }}">
+        {% else %}<div class="poster-placeholder">🎬</div>{% endif %}
       </div>
-    </div>
-  </div>
-
-  <div class="container" style="padding:36px 20px 60px;">
-    <div style="display:grid;grid-template-columns:2fr 1fr;gap:32px;">
-      <div>
-        <!-- Player -->
-        {% if movie.video_file %}
-        <div id="player" style="background:#000;border-radius:10px;overflow:hidden;margin-bottom:28px;aspect-ratio:16/9;">
-          <video id="movie-player" controls preload="metadata" style="width:100%;height:100%;display:block;"
-            {% if progress %}data-progress="{{ progress.progress }}"{% endif %}>
-            <source src="/movies/stream/movie/{{ movie.pk }}/" type="video/mp4">
-          </video>
+      <div class="movie-info">
+        <div class="meta-row">
+          {% for g in movie.genres.all %}<span class="meta-tag genre">{{ g.name }}</span>{% endfor %}
+          <span class="meta-tag">{{ movie.release_year }}</span>
+          <span class="meta-tag quality">{{ movie.get_quality_display }}</span>
+          {% if movie.duration %}<span class="meta-tag">{{ movie.duration }} min</span>{% endif %}
+          {% if movie.is_premium %}<span class="meta-tag premium">⭐ Premium</span>{% endif %}
+          {% if movie.country %}<span class="meta-tag">🌍 {{ movie.country }}</span>{% endif %}
         </div>
-        {% endif %}
-
-        <div style="background:#111;border-radius:10px;padding:22px;margin-bottom:20px;">
-          <h3 style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:12px;font-size:1rem;color:#fff;">Synopsis</h3>
-          <p style="color:rgba(255,255,255,0.65);line-height:1.8;font-size:0.88rem;">{{ movie.description }}</p>
-        </div>
-
-        <!-- Comments -->
-        <div style="background:#111;border-radius:10px;padding:22px;">
-          <h3 style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:18px;font-size:1rem;color:#fff;">💬 Comments</h3>
-          {% if user.is_authenticated %}
-          <div style="display:flex;gap:10px;margin-bottom:20px;">
-            <input id="comment-input" type="text" placeholder="Add a comment…" style="flex:1;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:9px 13px;color:#fff;font-family:'Inter',sans-serif;font-size:0.85rem;outline:none;">
-            <button onclick="postComment({{ movie.pk }})" class="btn btn-sm" style="background:#e50914;color:#fff;">Post</button>
-          </div>
+        <h1>{{ movie.title }}</h1>
+        <div style="color:rgba(255,255,255,.65);font-size:14px;line-height:1.7;max-width:560px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">{{ movie.description }}</div>
+        <div class="action-row">
+          {% if movie.video_file %}
+          <a href="#player" class="btn-watch">▶ Watch Now</a>
+          <a href="/movies/download/{{ movie.pk }}/" class="btn-dl">⬇ Download</a>
           {% endif %}
-          <div id="comments-list">
-            {% for c in comments %}
-            <div style="display:flex;gap:10px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
-              <div style="width:30px;height:30px;border-radius:50%;background:#e50914;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;flex-shrink:0;">{{ c.user.username.0|upper }}</div>
-              <div><div style="font-size:0.82rem;font-weight:500;color:#fff;margin-bottom:3px;">{{ c.user.username }}</div><div style="font-size:0.82rem;color:rgba(255,255,255,0.55);">{{ c.text }}</div></div>
-            </div>
-            {% empty %}<p style="color:rgba(255,255,255,0.35);font-size:0.82rem;">No comments yet. Be first!</p>{% endfor %}
-          </div>
+          {% if movie.trailer_url %}
+          <a href="{{ movie.trailer_url }}" target="_blank" class="btn-dl">🎬 Trailer</a>
+          {% endif %}
+          {% if user.is_authenticated %}
+          <button id="like-btn" onclick="toggleLike({{ movie.pk }})" class="btn-like {% if user_liked %}liked{% endif %}">
+            ♥ <span id="like-count">{{ movie.likes_count }}</span>
+          </button>
+          {% endif %}
+          <button onclick="shareContent('{{ movie.title|escapejs }}','/movies/film/{{ movie.slug }}/')" class="btn-dl">↗ Share</button>
         </div>
-      </div>
-
-      <!-- Sidebar -->
-      <div>
-        <div style="background:#111;border-radius:10px;padding:18px;margin-bottom:18px;">
-          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.9rem;margin-bottom:14px;color:#fff;">Related Movies</div>
-          {% for r in related %}
-          <a href="/movies/film/{{ r.slug }}/" style="text-decoration:none;display:flex;gap:10px;margin-bottom:12px;align-items:center;">
-            {% if r.thumbnail %}<img src="{{ r.thumbnail.url }}" style="width:60px;height:38px;object-fit:cover;border-radius:5px;flex-shrink:0;">{% else %}<div style="width:60px;height:38px;background:#1a0808;border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.9rem;">🎬</div>{% endif %}
-            <div><div style="font-size:0.8rem;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px;">{{ r.title }}</div><div style="font-size:0.72rem;color:rgba(255,255,255,0.4);">{{ r.release_year }}</div></div>
-          </a>
-          {% empty %}<p style="color:rgba(255,255,255,0.3);font-size:0.8rem;">No related movies</p>{% endfor %}
+        <div style="display:flex;gap:20px;font-size:12px;color:rgba(255,255,255,.4);margin-top:14px;">
+          <span>👁 {{ movie.views_count }} views</span>
+          <span>⬇ {{ movie.downloads_count }} downloads</span>
+          <span>♥ {{ movie.likes_count }} likes</span>
         </div>
       </div>
     </div>
   </div>
 </div>
+
+<div class="container" style="max-width:1100px;padding:28px 20px 80px;display:grid;grid-template-columns:1fr 320px;gap:28px;">
+
+  <div>
+    {# VIDEO PLAYER #}
+    {% if movie.video_file %}
+    <div id="player" class="section-block" style="padding:0;overflow:hidden;margin-bottom:18px;">
+      <video controls preload="metadata" style="width:100%;display:block;background:#000;border-radius:13px;"
+        {% if progress %}data-progress="{{ progress.progress }}"{% endif %}>
+        <source src="/movies/stream/movie/{{ movie.pk }}/" type="video/mp4">
+        Your browser does not support video playback.
+      </video>
+    </div>
+    {% endif %}
+
+    {# SYNOPSIS #}
+    <div class="section-block">
+      <div class="section-title">📋 Synopsis</div>
+      <p style="color:var(--tx2);line-height:1.8;font-size:14px;">{{ movie.description }}</p>
+    </div>
+
+    {# COMMENTS #}
+    <div class="section-block">
+      <div class="section-title">💬 Comments <span style="font-size:13px;color:var(--tx3);font-weight:400;">({{ comments|length }})</span></div>
+      {% if user.is_authenticated %}
+      <div style="display:flex;gap:10px;margin-bottom:20px;">
+        <input id="comment-input" type="text" placeholder="Add a comment…" style="flex:1;background:var(--bg3);border:1px solid var(--bd);border-radius:9px;padding:10px 14px;color:var(--tx);font-size:13px;outline:none;">
+        <button onclick="postComment({{ movie.pk }})" class="btn-watch" style="padding:10px 20px;font-size:13px;">Post</button>
+      </div>
+      {% else %}
+      <p style="color:var(--tx2);font-size:13px;margin-bottom:16px;"><a href="/auth/login/" style="color:var(--ac);">Log in</a> to comment.</p>
+      {% endif %}
+      <div id="comments-list">
+        {% for c in comments %}
+        <div class="comment-item">
+          <div class="comment-avatar">{{ c.user.username|slice:":1"|upper }}</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--tx);margin-bottom:3px;">{{ c.user.username }} <span style="font-size:11px;color:var(--tx3);font-weight:400;">· {{ c.created_at|timesince }} ago</span></div>
+            <div style="font-size:13px;color:var(--tx2);line-height:1.6;">{{ c.text }}</div>
+          </div>
+        </div>
+        {% empty %}
+        <p style="color:var(--tx3);font-size:13px;">No comments yet. Be the first!</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {# SIDEBAR #}
+  <aside>
+    {# DOWNLOAD/INFO CARD #}
+    <div class="section-block" style="margin-bottom:14px;">
+      <div class="section-title" style="margin-bottom:12px;">📥 Download</div>
+      {% if movie.video_file %}
+      <a href="/movies/download/{{ movie.pk }}/" class="btn-watch" style="width:100%;justify-content:center;display:flex;margin-bottom:10px;">⬇ Download {{ movie.get_quality_display }}</a>
+      {% else %}
+      <p style="color:var(--tx3);font-size:13px;">No file uploaded yet.</p>
+      {% endif %}
+      <div style="font-size:12px;color:var(--tx2);display:flex;flex-direction:column;gap:5px;margin-top:10px;">
+        {% if movie.quality %}<div>🎞 Quality: <strong style="color:var(--tx);">{{ movie.get_quality_display }}</strong></div>{% endif %}
+        {% if movie.duration %}<div>⏱ Duration: <strong style="color:var(--tx);">{{ movie.duration }} min</strong></div>{% endif %}
+        {% if movie.country %}<div>🌍 Country: <strong style="color:var(--tx);">{{ movie.country }}</strong></div>{% endif %}
+        {% if movie.release_year %}<div>📅 Year: <strong style="color:var(--tx);">{{ movie.release_year }}</strong></div>{% endif %}
+      </div>
+    </div>
+
+    {# RELATED #}
+    {% if related %}
+    <div class="section-block">
+      <div class="section-title">🎬 You May Also Like</div>
+      <div class="related-grid">
+        {% for r in related %}
+        <a href="/movies/film/{{ r.slug }}/" class="rcard">
+          <div class="rcard-img">
+            {% if r.thumbnail %}<img src="{{ r.thumbnail.url }}" alt="{{ r.title }}">
+            {% else %}<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;background:rgba(124,92,252,.1);">🎬</div>{% endif %}
+          </div>
+          <div class="rcard-title">{{ r.title }}</div>
+          <div class="rcard-year">{{ r.release_year }}</div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </aside>
+</div>
+
 {% endblock %}
 {% block scripts %}
 <script>
+// Resume video
 document.addEventListener('DOMContentLoaded',()=>{
-  const v=document.getElementById('movie-player');
+  const v=document.querySelector('video');
   if(!v)return;
   const saved=parseInt(v.dataset.progress||0);
   if(saved>30)v.currentTime=saved;
@@ -100,11 +222,34 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
   });
 });
-async function postComment(pk){
-  const inp=document.getElementById('comment-input');const text=inp.value.trim();if(!text)return;
-  const fd=new FormData();fd.append('text',text);fd.append('csrfmiddlewaretoken',getCookie('csrftoken'));
-  const r=await fetch(`/movies/comment/${pk}/`,{method:'POST',body:fd});const d=await r.json();
-  if(d.ok){inp.value='';const list=document.getElementById('comments-list');const div=document.createElement('div');div.style.cssText='display:flex;gap:10px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);';div.innerHTML=`<div style="width:30px;height:30px;border-radius:50%;background:#e50914;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;flex-shrink:0;">${d.username[0].toUpperCase()}</div><div><div style="font-size:0.82rem;font-weight:500;color:#fff;margin-bottom:3px;">${d.username}</div><div style="font-size:0.82rem;color:rgba(255,255,255,0.55);">${d.text}</div></div>`;list.prepend(div);showToast('Comment posted!');}
+
+async function toggleLike(pk){
+  {% if not user.is_authenticated %}window.location='/auth/login/';return;{% endif %}
+  const fd=new FormData();fd.append('csrfmiddlewaretoken',getCookie('csrftoken'));
+  const r=await fetch(`/movies/like/${pk}/`,{method:'POST',body:fd});
+  const d=await r.json();
+  document.getElementById('like-count').textContent=d.count;
+  const btn=document.getElementById('like-btn');
+  btn.classList.toggle('liked',d.liked);
 }
+
+async function postComment(pk){
+  const inp=document.getElementById('comment-input');
+  const text=inp.value.trim();if(!text)return;
+  const fd=new FormData();fd.append('text',text);fd.append('csrfmiddlewaretoken',getCookie('csrftoken'));
+  const r=await fetch(`/movies/comment/${pk}/`,{method:'POST',body:fd});
+  const d=await r.json();
+  if(d.ok){
+    inp.value='';
+    const list=document.getElementById('comments-list');
+    const div=document.createElement('div');
+    div.className='comment-item';
+    div.innerHTML=`<div class="comment-avatar">${d.username[0].toUpperCase()}</div><div><div style="font-size:13px;font-weight:600;color:var(--tx);margin-bottom:3px;">${d.username} <span style="font-size:11px;color:var(--tx3);font-weight:400;">· just now</span></div><div style="font-size:13px;color:var(--tx2);line-height:1.6;">${d.text}</div></div>`;
+    list.prepend(div);
+    showToast('Comment posted!');
+  }
+}
+
+// shareContent defined globally in base.html
 </script>
 {% endblock %}

@@ -27,8 +27,16 @@
         </h2>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;">
           {% for item in items %}
-          <div style="background:rgba(255,255,255,.03);border:1px solid var(--bd);border-radius:12px;overflow:hidden;transition:transform .2s,border-color .2s;box-shadow:0 4px 16px rgba(0,0,0,.25);" onmouseenter="this.style.transform='translateY(-3px)';this.style.borderColor='rgba(124,92,252,.25)'" onmouseleave="this.style.transform='';this.style.borderColor='var(--bd)'">
-            {# Image/thumbnail #}
+          {# Build item URL and render card wrapped in <a> using onclick approach for flexibility #}
+          <div class="scard"
+            style="cursor:pointer;background:rgba(255,255,255,.03);border:1px solid var(--bd);border-radius:12px;overflow:hidden;transition:transform .2s,border-color .2s,box-shadow .2s;box-shadow:0 4px 16px rgba(0,0,0,.25);"
+            onclick="navTo(this)"
+            data-cat="{{ category }}"
+            data-slug="{{ item.slug }}"
+            data-pk="{{ item.pk }}"
+            data-username="{{ item.username }}"
+          >
+            {# Thumbnail #}
             {% if item.thumbnail %}
             <div style="aspect-ratio:16/9;overflow:hidden;">
               <img src="{{ item.thumbnail.url }}" style="width:100%;height:100%;object-fit:cover;display:block;">
@@ -38,27 +46,30 @@
               <img src="{{ item.cover_image.url }}" style="width:100%;height:100%;object-fit:cover;display:block;">
             </div>
             {% elif item.photo %}
-            <div style="aspect-ratio:1/1;overflow:hidden;max-height:80px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(255,77,109,.08));">
-              <img src="{{ item.photo.url }}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid var(--bd2);">
+            <div style="background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(255,77,109,.08));padding:16px;display:flex;align-items:center;justify-content:center;">
+              <img src="{{ item.photo.url }}" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid var(--bd2);">
+            </div>
+            {% elif item.featured_img %}
+            <div style="aspect-ratio:16/9;overflow:hidden;">
+              <img src="{{ item.featured_img.url }}" style="width:100%;height:100%;object-fit:cover;display:block;">
             </div>
             {% else %}
             <div style="aspect-ratio:16/9;background:linear-gradient(135deg,rgba(124,92,252,.1),rgba(255,77,109,.06));display:flex;align-items:center;justify-content:center;font-size:32px;">
-              {% if category == 'Music' %}🎵{% elif category == 'Movies' %}🎬{% elif category == 'Blog' %}📝{% elif category == 'Artists' %}🎤{% elif category == 'Creators' %}👤{% else %}📄{% endif %}
+              {% if category == 'Music' %}🎵{% elif category == 'Movies' %}🎬{% elif category == 'Series' %}📺{% elif category == 'Blog' %}📝{% elif category == 'Artists' %}🎤{% elif category == 'Images' %}🖼{% elif category == 'Creators' %}👤{% else %}📄{% endif %}
             </div>
             {% endif %}
             <div style="padding:12px 14px;">
-              <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;">
-                {% if item.slug and category == 'Music' %}<a href="/music/track/{{ item.slug }}/" style="color:var(--tx);">{{ item.title }}</a>
-                {% elif item.slug and category == 'Movies' %}<a href="/movies/film/{{ item.slug }}/" style="color:var(--tx);">{{ item.title }}</a>
-                {% elif item.slug and category == 'Blog' %}<a href="/blog/post/{{ item.slug }}/" style="color:var(--tx);">{{ item.title }}</a>
-                {% elif item.slug and category == 'Artists' %}<a href="/music/artist/{{ item.slug }}/" style="color:var(--tx);">{{ item.name }}</a>
-                {% elif item.pk and category == 'Content' %}<a href="/content/{{ item.pk }}/" style="color:var(--tx);">{{ item.title }}</a>
-                {% elif item.username %}<a href="/auth/profile/{{ item.username }}/" style="color:var(--tx);">{{ item.username }}</a>
-                {% else %}{{ item.title|default:item.name|default:item.username }}{% endif %}
+              <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;color:var(--tx);">
+                {{ item.title|default:item.name|default:item.username }}
               </div>
-              {% if item.artist %}<div style="font-size:11px;color:var(--tx2);">{{ item.artist.name }}</div>
-              {% elif item.author %}<div style="font-size:11px;color:var(--tx2);">{{ item.author.username }}</div>
-              {% elif item.creator %}<div style="font-size:11px;color:var(--tx2);">{{ item.creator.username }}</div>{% endif %}
+              <div style="font-size:11px;color:var(--tx2);">
+                {% if item.artist %}{{ item.artist.name }}
+                {% elif item.author %}by {{ item.author.username }}
+                {% elif item.creator %}by {{ item.creator.username }}
+                {% elif category == 'Artists' %}Artist
+                {% elif item.release_year %}{{ item.release_year }}
+                {% endif %}
+              </div>
             </div>
           </div>
           {% endfor %}
@@ -92,4 +103,39 @@
   {% endif %}
 </div>
 
+{% endblock %}
+{% block scripts %}
+<script>
+document.querySelectorAll('.scard').forEach(c => {
+  c.addEventListener('mouseenter', function() {
+    this.style.transform = 'translateY(-4px)';
+    this.style.borderColor = 'rgba(124,92,252,.3)';
+    this.style.boxShadow = '0 12px 36px rgba(0,0,0,.4)';
+  });
+  c.addEventListener('mouseleave', function() {
+    this.style.transform = '';
+    this.style.borderColor = 'var(--bd)';
+    this.style.boxShadow = '0 4px 16px rgba(0,0,0,.25)';
+  });
+});
+
+function navTo(el) {
+  const cat = el.dataset.cat;
+  const slug = el.dataset.slug;
+  const pk = el.dataset.pk;
+  const username = el.dataset.username;
+  const urls = {
+    'Music':    slug ? `/music/track/${slug}/` : null,
+    'Movies':   slug ? `/movies/film/${slug}/` : null,
+    'Series':   slug ? `/movies/series/${slug}/` : null,
+    'Blog':     slug ? `/blog/post/${slug}/` : null,
+    'Artists':  slug ? `/music/artist/${slug}/` : null,
+    'Images':   slug ? `/images/view/${slug}/` : null,
+    'Content':  pk   ? `/content/${pk}/`  : null,
+    'Creators': pk   ? `/admin-panel/users/${pk}/` : null,
+  };
+  const url = urls[cat];
+  if (url) window.location.href = url;
+}
+</script>
 {% endblock %}

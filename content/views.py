@@ -70,10 +70,12 @@ def content_detail(request, pk):
     payment_cfg = PaymentSettings.get_active()
 
     return render(request, 'content/detail.html', {
+        'content':     obj,
         'obj':         obj,
         'comments':    comments,
         'related':     related,
         'user_liked':  user_liked,
+        'liked_ids':   [obj.pk] if user_liked else [],
         'payment_cfg': payment_cfg,
     })
 
@@ -88,10 +90,15 @@ def series_detail(request, pk):
 
 
 def episode_watch(request, pk):
-    episode = get_object_or_404(Episode, pk=pk)
-    episode.views += 1
-    episode.save(update_fields=['views'])
-    return render(request, 'content/watch.html', {'episode': episode})
+    # Route to movies.Episode (the real episode model)
+    from movies.models import Episode as MoviesEpisode
+    try:
+        episode = get_object_or_404(MoviesEpisode, pk=pk, is_published=True)
+        from movies.views import episode_watch as movies_episode_watch
+        return movies_episode_watch(request, pk)
+    except Exception:
+        from django.http import Http404
+        raise Http404
 
 
 def stream_video(request, pk):
@@ -137,31 +144,24 @@ def stream_video(request, pk):
 def browse(request):
     content_type = request.GET.get('type', '')
     tier         = request.GET.get('tier', '')
-    category     = request.GET.get('category', '')
-    tag          = request.GET.get('tag', '')
     q            = request.GET.get('q', '')
+    sort         = request.GET.get('sort', '-created_at')
+    if sort not in ['-created_at', '-views', '-likes_count']: sort = '-created_at'
 
-    items = Content.objects.filter(status='approved')
+    items = Content.objects.filter(status='approved', is_ai_generated=False).select_related('creator')
     if content_type: items = items.filter(content_type=content_type)
     if tier:         items = items.filter(tier=tier)
-    if category:     items = items.filter(category__slug=category)
-    if tag:          items = items.filter(tags__name__iexact=tag)
     if q:
         items = items.filter(
-            Q(title__icontains=q)
-            | Q(description__icontains=q)
-            | Q(tags__name__icontains=q)
+            Q(title__icontains=q) | Q(description__icontains=q) | Q(creator__username__icontains=q)
         ).distinct()
+    items = items.order_by(sort)
 
-    categories = Category.objects.all()
-    all_tags   = Tag.objects.all()[:30]
+    from django.core.paginator import Paginator
+    page = Paginator(items, 24).get_page(request.GET.get('page', 1))
     return render(request, 'content/browse.html', {
-        'items':       items,
-        'categories':  categories,
-        'all_tags':    all_tags,
-        'q':           q,
-        'active_type': content_type,
-        'active_tag':  tag,
+        'items': page, 'q': q,
+        'active_type': content_type, 'active_tier': tier, 'sort': sort,
     })
 
 
@@ -218,8 +218,9 @@ def download_content(request, pk):
 
 
 @require_POST
-@login_required
 def toggle_like(request, pk):
+    if not request.user.is_authenticated:
+        return JsonResponse({"error":"login_required","count":0,"liked":False},status=401)
     obj  = get_object_or_404(Content, pk=pk)
     like, created = Like.objects.get_or_create(user=request.user, content=obj)
     if not created:
@@ -234,8 +235,9 @@ def toggle_like(request, pk):
 
 
 @require_POST
-@login_required
 def add_comment(request, pk):
+    if not request.user.is_authenticated:
+        return JsonResponse({"success":False,"error":"login_required"},status=401)
     obj  = get_object_or_404(Content, pk=pk)
     text = request.POST.get('text', '').strip()
     if text:

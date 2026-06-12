@@ -1,53 +1,121 @@
 {% extends 'base.html' %}
-{% block title %}Browse Movies{% endblock %}
+{% block title %}Browse Movies & Series — NEXUS{% endblock %}
+{% block extra_head %}
+<style>
+.mbrowse-wrap{background:linear-gradient(180deg,rgba(10,10,10,1) 0%,var(--bg) 100%);min-height:100vh;padding-bottom:80px;}
+.mbrowse-hero{background:#0a0a0a;border-bottom:1px solid rgba(255,255,255,.07);padding:32px 0 24px;}
+.mbrowse-hero h1{font-family:'Syne',sans-serif;font-size:clamp(1.5rem,3vw,2rem);font-weight:800;color:#fff;margin-bottom:6px;}
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px;}
+.fsel{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:7px 12px;color:#fff;font-size:13px;outline:none;cursor:pointer;}
+.finp{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:7px 14px;color:#fff;font-size:13px;outline:none;min-width:180px;}
+.finp::placeholder{color:rgba(255,255,255,.35);}
+.sec-title{font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;color:#fff;display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.sec-title a{font-size:12px;color:#e50914;font-weight:500;text-decoration:none;}
+/* Poster card */
+.pcard-poster{border-radius:10px;overflow:hidden;background:#111;transition:transform .22s,box-shadow .22s;position:relative;text-decoration:none;display:block;}
+.pcard-poster:hover{transform:translateY(-5px);box-shadow:0 16px 40px rgba(0,0,0,.7);}
+.pcard-poster img{width:100%;aspect-ratio:2/3;object-fit:cover;display:block;transition:transform .35s;}
+.pcard-poster:hover img{transform:scale(1.04);}
+.pcard-poster .ph{width:100%;aspect-ratio:2/3;background:linear-gradient(160deg,#1a0a1a,#0a0a2a);display:flex;align-items:center;justify-content:center;font-size:3rem;}
+.pcard-badge{position:absolute;top:6px;left:6px;border-radius:5px;padding:2px 7px;font-size:9px;font-weight:800;letter-spacing:.04em;}
+.pcard-badge.series{background:rgba(0,212,170,.85);color:#000;}
+.pcard-badge.pro{background:rgba(245,158,11,.9);color:#000;}
+.pcard-info{padding:8px 10px 10px;}
+.pcard-title{font-size:12px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px;}
+.pcard-meta{font-size:10px;color:rgba(255,255,255,.4);}
+/* Responsive grid */
+.poster-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px;}
+@media(max-width:600px){.poster-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;}}
+@media(min-width:1200px){.poster-grid{grid-template-columns:repeat(auto-fill,minmax(155px,1fr));}}
+.empty-msg{text-align:center;padding:60px 20px;color:rgba(255,255,255,.3);}
+.empty-msg .icon{font-size:3rem;margin-bottom:12px;}
+</style>
+{% endblock %}
 {% block content %}
-<div style="background:#0a0a0a;min-height:100vh;color:#fff;">
-<div style="background:#111;border-bottom:1px solid rgba(255,255,255,0.07);padding:28px 0;">
-  <div class="container">
-    <h1 style="font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;margin-bottom:6px;">🎬 Browse Movies</h1>
-    <form method="get" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;">
-      <input type="text" name="q" value="{{ q }}" placeholder="Search movies…"
-        style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px 14px;color:#fff;font-family:'Inter',sans-serif;font-size:0.85rem;outline:none;width:220px;">
-      <select name="genre" class="form-select" style="width:auto;background:#1a1a1a;border-color:rgba(255,255,255,0.12);color:#fff;" onchange="this.form.submit()">
-        <option value="">All Genres</option>
-        {% for g in genres %}<option value="{{ g.slug }}" {% if active_genre == g.slug %}selected{% endif %}>{{ g.name }}</option>{% endfor %}
-      </select>
-      <select name="year" class="form-select" style="width:auto;background:#1a1a1a;border-color:rgba(255,255,255,0.12);color:#fff;" onchange="this.form.submit()">
-        <option value="">Any Year</option>
-        {% for y in years %}<option value="{{ y }}">{{ y }}</option>{% endfor %}
-      </select>
-      <select name="sort" class="form-select" style="width:auto;background:#1a1a1a;border-color:rgba(255,255,255,0.12);color:#fff;" onchange="this.form.submit()">
-        <option value="-created_at">Newest</option>
-        <option value="-views_count">Most Viewed</option>
-        <option value="-downloads_count">Most Downloaded</option>
-      </select>
-      <button type="submit" class="btn btn-sm" style="background:#e50914;color:#fff;">Search</button>
-    </form>
-  </div>
-</div>
-<div class="container" style="padding:32px 20px 60px;">
-  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px;">
-    {% for m in movies %}
-    <a href="/movies/film/{{ m.slug }}/" style="text-decoration:none;">
-      <div style="border-radius:10px;overflow:hidden;background:#111;transition:transform 0.25s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='translateY(0)'">
-        <div style="position:relative;">
-          {% if m.thumbnail %}<img src="{{ m.thumbnail.url }}" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;">
-          {% else %}<div style="width:100%;aspect-ratio:16/9;background:#1a0808;display:flex;align-items:center;justify-content:center;font-size:2rem;">🎬</div>{% endif %}
-          {% if m.is_premium %}<span style="position:absolute;top:7px;right:7px;background:rgba(245,166,35,0.92);color:var(--tx);padding:2px 8px;border-radius:20px;font-size:0.65rem;font-weight:700;">⭐ PRO</span>{% endif %}
-          <div style="position:absolute;bottom:7px;left:7px;background:rgba(0,0,0,0.75);color:#fff;padding:2px 7px;border-radius:5px;font-size:0.65rem;font-weight:600;">{{ m.quality }}</div>
-        </div>
-        <div style="padding:10px 12px;">
-          <div style="font-weight:600;font-size:0.85rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;">{{ m.title }}</div>
-          <div style="font-size:0.72rem;color:rgba(255,255,255,0.4);display:flex;gap:10px;"><span>{{ m.release_year }}</span><span>👁 {{ m.views_count }}</span></div>
-        </div>
-      </div>
-    </a>
-    {% empty %}
-    <div style="grid-column:1/-1;text-align:center;padding:80px 0;color:rgba(255,255,255,0.3);">
-      <div style="font-size:3rem;margin-bottom:12px;">🎬</div><div>No movies found</div>
+<div class="mbrowse-wrap">
+
+  <div class="mbrowse-hero">
+    <div class="container">
+      <h1>🎬 Movies & Series</h1>
+      <form method="get" class="filter-row">
+        <input class="finp" type="text" name="q" value="{{ q }}" placeholder="Search movies…">
+        <select class="fsel" name="genre" onchange="this.form.submit()">
+          <option value="">All Genres</option>
+          {% for g in genres %}<option value="{{ g.slug }}" {% if genre == g.slug %}selected{% endif %}>{{ g.name }}</option>{% endfor %}
+        </select>
+        <select class="fsel" name="quality" onchange="this.form.submit()">
+          <option value="">Any Quality</option>
+          <option value="FHD" {% if quality == 'FHD' %}selected{% endif %}>FHD 1080p</option>
+          <option value="HD" {% if quality == 'HD' %}selected{% endif %}>HD 720p</option>
+          <option value="SD" {% if quality == 'SD' %}selected{% endif %}>SD 480p</option>
+        </select>
+        <button type="submit" class="btn btn-sm" style="background:#e50914;color:#fff;padding:7px 18px;">Search</button>
+        {% if q or genre or quality %}<a href="/movies/browse/" class="btn btn-ghost btn-sm" style="color:rgba(255,255,255,.6);">✕ Clear</a>{% endif %}
+      </form>
     </div>
-    {% endfor %}
   </div>
-</div>
+
+  <div class="container" style="padding-top:32px;">
+
+    {# ── Movies ── #}
+    <div style="margin-bottom:40px;">
+      <div class="sec-title">
+        <span>🎬 Movies{% if q %} — "{{ q }}"{% endif %}</span>
+        {% if movies.has_other_pages %}<a href="/movies/browse/">View all</a>{% endif %}
+      </div>
+      {% if movies.object_list %}
+      <div class="poster-grid">
+        {% for m in movies %}
+        <a href="/movies/film/{{ m.slug }}/" class="pcard-poster">
+          {% if m.thumbnail %}<img src="{{ m.thumbnail.url }}" alt="{{ m.title }}">
+          {% else %}<div class="ph">🎬</div>{% endif %}
+          {% if m.is_premium %}<span class="pcard-badge pro">PRO</span>{% endif %}
+          <div class="pcard-info">
+            <div class="pcard-title">{{ m.title }}</div>
+            <div class="pcard-meta">{{ m.release_year }}{% if m.quality %} · {{ m.quality }}{% endif %}</div>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      {# Pagination #}
+      {% if movies.has_other_pages %}
+      <div style="display:flex;gap:8px;justify-content:center;margin-top:24px;flex-wrap:wrap;">
+        {% if movies.has_previous %}<a href="?page={{ movies.previous_page_number }}&q={{ q }}&genre={{ genre }}&quality={{ quality }}" class="btn btn-ghost btn-sm" style="color:#fff;">‹ Prev</a>{% endif %}
+        <span style="color:rgba(255,255,255,.4);font-size:13px;align-self:center;">Page {{ movies.number }} of {{ movies.paginator.num_pages }}</span>
+        {% if movies.has_next %}<a href="?page={{ movies.next_page_number }}&q={{ q }}&genre={{ genre }}&quality={{ quality }}" class="btn btn-ghost btn-sm" style="color:#fff;">Next ›</a>{% endif %}
+      </div>
+      {% endif %}
+      {% else %}
+      <div class="empty-msg"><div class="icon">🎬</div><div>No movies found{% if q %} for "{{ q }}"{% endif %}</div></div>
+      {% endif %}
+    </div>
+
+    {# ── Series ── #}
+    <div style="margin-bottom:40px;">
+      <div class="sec-title">
+        <span>📺 Series</span>
+        <a href="/movies/browse/?type=series">View all</a>
+      </div>
+      {% if series %}
+      <div class="poster-grid">
+        {% for s in series %}
+        <a href="/movies/series/{{ s.slug }}/" class="pcard-poster">
+          {% if s.thumbnail %}<img src="{{ s.thumbnail.url }}" alt="{{ s.title }}">
+          {% else %}<div class="ph">📺</div>{% endif %}
+          <span class="pcard-badge series">SERIES</span>
+          {% if s.is_premium %}<span class="pcard-badge pro" style="left:auto;right:6px;">PRO</span>{% endif %}
+          <div class="pcard-info">
+            <div class="pcard-title">{{ s.title }}</div>
+            <div class="pcard-meta">{{ s.seasons.count }} Season{{ s.seasons.count|pluralize }}</div>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-msg"><div class="icon">📺</div><div>No series yet</div></div>
+      {% endif %}
+    </div>
+
+  </div>
 </div>
 {% endblock %}

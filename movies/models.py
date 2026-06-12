@@ -49,6 +49,7 @@ class Movie(models.Model):
     is_featured  = models.BooleanField(default=False)
     views_count  = models.IntegerField(default=0)
     downloads_count = models.IntegerField(default=0)
+    likes_count  = models.IntegerField(default=0)
     rating       = models.DecimalField(max_digits=3, decimal_places=1, default=0)
     uploaded_by  = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     is_published = models.BooleanField(default=False)
@@ -141,3 +142,10 @@ class MovieComment(models.Model):
     text      = models.TextField()
     created_at= models.DateTimeField(auto_now_add=True)
     class Meta: ordering = ['-created_at']
+
+
+class MovieLike(models.Model):
+    user  = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='liked_by')
+    created_at = models.DateTimeField(auto_now_add=True)
+    class Meta: unique_together = [('user', 'movie')]

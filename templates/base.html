@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -13,7 +13,7 @@
    NEXUS — GLOBAL DESIGN SYSTEM
    Dark-only. Glassmorphism. Premium feel.
 ═══════════════════════════════════════════════════════════════ */
-:root{
+:root,[data-theme="dark"]{
   /* Core palette */
   --ac:#7c5cfc;--ac2:#ff4d6d;--ac3:#00d4aa;
   --bg:#09090f;--bg2:#0f0f1a;--bg3:#141420;--bg4:#1c1c2e;
@@ -24,7 +24,7 @@
   --glow:0 0 40px rgba(124,92,252,0.15);
   --gold:#f59e0b;
 
-  /* Compatibility aliases (used by legacy templates) */
+  /* Compatibility aliases */
   --accent:var(--ac);--accent2:var(--ac2);--accent3:var(--ac3);
   --text:var(--tx);--text2:var(--tx2);--text3:var(--tx3);
   --border:var(--bd);--border2:var(--bd2);
@@ -34,6 +34,21 @@
   --glass:rgba(255,255,255,0.04);
   --glass-border:rgba(255,255,255,0.08);
   --glass-hover:rgba(255,255,255,0.07);
+}
+
+[data-theme="light"]{
+  --bg:#f0f2ff;--bg2:#ffffff;--bg3:#f5f6fd;--bg4:#eaecf8;
+  --tx:#0d0e1a;--tx2:#4a4b6a;--tx3:#9090b0;
+  --bd:rgba(0,0,0,0.07);--bd2:rgba(0,0,0,0.14);
+  --shadow:0 2px 16px rgba(90,80,180,0.08);
+  --glass:rgba(255,255,255,0.80);
+  --glass-border:rgba(124,92,252,0.10);
+  --glass-hover:rgba(255,255,255,0.95);
+  --glow:0 0 30px rgba(124,92,252,0.10);
+  --accent:var(--ac);--accent2:var(--ac2);--accent3:var(--ac3);
+  --text:var(--tx);--text2:var(--tx2);--text3:var(--tx3);
+  --border:var(--bd);--border2:var(--bd2);
+  --card:var(--bg2);--card2:var(--bg3);
 }
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -452,6 +467,7 @@ select.form-input option,select.finput option{background:var(--bg3);color:var(--
       <a class="nav-link {% if '/images/' in request.path %}on{% endif %}" href="/images/">Gallery</a>
       <a class="nav-link {% if '/blog/' in request.path %}on{% endif %}" href="/blog/">Blog</a>
       <a class="nav-link {% if '/ai/' in request.path %}on{% endif %}" href="/ai/studio/">AI Studio</a>
+      {% for p in nav_pages %}<a class="nav-link {% if request.path == '/page/'|add:p.slug|add:'/' %}on{% endif %}" href="/page/{{ p.slug }}/">{{ p.title }}</a>{% endfor %}
     </div>
     <div class="nav-r">
       <form class="nav-search" action="/search/" method="get">
@@ -489,6 +505,7 @@ select.form-input option,select.finput option{background:var(--bg3);color:var(--
       <a class="btn btn-ghost btn-sm" href="/auth/login/">Log in</a>
       <a class="btn btn-primary btn-sm" href="/auth/register/">Sign up free</a>
       {% endif %}
+      <button id="siteThemeToggle" class="mob-btn" title="Toggle theme" onclick="toggleSiteTheme()" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);font-size:16px;cursor:pointer;transition:all .15s;">🌙</button>
       <button class="mob-btn" onclick="document.getElementById('mobNav').classList.toggle('open')">☰</button>
     </div>
   </div>
@@ -579,6 +596,7 @@ select.form-input option,select.finput option{background:var(--bg3);color:var(--
         <a href="/page/about/">About Us</a>
         <a href="/page/contact/">Contact</a>
         <a href="/page/faq/">FAQ</a>
+        {% for p in footer_pages %}<a href="/page/{{ p.slug }}/">{{ p.title }}</a>{% endfor %}
         {% if branding and branding.contact_email %}<a href="mailto:{{ branding.contact_email }}">{{ branding.contact_email }}</a>{% endif %}
       </div>
     </div>
@@ -614,10 +632,133 @@ function showToast(msg,type='s'){
   setTimeout(()=>{t.style.transition='all .3s';t.style.opacity='0';t.style.transform='translateX(110%)';setTimeout(()=>t.remove(),300)},4000);
 }
 // Cookie helper (for CSRF)
+// ── Site theme toggle ──────────────────────────────────────────
+function toggleSiteTheme(){
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') !== 'light';
+  const next = isDark ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  const btn = document.getElementById('siteThemeToggle');
+  if (btn) btn.textContent = next === 'light' ? '☀️' : '🌙';
+  localStorage.setItem('nexus_theme', next);
+}
+(function(){
+  const saved = localStorage.getItem('nexus_theme');
+  if (saved) {
+    document.documentElement.setAttribute('data-theme', saved);
+    const btn = document.getElementById('siteThemeToggle');
+    if (btn) btn.textContent = saved === 'light' ? '☀️' : '🌙';
+  }
+})();
+
 function getCookie(name){
   return document.cookie.split(';').map(c=>c.trim()).filter(c=>c.startsWith(name+'=')).map(c=>c.slice(name.length+1))[0]||'';
 }
+function shareContent(title, path){
+  const url = window.location.origin + path;
+  if(navigator.share){
+    navigator.share({title: title, url: url}).catch(()=>{});
+    return;
+  }
+  navigator.clipboard.writeText(url)
+    .then(()=>showToast('Link copied! ✓'))
+    .catch(()=>prompt('Copy this link:', url));
+}
 </script>
 {% block scripts %}{% endblock %}
+{# ── Mini Music Player ─────────────────────────────────────────────── #}
+<div id="mini-player" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:8000;
+  background:rgba(10,10,20,.92);backdrop-filter:blur(20px);border-top:1px solid rgba(124,92,252,.2);
+  padding:10px 20px;display:none;align-items:center;gap:14px;">
+  <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;">
+    <div id="mp-cover" style="width:40px;height:40px;border-radius:8px;background:rgba(124,92,252,.2);
+      flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:18px;">🎵</div>
+    <div style="min-width:0;">
+      <div id="mp-title" style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff;max-width:200px;">—</div>
+      <div id="mp-artist" style="font-size:11px;color:rgba(255,255,255,.5);">—</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <button onclick="mpSeek(-10)" style="background:none;border:none;color:rgba(255,255,255,.6);cursor:pointer;font-size:16px;padding:4px;">⏮</button>
+    <button id="mp-playbtn" onclick="mpTogglePlay()" style="width:38px;height:38px;border-radius:50%;background:var(--ac);border:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;transition:transform .15s;">▶</button>
+    <button onclick="mpSeek(10)" style="background:none;border:none;color:rgba(255,255,255,.6);cursor:pointer;font-size:16px;padding:4px;">⏭</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;flex:2;">
+    <span id="mp-cur" style="font-size:11px;color:rgba(255,255,255,.4);width:32px;text-align:right;">0:00</span>
+    <div id="mp-bar" onclick="mpSeekClick(event)" style="flex:1;height:4px;background:rgba(255,255,255,.12);border-radius:2px;cursor:pointer;position:relative;">
+      <div id="mp-progress" style="height:100%;background:var(--ac);border-radius:2px;width:0%;transition:width .3s;pointer-events:none;"></div>
+    </div>
+    <span id="mp-dur" style="font-size:11px;color:rgba(255,255,255,.4);width:32px;">0:00</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:6px;">
+    <span style="font-size:12px;">🔊</span>
+    <input id="mp-vol" type="range" min="0" max="1" step="0.05" value="1" oninput="mpSetVol(this.value)"
+      style="width:70px;accent-color:var(--ac);">
+    <button onclick="mpClose()" style="background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:18px;padding:4px;">×</button>
+  </div>
+  <audio id="mini-audio" preload="none"></audio>
+</div>
+
+<script>
+const _mpAudio = document.getElementById('mini-audio');
+const _mpBar   = document.getElementById('mp-progress');
+const _mpCur   = document.getElementById('mp-cur');
+const _mpDur   = document.getElementById('mp-dur');
+const _mpBtn   = document.getElementById('mp-playbtn');
+const _mpCover = document.getElementById('mp-cover');
+const _mpWrap  = document.getElementById('mini-player');
+
+function fmtTime(s){ const m=Math.floor(s/60); return m+':'+(('0'+Math.floor(s%60)).slice(-2)); }
+
+if (_mpAudio) {
+  _mpAudio.addEventListener('timeupdate', () => {
+    if (!_mpAudio.duration) return;
+    const pct = (_mpAudio.currentTime / _mpAudio.duration) * 100;
+    _mpBar.style.width = pct + '%';
+    _mpCur.textContent = fmtTime(_mpAudio.currentTime);
+  });
+  _mpAudio.addEventListener('loadedmetadata', () => {
+    _mpDur.textContent = fmtTime(_mpAudio.duration);
+  });
+  _mpAudio.addEventListener('ended', () => { _mpBtn.textContent = '▶'; });
+  _mpAudio.addEventListener('play', () => { _mpBtn.textContent = '⏸'; });
+  _mpAudio.addEventListener('pause', () => { _mpBtn.textContent = '▶'; });
+}
+
+function playMiniTrack(url, title, artist, coverUrl) {
+  if (!_mpAudio) return;
+  _mpAudio.src = url;
+  _mpAudio.play();
+  document.getElementById('mp-title').textContent = title;
+  document.getElementById('mp-artist').textContent = artist;
+  if (coverUrl) {
+    _mpCover.innerHTML = `<img src="${coverUrl}" style="width:100%;height:100%;object-fit:cover;">`;
+  } else {
+    _mpCover.textContent = '🎵';
+  }
+  _mpWrap.style.display = 'flex';
+  // Push content up so player doesn't cover it
+  document.body.style.paddingBottom = '68px';
+}
+
+function mpTogglePlay() {
+  if (!_mpAudio) return;
+  if (_mpAudio.paused) _mpAudio.play(); else _mpAudio.pause();
+}
+function mpSeek(sec) {
+  if (_mpAudio) _mpAudio.currentTime = Math.max(0, _mpAudio.currentTime + sec);
+}
+function mpSeekClick(e) {
+  if (!_mpAudio || !_mpAudio.duration) return;
+  const bar = e.currentTarget.getBoundingClientRect();
+  _mpAudio.currentTime = ((e.clientX - bar.left) / bar.width) * _mpAudio.duration;
+}
+function mpSetVol(v) { if (_mpAudio) _mpAudio.volume = v; }
+function mpClose() {
+  if (_mpAudio) { _mpAudio.pause(); _mpAudio.src = ''; }
+  _mpWrap.style.display = 'none';
+  document.body.style.paddingBottom = '';
+}
+</script>
 </body>
 </html>
