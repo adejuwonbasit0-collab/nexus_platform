@@ -1718,3 +1718,78 @@ def admin_images_mgmt(request):
         'q': q,
         'image_cats': ImageCategory.objects.all().order_by('name'),
     })
+    # =============================================================================
+# MISSING CREATOR VIEWS – Fix for AttributeError
+# =============================================================================
+
+@_creator_required
+def creator_write_blog(request):
+    """Handle blog post creation – reuses creator_upload logic."""
+    if request.method == 'POST':
+        # Inject content_type so creator_upload processes it as a blog
+        request.POST = request.POST.copy()
+        request.POST['content_type'] = 'blog'
+        return creator_upload(request)
+    # GET: redirect to dashboard (or you can render a dedicated form)
+    messages.info(request, 'Please use the upload form on your dashboard.')
+    return redirect('creator_dashboard')
+
+
+@_creator_required
+def creator_upload_music(request):
+    """Handle music track upload."""
+    if request.method == 'POST':
+        request.POST = request.POST.copy()
+        request.POST['content_type'] = 'music'
+        return creator_upload(request)
+    messages.info(request, 'Please use the upload form on your dashboard.')
+    return redirect('creator_dashboard')
+
+
+@_creator_required
+def creator_upload_video(request):
+    """Handle video/movie upload."""
+    if request.method == 'POST':
+        request.POST = request.POST.copy()
+        request.POST['content_type'] = 'video'
+        return creator_upload(request)
+    messages.info(request, 'Please use the upload form on your dashboard.')
+    return redirect('creator_dashboard')
+
+
+@_creator_required
+def creator_upload_image(request):
+    """Handle image upload."""
+    if request.method == 'POST':
+        request.POST = request.POST.copy()
+        request.POST['content_type'] = 'image'
+        return creator_upload(request)
+    messages.info(request, 'Please use the upload form on your dashboard.')
+    return redirect('creator_dashboard')
+
+
+@_creator_required
+def creator_manage_content(request):
+    """Show a list of creator's content for editing."""
+    # You can implement a proper content management view here.
+    # For now, redirect to dashboard where existing content is shown.
+    return redirect('creator_dashboard')
+
+
+@_creator_required
+def creator_edit_content(request, pk):
+    """Edit a specific content item."""
+    # Optional: implement editing.
+    messages.warning(request, 'Editing not yet implemented. Use dashboard.')
+    return redirect('creator_dashboard')
+
+
+@_creator_required
+def creator_delete_content(request, pk):
+    """Delete a content item."""
+    from content.models import Content
+    content = get_object_or_404(Content, pk=pk, creator=request.user)
+    title = content.title
+    content.delete()
+    messages.success(request, f'"{title}" deleted.')
+    return redirect('creator_dashboard')

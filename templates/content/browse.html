@@ -2,43 +2,71 @@
 {% block title %}Browse Content — NEXUS{% endblock %}
 {% block extra_head %}
 <style>
-.browse-hero{background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(255,77,109,.06));border-bottom:1px solid var(--bd);padding:44px 0 32px;}
-.filter-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
-.fsel{background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:7px 12px;color:var(--tx);font-size:13px;outline:none;cursor:pointer;}
-.fsel:focus{border-color:var(--ac);}
-.finp{background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:7px 13px;color:var(--tx);font-size:13px;outline:none;min-width:200px;}
-.finp:focus{border-color:var(--ac);}
-.type-pill{padding:5px 16px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid var(--bd);color:var(--tx2);background:none;cursor:pointer;transition:all .15s;text-decoration:none;white-space:nowrap;}
-.type-pill:hover,.type-pill.active{background:var(--ac);border-color:var(--ac);color:#fff;}
-
-.cg{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;}
-.cc{background:rgba(255,255,255,.03);border:1px solid var(--bd);border-radius:13px;overflow:hidden;transition:transform .2s,border-color .2s,box-shadow .2s;text-decoration:none;display:block;}
-.cc:hover{transform:translateY(-4px);border-color:rgba(124,92,252,.25);box-shadow:0 12px 40px rgba(0,0,0,.4);}
-.cc-thumb{position:relative;aspect-ratio:16/9;overflow:hidden;background:var(--bg3);}
-.cc-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .35s;}
-.cc:hover .cc-thumb img{transform:scale(1.06);}
-.cc-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2.5rem;}
-.cc-type{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.04em;}
-.cc-tier{position:absolute;top:8px;right:8px;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;}
-.cc-tier.free{background:rgba(34,197,94,.2);color:#86efac;}
-.cc-tier.premium{background:rgba(245,158,11,.2);color:#fcd34d;}
-.cc-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.35);opacity:0;transition:opacity .2s;}
-.cc:hover .cc-play{opacity:1;}
-.cc-play-icon{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;font-size:18px;color:#000;}
-.cc-body{padding:12px 14px 14px;}
-.cc-title{font-size:13px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px;}
-.cc-meta{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--tx2);}
-.cc-creator{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px;}
+.browse-hero{
+  background:linear-gradient(135deg,rgba(124,92,252,.09) 0%,rgba(255,77,109,.05) 60%,transparent 100%);
+  border-bottom:1px solid var(--bd);padding:36px 0 28px;
+}
+/* Filter bar */
+.fbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:18px}
+.fsel{
+  background:rgba(255,255,255,.05);border:1px solid var(--bd);
+  border-radius:9px;padding:8px 13px;color:var(--tx);
+  font-size:13px;outline:none;cursor:pointer;transition:border-color .15s;
+}
+.fsel:focus{border-color:var(--ac)}
+.finp-search{
+  flex:1;min-width:180px;max-width:300px;
+  background:rgba(255,255,255,.05);border:1px solid var(--bd);
+  border-radius:9px;padding:8px 13px;color:var(--tx);
+  font-size:13px;outline:none;transition:border-color .15s;
+}
+.finp-search:focus{border-color:var(--ac)}
+.finp-search::placeholder{color:var(--tx3)}
+/* Cards */
+.bg{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:16px}
+.bc{
+  background:rgba(255,255,255,.03);border:1px solid var(--bd);
+  border-radius:14px;overflow:hidden;
+  transition:transform .22s,border-color .22s,box-shadow .22s;
+  text-decoration:none;display:block;
+}
+.bc:hover{transform:translateY(-5px);border-color:rgba(124,92,252,.25);box-shadow:0 14px 42px rgba(0,0,0,.45)}
+.bc-thumb{position:relative;overflow:hidden;background:var(--bg3)}
+.bc-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .35s}
+.bc:hover .bc-thumb img{transform:scale(1.06)}
+.bc-ph{width:100%;display:flex;align-items:center;justify-content:center;font-size:2.5rem;background:linear-gradient(135deg,rgba(124,92,252,.1),rgba(255,77,109,.06))}
+.bc-type{position:absolute;top:7px;left:7px;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);border-radius:5px;padding:2px 7px;font-size:9px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:.04em}
+.bc-tier-free{position:absolute;top:7px;right:7px;background:rgba(34,197,94,.18);color:#22c55e;border-radius:5px;padding:2px 7px;font-size:9px;font-weight:700}
+.bc-tier-pro{position:absolute;top:7px;right:7px;background:rgba(245,158,11,.2);color:#f59e0b;border-radius:5px;padding:2px 7px;font-size:9px;font-weight:700}
+.bc-body{padding:11px 13px 13px}
+.bc-title{font-size:12.5px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px}
+.bc-meta{font-size:11px;color:var(--tx2)}
+/* Pagination */
+.pag{display:flex;gap:6px;justify-content:center;margin-top:32px;flex-wrap:wrap}
+.pag a,.pag span{padding:8px 14px;border-radius:9px;font-size:13px;font-weight:600;background:rgba(255,255,255,.04);border:1px solid var(--bd);color:var(--tx2);text-decoration:none;transition:all .15s}
+.pag a:hover{background:rgba(255,255,255,.09);color:var(--tx)}
+.pag .current{background:var(--ac);border-color:var(--ac);color:#fff}
+@media(max-width:600px){
+  .bg{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+  .fbar{gap:6px}
+  .finp-search{min-width:100%;max-width:100%;order:-1}
+}
+@media(max-width:400px){
+  .bg{grid-template-columns:repeat(2,1fr);gap:8px}
+}
 </style>
 {% endblock %}
 {% block content %}
 
 <div class="browse-hero">
   <div class="container">
-    <h1 style="font-family:'Syne',sans-serif;font-size:clamp(1.6rem,4vw,2.4rem);font-weight:800;margin-bottom:6px;">Browse Content</h1>
-    <p style="color:var(--tx2);font-size:14px;margin-bottom:24px;">Discover images, videos, music, and articles from creators</p>
-    <form method="get" class="filter-bar">
-      <input class="finp" name="q" value="{{ q }}" placeholder="Search…">
+    <h1 style="font-family:'Syne',sans-serif;font-size:clamp(1.5rem,4vw,2.2rem);font-weight:800;margin-bottom:5px">
+      Browse Content
+    </h1>
+    <p style="color:var(--tx2);font-size:14px;margin-bottom:0">Movies, music, images and blog posts from creators</p>
+
+    <form method="get" class="fbar">
+      <input class="finp-search" name="q" value="{{ q }}" placeholder="Search content…">
       <select class="fsel" name="tier" onchange="this.form.submit()">
         <option value="">All Tiers</option>
         <option value="free" {% if active_tier == 'free' %}selected{% endif %}>Free</option>
@@ -49,61 +77,100 @@
         <option value="-views" {% if sort == '-views' %}selected{% endif %}>Most Viewed</option>
         <option value="-likes_count" {% if sort == '-likes_count' %}selected{% endif %}>Most Liked</option>
       </select>
-      <button type="submit" class="btn btn-primary btn-sm">Search</button>
+      <button type="submit" class="btn btn-primary btn-sm">Go</button>
       {% if q or active_type or active_tier %}<a href="/content/browse/" class="btn btn-ghost btn-sm">✕ Clear</a>{% endif %}
     </form>
-    <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:16px;">
-      <a href="/content/browse/?{% if q %}q={{ q }}&{% endif %}" class="type-pill {% if not active_type %}active{% endif %}">All</a>
-      <a href="/content/browse/?type=video{% if q %}&q={{ q }}{% endif %}" class="type-pill {% if active_type == 'video' %}active{% endif %}">🎬 Videos</a>
-      <a href="/content/browse/?type=music{% if q %}&q={{ q }}{% endif %}" class="type-pill {% if active_type == 'music' %}active{% endif %}">🎵 Music</a>
-      <a href="/content/browse/?type=image{% if q %}&q={{ q }}{% endif %}" class="type-pill {% if active_type == 'image' %}active{% endif %}">🖼 Images</a>
-      <a href="/content/browse/?type=blog{% if q %}&q={{ q }}{% endif %}" class="type-pill {% if active_type == 'blog' %}active{% endif %}">📝 Blog</a>
+
+    <div class="pill-strip" style="margin-top:14px">
+      <a href="/content/browse/{% if q %}?q={{ q }}{% endif %}" class="pill {% if not active_type %}active{% endif %}">All</a>
+      <a href="/content/browse/?type=video{% if q %}&q={{ q }}{% endif %}" class="pill {% if active_type == 'video' %}active{% endif %}">🎬 Videos</a>
+      <a href="/content/browse/?type=music{% if q %}&q={{ q }}{% endif %}" class="pill {% if active_type == 'music' %}active{% endif %}">🎵 Music</a>
+      <a href="/content/browse/?type=image{% if q %}&q={{ q }}{% endif %}" class="pill {% if active_type == 'image' %}active{% endif %}">🖼 Images</a>
+      <a href="/content/browse/?type=blog{% if q %}&q={{ q }}{% endif %}" class="pill {% if active_type == 'blog' %}active{% endif %}">📝 Blog</a>
     </div>
   </div>
 </div>
 
-<div class="container" style="padding:28px 20px 80px;">
-  {% if q %}<p style="color:var(--tx2);font-size:13px;margin-bottom:20px;">{{ items.paginator.count }} result{{ items.paginator.count|pluralize }} for "<strong style="color:var(--tx);">{{ q }}</strong>"</p>{% endif %}
+<div class="container" style="padding-top:28px;padding-bottom:80px">
+  {% if items %}
+  <div style="font-size:12px;color:var(--tx2);margin-bottom:16px">
+    Showing {{ items.start_index }}–{{ items.end_index }} of {{ items.paginator.count }} results
+  </div>
 
-  <div class="cg">
+  <div class="bg">
     {% for item in items %}
-    {% if item.content_type == "video" %}<a href="/movies/film/{{ item.slug }}/" class="cc">
-    {% elif item.content_type == "music" %}<a href="/music/track/{{ item.slug }}/" class="cc">
-    {% elif item.content_type == "image" %}<a href="/images/view/{{ item.slug }}/" class="cc">
-    {% elif item.content_type == "blog" %}<a href="/blog/post/{{ item.slug }}/" class="cc">
-    {% else %}<a href="/content/{{ item.pk }}/" class="cc">{% endif %}
-      <div class="cc-thumb">
-        {% if item.thumbnail %}<img src="{{ item.thumbnail.url }}" alt="{{ item.title }}" loading="lazy">
-        {% else %}<div class="cc-ph">{% if item.content_type == 'video' %}🎬{% elif item.content_type == 'music' %}🎵{% elif item.content_type == 'image' %}🖼{% else %}📝{% endif %}</div>{% endif %}
-        <span class="cc-type">{{ item.get_content_type_display }}</span>
-        <span class="cc-tier {{ item.tier }}">{{ item.tier }}</span>
-        {% if item.content_type in 'video,music' %}
-        <div class="cc-play"><div class="cc-play-icon">▶</div></div>
+    {# ─ Route directly to the correct detail page ─ #}
+    {% if item.content_type == 'video' %}
+      {% if item.slug %}<a href="/movies/film/{{ item.slug }}/" class="bc">{% else %}<a href="/movies/" class="bc">{% endif %}
+    {% elif item.content_type == 'music' %}
+      {% if item.slug %}<a href="/music/track/{{ item.slug }}/" class="bc">{% else %}<a href="/music/" class="bc">{% endif %}
+    {% elif item.content_type == 'image' %}
+      {% if item.slug %}<a href="/images/view/{{ item.slug }}/" class="bc">{% else %}<a href="/images/" class="bc">{% endif %}
+    {% elif item.content_type == 'blog' %}
+      {% if item.slug %}<a href="/blog/post/{{ item.slug }}/" class="bc">{% else %}<a href="/blog/" class="bc">{% endif %}
+    {% else %}
+      <a href="/content/{{ item.pk }}/" class="bc">
+    {% endif %}
+
+      <div class="bc-thumb" style="aspect-ratio:{% if item.content_type == 'image' %}4/3{% elif item.content_type == 'music' %}1/1{% else %}16/9{% endif %}">
+        {% if item.thumbnail %}
+          <img src="{{ item.thumbnail.url }}" alt="{{ item.title }}">
+        {% else %}
+          <div class="bc-ph" style="aspect-ratio:{% if item.content_type == 'image' %}4/3{% elif item.content_type == 'music' %}1/1{% else %}16/9{% endif %}">
+            {% if item.content_type == 'video' %}🎬
+            {% elif item.content_type == 'music' %}🎵
+            {% elif item.content_type == 'image' %}🖼
+            {% else %}📝{% endif %}
+          </div>
         {% endif %}
+        <span class="bc-type">{{ item.content_type }}</span>
+        {% if item.tier == 'premium' %}<span class="bc-tier-pro">PRO</span>
+        {% else %}<span class="bc-tier-free">FREE</span>{% endif %}
       </div>
-      <div class="cc-body">
-        <div class="cc-title">{{ item.title }}</div>
-        <div class="cc-meta">
-          <span class="cc-creator">{{ item.creator.username }}</span>
-          <span>♥ {{ item.likes_count }} · 👁 {{ item.views }}</span>
+
+      <div class="bc-body">
+        <div class="bc-title">{{ item.title }}</div>
+        <div class="bc-meta">
+          {% if item.creator %}{{ item.creator.username }} · {% endif %}{{ item.created_at|date:"M d, Y" }}
         </div>
       </div>
     </a>
-    {% empty %}
-    <div style="grid-column:1/-1;text-align:center;padding:80px 20px;color:var(--tx2);">
-      <div style="font-size:3.5rem;margin-bottom:16px;opacity:.2;">🔍</div>
-      <h3 style="font-size:18px;font-weight:700;margin-bottom:8px;">Nothing found</h3>
-      <p style="font-size:14px;">Try different filters or <a href="/content/browse/" style="color:var(--ac);">clear search</a></p>
-    </div>
     {% endfor %}
   </div>
 
-  {% if items.paginator.num_pages > 1 %}
-  <div style="display:flex;gap:6px;justify-content:center;margin-top:36px;flex-wrap:wrap;">
-    {% if items.has_previous %}<a href="?page={{ items.previous_page_number }}&q={{ q }}&type={{ active_type }}&tier={{ active_tier }}" class="btn btn-ghost btn-sm">‹ Prev</a>{% endif %}
-    <span style="padding:6px 14px;font-size:13px;color:var(--tx2);">{{ items.number }} / {{ items.paginator.num_pages }}</span>
-    {% if items.has_next %}<a href="?page={{ items.next_page_number }}&q={{ q }}&type={{ active_type }}&tier={{ active_tier }}" class="btn btn-ghost btn-sm">Next ›</a>{% endif %}
+  {% if items.has_other_pages %}
+  <div class="pag">
+    {% if items.has_previous %}
+    <a href="?page={{ items.previous_page_number }}&q={{ q }}&type={{ active_type }}&tier={{ active_tier }}&sort={{ sort }}">← Prev</a>
+    {% endif %}
+    {% for num in items.paginator.page_range %}
+      {% if num == items.number %}
+        <span class="current">{{ num }}</span>
+      {% elif num|add:"-1" == items.number or num|add:"1" == items.number or num == 1 or num == items.paginator.num_pages %}
+        <a href="?page={{ num }}&q={{ q }}&type={{ active_type }}&tier={{ active_tier }}&sort={{ sort }}">{{ num }}</a>
+      {% elif num|add:"-2" == items.number or num|add:"2" == items.number %}
+        <span style="padding:8px 6px;color:var(--tx3)">…</span>
+      {% endif %}
+    {% endfor %}
+    {% if items.has_next %}
+    <a href="?page={{ items.next_page_number }}&q={{ q }}&type={{ active_type }}&tier={{ active_tier }}&sort={{ sort }}">Next →</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="empty" style="padding:80px 24px">
+    <div class="empty-icon">🔍</div>
+    <h3>Nothing found</h3>
+    <p>{% if q %}No results for "{{ q }}". Try different keywords.{% else %}No content here yet.{% endif %}</p>
+    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:20px">
+      <a href="/movies/" class="btn btn-ghost btn-sm">🎬 Movies</a>
+      <a href="/music/" class="btn btn-ghost btn-sm">🎵 Music</a>
+      <a href="/images/" class="btn btn-ghost btn-sm">🖼 Gallery</a>
+      <a href="/blog/" class="btn btn-ghost btn-sm">📝 Blog</a>
+    </div>
   </div>
   {% endif %}
 </div>
+
 {% endblock %}
