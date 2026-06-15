@@ -21,6 +21,24 @@ def _mime_from_file(file_obj):
     return mime or ''
 
 
+def youtube_embed_url(url):
+    """Convert a YouTube watch/share URL into an embeddable URL.
+    Falls back to the original URL for non-YouTube links (e.g. Vimeo)."""
+    if not url:
+        return ''
+    url = url.strip()
+    video_id = ''
+    if 'youtu.be/' in url:
+        video_id = url.split('youtu.be/')[-1].split('?')[0].split('&')[0]
+    elif 'watch?v=' in url:
+        video_id = url.split('watch?v=')[-1].split('&')[0]
+    elif '/embed/' in url:
+        return url
+    if video_id:
+        return f'https://www.youtube.com/embed/{video_id}'
+    return url
+
+
 def validate_upload(file_obj, content_type):
     if not file_obj:
         return None  # optional — let caller decide

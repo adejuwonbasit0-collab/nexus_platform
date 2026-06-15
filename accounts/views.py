@@ -227,12 +227,13 @@ def profile_view(request):
 
         return redirect('profile')
 
-    # Get wallet info
+    # Wallet info — only relevant for creators/admins who can actually earn money
     wallet = None
-    try:
-        wallet = user.wallet
-    except Exception:
-        pass
+    if user.is_creator():
+        try:
+            wallet = user.wallet
+        except Exception:
+            pass
 
     download_history = []
     try:

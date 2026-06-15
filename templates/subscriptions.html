@@ -115,54 +115,15 @@
   </div>
 
   {% else %}
-  {# Fallback default plans when none exist in DB #}
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;align-items:start;">
-
-    <div class="plan-card">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--tx2);margin-bottom:8px;">Free</div>
-      <div style="font-size:14px;color:var(--tx2);min-height:40px;">Explore the platform at no cost</div>
-      <div class="plan-price"><sup>$</sup>0<sub>/mo</sub></div>
-      <div style="margin-bottom:28px;margin-top:20px;">
-        <div class="plan-feature active"><span class="ck">✓</span> Access all free content</div>
-        <div class="plan-feature active"><span class="ck">✓</span> Browse movies, music & gallery</div>
-        <div class="plan-feature active"><span class="ck">✓</span> Standard definition streaming</div>
-        <div class="plan-feature"><span class="nx">✕</span> Premium content</div>
-        <div class="plan-feature"><span class="nx">✕</span> HD downloads</div>
-        <div class="plan-feature"><span class="nx">✕</span> AI Studio</div>
-      </div>
-      <a href="/auth/register/" class="btn btn-outline" style="width:100%;justify-content:center;font-size:15px;padding:13px;">Sign Up Free</a>
+  <div class="empty" style="padding:80px 24px;">
+    <div class="empty-icon">💎</div>
+    <h3>No subscription plans yet</h3>
+    <p>Plans created in the admin panel under Monetization will appear here automatically.</p>
+    {% if user.is_staff or user.is_superuser %}
+    <div style="margin-top:24px;">
+      <a href="/admin-panel/monetization/" class="btn btn-primary btn-sm">Create a plan</a>
     </div>
-
-    <div class="plan-card featured">
-      <div class="plan-badge">Most Popular</div>
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ac);margin-bottom:8px;">Premium</div>
-      <div style="font-size:14px;color:var(--tx2);min-height:40px;">Unlock the full NEXUS experience</div>
-      <div class="plan-price" style="background:linear-gradient(135deg,var(--ac),var(--ac2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;"><sup style="-webkit-text-fill-color:transparent;">$</sup>9.99<sub style="-webkit-text-fill-color:var(--tx2);">/mo</sub></div>
-      <div style="margin-bottom:28px;margin-top:20px;">
-        <div class="plan-feature active"><span class="ck">✓</span> Everything in Free</div>
-        <div class="plan-feature active"><span class="ck">✓</span> All premium content</div>
-        <div class="plan-feature active"><span class="ck">✓</span> HD & 4K downloads</div>
-        <div class="plan-feature active"><span class="ck">✓</span> AI Studio (image generation)</div>
-        <div class="plan-feature active"><span class="ck">✓</span> Early access to new releases</div>
-        <div class="plan-feature active"><span class="ck">✓</span> Support creators directly</div>
-      </div>
-      <a href="/auth/register/?next=/subscriptions/" class="btn btn-primary" style="width:100%;justify-content:center;font-size:15px;padding:13px;">✨ Get Premium</a>
-    </div>
-
-    <div class="plan-card">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--tx2);margin-bottom:8px;">Creator Pro</div>
-      <div style="font-size:14px;color:var(--tx2);min-height:40px;">For serious creators and power users</div>
-      <div class="plan-price"><sup>$</sup>24.99<sub>/mo</sub></div>
-      <div style="margin-bottom:28px;margin-top:20px;">
-        <div class="plan-feature active"><span class="ck">✓</span> Everything in Premium</div>
-        <div class="plan-feature active"><span class="ck">✓</span> Creator dashboard & analytics</div>
-        <div class="plan-feature active"><span class="ck">✓</span> Upload up to 500 MB/file</div>
-        <div class="plan-feature active"><span class="ck">✓</span> Revenue sharing</div>
-        <div class="plan-feature active"><span class="ck">✓</span> Priority support</div>
-        <div class="plan-feature active"><span class="ck">✓</span> Verified creator badge</div>
-      </div>
-      <a href="/auth/register/?role=creator" class="btn btn-outline" style="width:100%;justify-content:center;font-size:15px;padding:13px;">Become a Creator</a>
-    </div>
+    {% endif %}
   </div>
   {% endif %}
 

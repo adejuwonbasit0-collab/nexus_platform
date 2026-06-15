@@ -135,7 +135,11 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_AGE = 86400 * 14  # 14 days
 CSRF_COOKIE_SECURE = not DEBUG
-CSRF_COOKIE_HTTPONLY = True
+# Must be readable by JS (getCookie('csrftoken')) — many AJAX actions
+# (like/comment buttons across movies, music, blog, images) read this
+# cookie to set the X-CSRFToken / csrfmiddlewaretoken value. HttpOnly
+# was blocking ALL of these requests with 403 CSRF failures.
+CSRF_COOKIE_HTTPONLY = False
 
 # ── Security Headers ──────────────────────────────────────────────────────────
 if not DEBUG:

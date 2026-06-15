@@ -24,8 +24,13 @@ def site_settings(request):
     if nav_pages is None:
         try:
             from cms.models import StaticPage
+            HARDCODED_FOOTER_SLUGS = {'about', 'contact', 'faq', 'terms', 'privacy', 'privacy-policy', 'terms-of-service'}
             nav_pages    = list(StaticPage.objects.filter(show_in_nav=True,    status='published').values('title','slug'))
-            footer_pages = list(StaticPage.objects.filter(show_in_footer=True, status='published').values('title','slug'))
+            footer_pages = list(
+                StaticPage.objects.filter(show_in_footer=True, status='published')
+                .exclude(slug__in=HARDCODED_FOOTER_SLUGS)
+                .values('title','slug')
+            )
         except Exception:
             nav_pages = []
             footer_pages = []

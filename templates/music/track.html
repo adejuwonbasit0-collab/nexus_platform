@@ -309,8 +309,5 @@ async function postComment(pk) {
 {% if track.audio_file %}
 document.getElementById('main-player').src = '{{ track.audio_file.url }}';
 {% endif %}
-// shareContent defined globally in base.html).catch(()=>{}); return; }
-  navigator.clipboard.writeText(url).then(()=>showToast('Link copied!','s')).catch(()=>{});
-}
 </script>
 {% endblock %}

@@ -1,4 +1,5 @@
 {% extends 'admin_panel/base_admin.html' %}
+{% load nexus_extras %}
 {% block admin_title %}CMS Center{% endblock %}
 {% block topbar_title %}CMS Center{% endblock %}
 {% block content %}
@@ -216,10 +217,11 @@
 <div class="tab-panel {% if active_tab == 'menus' %}active{% endif %}" data-group="cms" data-id="menus">
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;">
   {% for loc_val, loc_label in menu_locs %}
-  {% for menu in menus %}{% if menu.location == loc_val %}
+  {% with menu=menus_by_location|get_item:loc_val %}
   <div class="panel">
     <div class="panel-head"><span class="panel-title">{{ loc_label }}</span><span class="badge badge-{% if menu.is_active %}green{% else %}gray{% endif %}">{% if menu.is_active %}Active{% else %}Off{% endif %}</span></div>
     <div class="panel-body" style="padding:12px;">
+      {% if menu %}
       {% for item in menu.items.all %}
       <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;background:rgba(255,255,255,.03);margin-bottom:6px;">
         {% if item.icon %}<span style="font-size:14px;">{{ item.icon }}</span>{% endif %}
@@ -227,7 +229,12 @@
         <code style="font-size:10px;color:var(--text3);">{{ item.url }}</code>
         <form method="post" style="display:inline;"><input type="hidden" name="_action" value="menu_delete_item"><input type="hidden" name="item_pk" value="{{ item.pk }}">{% csrf_token %}<button class="btn-icon btn-xs" style="font-size:11px;">×</button></form>
       </div>
+      {% empty %}
+      <p style="color:var(--text2);font-size:12px;margin-bottom:8px;">No items yet.</p>
       {% endfor %}
+      {% else %}
+      <p style="color:var(--text2);font-size:12px;margin-bottom:8px;">No items yet.</p>
+      {% endif %}
       <form method="post" style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr auto;gap:6px;align-items:end;">
         <input type="hidden" name="_action" value="menu_add_item"><input type="hidden" name="location" value="{{ loc_val }}">{% csrf_token %}
         <div><input class="finput" name="label" placeholder="Label" style="padding:7px 10px;font-size:12px;" required></div>
@@ -236,9 +243,7 @@
       </form>
     </div>
   </div>
-  {% endif %}{% endfor %}
-  {% empty %}
-  <p style="color:var(--text2);">No menus configured.</p>
+  {% endwith %}
   {% endfor %}
 </div>
 </div>

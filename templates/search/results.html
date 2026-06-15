@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load nexus_extras %}
 {% block title %}{% if q %}Search: {{ q }}{% else %}Search{% endif %} — NEXUS{% endblock %}
 {% block content %}
 
@@ -60,7 +61,7 @@
             {% endif %}
             <div style="padding:12px 14px;">
               <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;color:var(--tx);">
-                {{ item.title|default:item.name|default:item.username }}
+                {{ item|display_name }}
               </div>
               <div style="font-size:11px;color:var(--tx2);">
                 {% if item.artist %}{{ item.artist.name }}

@@ -34,8 +34,8 @@ def image_browse(request):
     page = Paginator(qs, 24).get_page(request.GET.get('page', 1))
     categories = ImageCategory.objects.all()
     return render(request, 'images/browse.html', {
-        'page': page, 'q': q, 'active_cat': cat,
-        'resolution': res, 'sort': sort, 'categories': categories,
+        'images': page, 'q': q, 'active_cat': cat,
+        'resolution': res, 'sort': sort, 'cats': categories,
     })
 
 

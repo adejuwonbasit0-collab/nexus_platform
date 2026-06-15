@@ -100,21 +100,11 @@
   <div class="bg">
     {% for item in items %}
     {# ─ Route directly to the correct detail page ─ #}
-    {% if item.content_type == 'video' %}
-      {% if item.slug %}<a href="/movies/film/{{ item.slug }}/" class="bc">{% else %}<a href="/movies/" class="bc">{% endif %}
-    {% elif item.content_type == 'music' %}
-      {% if item.slug %}<a href="/music/track/{{ item.slug }}/" class="bc">{% else %}<a href="/music/" class="bc">{% endif %}
-    {% elif item.content_type == 'image' %}
-      {% if item.slug %}<a href="/images/view/{{ item.slug }}/" class="bc">{% else %}<a href="/images/" class="bc">{% endif %}
-    {% elif item.content_type == 'blog' %}
-      {% if item.slug %}<a href="/blog/post/{{ item.slug }}/" class="bc">{% else %}<a href="/blog/" class="bc">{% endif %}
-    {% else %}
-      <a href="/content/{{ item.pk }}/" class="bc">
-    {% endif %}
+    <a href="{{ item.display_url }}" class="bc">
 
       <div class="bc-thumb" style="aspect-ratio:{% if item.content_type == 'image' %}4/3{% elif item.content_type == 'music' %}1/1{% else %}16/9{% endif %}">
-        {% if item.thumbnail %}
-          <img src="{{ item.thumbnail.url }}" alt="{{ item.title }}">
+        {% if item.display_thumb %}
+          <img src="{{ item.display_thumb }}" alt="{{ item.title }}">
         {% else %}
           <div class="bc-ph" style="aspect-ratio:{% if item.content_type == 'image' %}4/3{% elif item.content_type == 'music' %}1/1{% else %}16/9{% endif %}">
             {% if item.content_type == 'video' %}🎬

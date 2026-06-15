@@ -42,10 +42,19 @@ def home(request):
     })
 
 
-def content_detail(request, pk):
-    obj = get_object_or_404(Content, pk=pk, status='approved')
+def content_detail(request, slug):
+    obj = get_object_or_404(Content, slug=slug, status='approved')
+
+    # If a matching Movie/Track/Image/Post exists, send the user straight
+    # to its real detail page instead of the generic content view.
+    match = _find_type_match(obj.content_type, obj.title)
+    if match:
+        url = _type_match_url(obj.content_type, match)
+        if url:
+            return redirect(url)
+
     # Track view (deduplicate by session key to avoid page-refresh spam)
-    session_key = f'viewed_{pk}'
+    session_key = f'viewed_{obj.pk}'
     if not request.session.get(session_key):
         View.objects.create(
             content=obj,
@@ -59,7 +68,7 @@ def content_detail(request, pk):
     comments   = obj.comments.order_by('-created_at')[:20]
     related    = Content.objects.filter(
         content_type=obj.content_type, status='approved'
-    ).exclude(pk=pk)[:6]
+    ).exclude(pk=obj.pk)[:6]
     user_liked = (
         Like.objects.filter(user=request.user, content=obj).exists()
         if request.user.is_authenticated else False
@@ -141,6 +150,92 @@ def stream_video(request, pk):
     return FileResponse(open(file_path, 'rb'), content_type=content_type)
 
 
+def _find_type_match(content_type, title):
+    """Look up a Movie/Track/Image/Post with a matching title for this
+    content_type. Returns the matched object, or None."""
+    try:
+        if content_type == 'video':
+            from movies.models import Movie
+            return Movie.objects.filter(title=title, is_published=True).first()
+        if content_type == 'music':
+            from music.models import Track
+            return Track.objects.filter(title=title, is_published=True).first()
+        if content_type == 'image':
+            from images.models import Image
+            return Image.objects.filter(title=title, is_published=True).first()
+        if content_type == 'blog':
+            from blog.models import Post
+            return Post.objects.filter(title=title, status='published').first()
+    except Exception:
+        pass
+    return None
+
+
+def _type_match_url(content_type, match):
+    if content_type == 'video':
+        return f'/movies/film/{match.slug}/'
+    if content_type == 'music':
+        return f'/music/track/{match.slug}/'
+    if content_type == 'image':
+        return f'/images/view/{match.slug}/'
+    if content_type == 'blog':
+        return f'/blog/post/{match.slug}/'
+    return None
+
+
+def _attach_display_info(items):
+    """Content rows are a generic, type-agnostic feed and often lack their
+    own thumbnail/slug. Where a matching Movie/Track/Image/Post exists
+    (same title + type), borrow its thumbnail and link to its real detail
+    page instead of the generic /content/<pk>/ fallback."""
+    by_type = {}
+    for it in items:
+        by_type.setdefault(it.content_type, set()).add(it.title)
+
+    matches = {}
+    if by_type.get('video'):
+        from movies.models import Movie
+        for m in Movie.objects.filter(title__in=by_type['video'], is_published=True):
+            matches[('video', m.title)] = m
+    if by_type.get('music'):
+        from music.models import Track
+        for t in Track.objects.filter(title__in=by_type['music'], is_published=True):
+            matches[('music', t.title)] = t
+    if by_type.get('image'):
+        from images.models import Image
+        for i in Image.objects.filter(title__in=by_type['image'], is_published=True):
+            matches[('image', i.title)] = i
+    if by_type.get('blog'):
+        from blog.models import Post
+        for p in Post.objects.filter(title__in=by_type['blog'], status='published'):
+            matches[('blog', p.title)] = p
+
+    for it in items:
+        match = matches.get((it.content_type, it.title))
+        display_thumb = it.thumbnail.url if it.thumbnail else None
+        display_url   = f'/content/{it.slug}/'
+        slug = ''
+        if match:
+            slug = match.slug
+            if it.content_type == 'video':
+                display_url = f'/movies/film/{match.slug}/'
+                if match.thumbnail: display_thumb = match.thumbnail.url
+            elif it.content_type == 'music':
+                display_url = f'/music/track/{match.slug}/'
+                cover = getattr(match, 'cover_image', None) or getattr(match, 'cover', None)
+                if cover: display_thumb = cover.url
+            elif it.content_type == 'image':
+                display_url = f'/images/view/{match.slug}/'
+                if match.image_file: display_thumb = match.image_file.url
+            elif it.content_type == 'blog':
+                display_url = f'/blog/post/{match.slug}/'
+                if match.featured_img: display_thumb = match.featured_img.url
+        it.slug = slug
+        it.display_thumb = display_thumb
+        it.display_url = display_url
+    return items
+
+
 def browse(request):
     content_type = request.GET.get('type', '')
     tier         = request.GET.get('tier', '')
@@ -159,6 +254,7 @@ def browse(request):
 
     from django.core.paginator import Paginator
     page = Paginator(items, 24).get_page(request.GET.get('page', 1))
+    _attach_display_info(page.object_list)
     return render(request, 'content/browse.html', {
         'items': page, 'q': q,
         'active_type': content_type, 'active_tier': tier, 'sort': sort,
@@ -172,7 +268,7 @@ def download_content(request, pk):
 
     if not obj.file:
         messages.error(request, 'This content has no downloadable file.')
-        return redirect('content_detail', pk=pk)
+        return redirect('content_detail', slug=obj.slug)
 
     if obj.tier == 'premium':
         # Check if user has a completed payment for this content
@@ -186,7 +282,7 @@ def download_content(request, pk):
         )
         if not paid and not is_creator_or_admin:
             messages.error(request, 'This is premium content. Please purchase to download.')
-            return redirect('content_detail', pk=pk)
+            return redirect('content_detail', slug=obj.slug)
 
     Download.objects.create(
         content=obj, user=request.user,
@@ -237,7 +333,7 @@ def toggle_like(request, pk):
 @require_POST
 def add_comment(request, pk):
     if not request.user.is_authenticated:
-        return JsonResponse({"success":False,"error":"login_required"},status=401)
+        return JsonResponse({"ok":False,"error":"login_required"},status=401)
     obj  = get_object_or_404(Content, pk=pk)
     text = request.POST.get('text', '').strip()
     if text:

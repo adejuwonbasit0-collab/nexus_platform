@@ -286,6 +286,7 @@ def cms_hub(request):
     ctx['hp_sections']  = HomepageSection.objects.all()
     ctx['hp_types']     = HomepageSection.SECTION_TYPES
     ctx['menus']        = Menu.objects.prefetch_related('items__children').all()
+    ctx['menus_by_location'] = {m.location: m for m in ctx['menus']}
     ctx['menu_locs']    = Menu.LOCATIONS
     ctx['pages']        = StaticPage.objects.all().order_by('title')
     ctx['global_seo']   = GlobalSEO.get()

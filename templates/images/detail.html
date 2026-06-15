@@ -2,172 +2,132 @@
 {% block title %}{{ image.title }} — NEXUS Gallery{% endblock %}
 {% block extra_head %}
 <style>
-.img-view-layout{display:grid;grid-template-columns:1fr 320px;gap:28px;max-width:1100px;margin:0 auto;padding:28px 20px 80px;}
-.img-main-wrap{background:rgba(0,0,0,.6);border-radius:16px;overflow:hidden;border:1px solid var(--bd);text-align:center;}
-.img-main-wrap img{max-width:100%;max-height:80vh;display:block;margin:0 auto;object-fit:contain;}
-.sidebar-card{background:rgba(255,255,255,.03);border:1px solid var(--bd);border-radius:14px;padding:22px;margin-bottom:16px;}
-.action-btn{flex:1;padding:11px;border-radius:9px;border:1px solid var(--bd);background:rgba(255,255,255,.04);color:var(--tx2);cursor:pointer;font-size:13px;font-weight:600;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;}
-.action-btn:hover{background:rgba(124,92,252,.1);border-color:rgba(124,92,252,.3);color:var(--ac);}
-.action-btn.liked{background:rgba(124,92,252,.15);border-color:rgba(124,92,252,.3);color:var(--ac);}
-.tag-link{padding:4px 12px;border-radius:20px;background:rgba(255,255,255,.05);border:1px solid var(--bd);color:var(--tx2);font-size:12px;text-decoration:none;transition:all .12s;}
-.tag-link:hover{border-color:var(--ac);color:var(--ac);}
-.comment-item{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--bd);}
-.c-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--ac),var(--ac2));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;}
-@media(max-width:768px){.img-view-layout{grid-template-columns:1fr;}}
+.ig-layout{display:grid;grid-template-columns:1fr 300px;gap:28px;max-width:1100px;margin:0 auto;padding:28px 20px 80px}
+.img-main{background:rgba(0,0,0,.7);border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.07);text-align:center;box-shadow:0 12px 48px rgba(0,0,0,.5)}
+.img-main img{max-width:100%;max-height:80vh;object-fit:contain;display:block;margin:0 auto}
+.panel{background:rgba(255,255,255,.03);border:1px solid var(--bd);border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.25);margin-bottom:16px}
+.panel-head{padding:14px 18px;border-bottom:1px solid var(--bd);font-family:'Syne',sans-serif;font-weight:700;font-size:13px}
+.panel-body{padding:18px}
+.act-btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:9px;border:1px solid var(--bd);background:rgba(255,255,255,.04);color:var(--tx2);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;flex:1;justify-content:center}
+.act-btn:hover{background:rgba(255,255,255,.09);color:var(--tx)}
+.act-btn.liked{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.25);color:#ef4444}
+.c-av{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--ac),var(--ac2));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.comment-item{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--bd)}
+.det-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--bd);font-size:13px}
+.det-row:last-child{border-bottom:none}
+@media(max-width:900px){.ig-layout{grid-template-columns:1fr;padding:16px 14px 60px}}
 </style>
 {% endblock %}
 {% block content %}
-<div class="img-view-layout">
-
-  {# MAIN IMAGE + COMMENTS #}
+<div class="ig-layout">
   <div>
-    <div class="img-main-wrap">
-      {% if image.image_file %}
-      <img src="{{ image.image_file.url }}" alt="{{ image.title }}">
-      {% else %}
-      <div style="height:400px;display:flex;align-items:center;justify-content:center;font-size:5rem;background:linear-gradient(135deg,rgba(124,92,252,.1),rgba(255,77,109,.06));">🖼</div>
-      {% endif %}
+    <div class="img-main">
+      {% if image.image_file %}<img src="{{ image.image_file.url }}" alt="{{ image.title }}">
+      {% else %}<div style="height:300px;display:flex;align-items:center;justify-content:center;font-size:5rem;color:var(--tx3)">🖼</div>{% endif %}
     </div>
-
-    {# DESCRIPTION #}
     {% if image.description %}
-    <div class="sidebar-card" style="margin-top:16px;">
-      <p style="font-size:14px;color:var(--tx2);line-height:1.7;margin:0;">{{ image.description }}</p>
+    <div style="margin-top:14px;padding:16px 18px;background:rgba(255,255,255,.03);border:1px solid var(--bd);border-radius:12px">
+      <p style="font-size:14px;color:var(--tx2);line-height:1.7;margin:0">{{ image.description }}</p>
     </div>
     {% endif %}
-
-    {# COMMENTS #}
-    <div class="sidebar-card" style="margin-top:16px;">
-      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:16px;">💬 Comments</div>
-      {% if user.is_authenticated %}
-      <div style="display:flex;gap:10px;margin-bottom:20px;">
-        <div class="c-avatar">{{ user.username|slice:":1"|upper }}</div>
-        <div style="flex:1;">
-          <input id="comment-input" type="text" placeholder="Add a comment…" style="width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:9px;padding:10px 14px;color:var(--tx);font-size:13px;outline:none;transition:border-color .15s;" onfocus="this.style.borderColor='var(--ac)'" onblur="this.style.borderColor='var(--bd)'">
-          <button onclick="postComment({{ image.pk }})" class="btn btn-primary btn-sm" style="margin-top:8px;">Post</button>
-        </div>
-      </div>
-      {% else %}
-      <p style="color:var(--tx2);font-size:13px;margin-bottom:16px;"><a href="/auth/login/" style="color:var(--ac);">Log in</a> to comment.</p>
-      {% endif %}
-      <div id="comments-list">
-        {% for c in comments %}
-        <div class="comment-item">
-          <div class="c-avatar">{{ c.user.username|slice:":1"|upper }}</div>
-          <div>
-            <div style="font-size:13px;font-weight:600;color:var(--tx);margin-bottom:2px;">
-              {{ c.user.username }} <span style="font-size:11px;color:var(--tx3);font-weight:400;">· {{ c.created_at|timesince }} ago</span>
-            </div>
-            <div style="font-size:13px;color:var(--tx2);line-height:1.6;">{{ c.text }}</div>
+    <div class="panel" style="margin-top:16px">
+      <div class="panel-head">💬 Comments ({{ comments|length }})</div>
+      <div class="panel-body">
+        {% if user.is_authenticated %}
+        <div style="display:flex;gap:10px;margin-bottom:18px">
+          <div class="c-av">{{ user.username|slice:":1"|upper }}</div>
+          <div style="flex:1">
+            <input id="comment-input" type="text" placeholder="Add a comment…" class="form-input" style="margin-bottom:8px">
+            <button onclick="postImageComment({{ image.pk }})" class="btn btn-primary btn-sm">Post</button>
           </div>
         </div>
-        {% empty %}
-        <p style="color:var(--tx3);font-size:13px;">No comments yet. Be the first!</p>
-        {% endfor %}
+        {% else %}
+        <p style="color:var(--tx2);font-size:13px;margin-bottom:16px"><a href="/auth/login/" style="color:var(--ac)">Sign in</a> to comment.</p>
+        {% endif %}
+        <div id="comments-list">
+          {% for cm in comments %}
+          <div class="comment-item">
+            <div class="c-av">{{ cm.user.username|slice:":1"|upper }}</div>
+            <div><div style="font-size:13px;font-weight:600;margin-bottom:2px">{{ cm.user.username }} <span style="font-size:11px;color:var(--tx2);font-weight:400">· {{ cm.created_at|timesince }} ago</span></div>
+            <div style="font-size:13px;color:var(--tx2)">{{ cm.text }}</div></div>
+          </div>
+          {% empty %}<p style="color:var(--tx2);font-size:13px;text-align:center;padding:18px 0">No comments yet.</p>{% endfor %}
+        </div>
       </div>
     </div>
   </div>
 
-  {# SIDEBAR #}
-  <aside style="position:sticky;top:76px;align-self:start;">
-    <div class="sidebar-card">
-      <h1 style="font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:var(--tx);margin-bottom:12px;line-height:1.3;">{{ image.title }}</h1>
-
-      <div style="display:flex;flex-direction:column;gap:7px;font-size:13px;color:var(--tx2);margin-bottom:16px;">
-        {% if image.category %}
-        <div>📁 <a href="/images/browse/?cat={{ image.category.slug }}" style="color:var(--ac);text-decoration:none;">{{ image.category.name }}</a></div>
+  <aside style="align-self:start;position:sticky;top:80px">
+    <div class="panel">
+      <div class="panel-body">
+        <h1 style="font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;margin-bottom:12px;line-height:1.3">{{ image.title }}</h1>
+        <div class="det-row"><span style="color:var(--tx2)">Resolution</span><span style="font-weight:500">{{ image.resolution|default:"HD"|upper }}</span></div>
+        {% if image.category %}<div class="det-row"><span style="color:var(--tx2)">Category</span><a href="/images/browse/?cat={{ image.category.slug }}" style="color:var(--ac)">{{ image.category.name }}</a></div>{% endif %}
+        <div class="det-row"><span style="color:var(--tx2)">Views</span><span>{{ image.views_count|default:0 }}</span></div>
+        <div class="det-row"><span style="color:var(--tx2)">Downloads</span><span>{{ image.downloads_count|default:0 }}</span></div>
+        {% if image.uploaded_by %}<div class="det-row"><span style="color:var(--tx2)">Creator</span><span>{{ image.uploaded_by.username }}</span></div>{% endif %}
+        <div class="det-row"><span style="color:var(--tx2)">Tier</span><span>{% if image.is_premium %}⭐ Premium{% else %}Free{% endif %}</span></div>
+        {% if image.tags.all %}
+        <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:5px">
+          {% for t in image.tags.all %}<a href="/images/browse/?tag={{ t.slug }}" class="tag" style="font-size:11px">#{{ t.name }}</a>{% endfor %}
+        </div>
         {% endif %}
-        <div>📐 {{ image.resolution|upper }}{% if image.width and image.height %} · {{ image.width }}×{{ image.height }}{% endif %}</div>
-        <div>👁 {{ image.views_count }} views · ⬇ {{ image.downloads_count }} downloads</div>
-        {% if image.uploaded_by %}
-        <div>👤 by <a href="/admin-panel/users/{{ image.uploaded_by.pk }}/" style="color:var(--ac);text-decoration:none;">{{ image.uploaded_by.username }}</a></div>
-        {% endif %}
-      </div>
-
-      {% if image.tags.all %}
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;">
-        {% for t in image.tags.all %}<a href="/images/browse/?tag={{ t.slug }}" class="tag-link">#{{ t.name }}</a>{% endfor %}
-      </div>
-      {% endif %}
-
-      {% if image.is_premium %}
-      <div style="background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.2);border-radius:9px;padding:12px 14px;font-size:12px;color:var(--ac);margin-bottom:14px;">
-        ⭐ Premium content — requires a subscription
-      </div>
-      {% endif %}
-
-      <a href="/images/download/{{ image.pk }}/" class="btn btn-primary" style="width:100%;justify-content:center;margin-bottom:10px;">
-        ⬇ Download Image
-      </a>
-
-      <div style="display:flex;gap:8px;margin-top:6px;">
-        {% if user.is_authenticated %}
-        <button id="like-btn" onclick="toggleLike({{ image.pk }})" class="action-btn {% if user_liked %}liked{% endif %}">
-          ♥ <span id="like-count">{{ image.likes_count }}</span>
-        </button>
-        {% endif %}
-        <button onclick="shareContent('{{ image.title|escapejs }}','/images/view/{{ image.slug }}/')" class="action-btn">↗ Share</button>
       </div>
     </div>
-
+    <a href="/images/download/{{ image.pk }}/" class="btn btn-primary" style="width:100%;justify-content:center;margin-bottom:10px">⬇ Download</a>
+    <div style="display:flex;gap:8px">
+      {% if user.is_authenticated %}
+      <button id="like-btn" onclick="toggleImageLike({{ image.pk }},this)" class="act-btn {% if user_liked %}liked{% endif %}">♥ <span id="like-count">{{ image.likes_count|default:0 }}</span></button>
+      {% endif %}
+      <button onclick="shareContent('{{ image.title|escapejs }}','/images/view/{{ image.slug }}/')" class="act-btn">↗ Share</button>
+    </div>
     {% if related %}
-    <div class="sidebar-card">
-      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;margin-bottom:14px;">🖼 Related</div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
-        {% for r in related %}
-        <a href="/images/view/{{ r.slug }}/" style="display:block;border-radius:8px;overflow:hidden;aspect-ratio:1;text-decoration:none;">
-          {% if r.image_file %}
-          <img src="{{ r.image_file.url }}" style="width:100%;height:100%;object-fit:cover;display:block;transition:transform .2s;" onmouseover="this.style.transform='scale(1.07)'" onmouseout="this.style.transform=''">
-          {% else %}
-          <div style="width:100%;height:100%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:1.5rem;">🖼</div>
-          {% endif %}
-        </a>
-        {% endfor %}
+    <div class="panel" style="margin-top:16px">
+      <div class="panel-head">🖼 Related</div>
+      <div class="panel-body" style="padding:10px">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+          {% for r in related %}<a href="/images/view/{{ r.slug }}/" style="display:block;border-radius:7px;overflow:hidden;aspect-ratio:1">
+            {% if r.image_file %}<img src="{{ r.image_file.url }}" style="width:100%;height:100%;object-fit:cover">{% else %}<div style="width:100%;height:100%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:1.2rem">🖼</div>{% endif %}
+          </a>{% endfor %}
+        </div>
       </div>
     </div>
     {% endif %}
   </aside>
 </div>
 {% endblock %}
+
 {% block scripts %}
 <script>
-async function postComment(pk) {
-  const inp = document.getElementById('comment-input');
-  const text = inp.value.trim();
-  if (!text) return;
-  const fd = new FormData();
-  fd.append('text', text);
-  fd.append('csrfmiddlewaretoken', getCookie('csrftoken'));
-  const r = await fetch(`/images/comment/${pk}/`, {method: 'POST', body: fd});
-  const d = await r.json();
-  if (d.ok) {
-    inp.value = '';
-    const list = document.getElementById('comments-list');
-    const div = document.createElement('div');
-    div.className = 'comment-item';
-    div.innerHTML = `<div class="c-avatar">${d.username[0].toUpperCase()}</div><div><div style="font-size:13px;font-weight:600;color:var(--tx);margin-bottom:2px;">${d.username} <span style="font-size:11px;color:var(--tx3);font-weight:400;">· just now</span></div><div style="font-size:13px;color:var(--tx2);line-height:1.6;">${d.text}</div></div>`;
-    list.prepend(div);
-    showToast('Comment posted! ✓');
-  }
+async function toggleImageLike(pk,btn){
+  if(!{{ user.is_authenticated|yesno:'true,false' }}){showToast('Sign in to like ❤️','w');return;}
+  const fd=new FormData();fd.append('csrfmiddlewaretoken',getCookie('csrftoken'));
+  try{
+    const r=await fetch(`/images/like/${pk}/`,{method:'POST',body:fd});
+    if(r.status===401){showToast('Sign in to like ❤️','w');return;}
+    const d=await r.json();
+    if(d.error==='login_required'){showToast('Sign in','w');return;}
+    document.getElementById('like-count').textContent=d.count;
+    btn.classList.toggle('liked',d.liked);
+  }catch(e){showToast('Error','e');}
 }
-async function toggleLike(pk) {
-  const fd = new FormData();
-  fd.append('csrfmiddlewaretoken', getCookie('csrftoken'));
-  const r = await fetch(`/images/like/${pk}/`, {method: 'POST', body: fd});
-  const d = await r.json();
-  document.getElementById('like-count').textContent = d.count;
-  const btn = document.getElementById('like-btn');
-  if (d.liked) {
-    btn.classList.add('liked');
-    btn.style.background = 'rgba(124,92,252,.15)';
-    btn.style.color = 'var(--ac)';
-    btn.style.borderColor = 'rgba(124,92,252,.3)';
-  } else {
-    btn.classList.remove('liked');
-    btn.style.background = 'rgba(255,255,255,.04)';
-    btn.style.color = 'var(--tx2)';
-    btn.style.borderColor = 'var(--bd)';
-  }
+async function postImageComment(pk){
+  if(!{{ user.is_authenticated|yesno:'true,false' }}){showToast('Sign in to comment','w');return;}
+  const inp=document.getElementById('comment-input');
+  const text=inp.value.trim();if(!text)return;
+  const fd=new FormData();fd.append('text',text);fd.append('csrfmiddlewaretoken',getCookie('csrftoken'));
+  try{
+    const r=await fetch(`/images/comment/${pk}/`,{method:'POST',body:fd});
+    if(r.status===401){showToast('Sign in','w');return;}
+    const d=await r.json();
+    if(d.ok){
+      inp.value='';
+      const list=document.getElementById('comments-list');
+      const el=document.createElement('div');el.className='comment-item';
+      el.innerHTML=`<div class="c-av">${d.username[0].toUpperCase()}</div><div><div style="font-size:13px;font-weight:600;margin-bottom:2px">${d.username} <span style="font-size:11px;color:var(--tx2)">· just now</span></div><div style="font-size:13px;color:var(--tx2)">${d.text}</div></div>`;
+      list.prepend(el);showToast('Comment posted ✓','s');
+    }
+  }catch(e){showToast('Error','e');}
 }
 </script>
 {% endblock %}

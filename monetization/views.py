@@ -11,6 +11,7 @@ import urllib.error
 from datetime import datetime, timezone
 
 from django.shortcuts import get_object_or_404, redirect, render
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
@@ -285,7 +286,10 @@ def subscribe(request, plan_slug):
 
 @login_required
 def wallet_dashboard(request):
-    """User's wallet and transaction history."""
+    """User's wallet and transaction history (creators/admins only)."""
+    if not request.user.is_creator():
+        messages.info(request, "Wallets are only available for creator accounts.")
+        return redirect('user_dashboard')
     from .models import Wallet, WalletTransaction, WithdrawalRequest
     wallet, _ = Wallet.objects.get_or_create(user=request.user)
     transactions = WalletTransaction.objects.filter(wallet=wallet).order_by('-created_at')[:30]

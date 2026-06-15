@@ -185,47 +185,6 @@ def global_search(request):
     })
 
 
-def content_detail(request, pk):
-    """Smart redirect to the proper detail page for this content type."""
-    try:
-        obj = Content.objects.get(pk=pk, status='approved')
-    except Content.DoesNotExist:
-        from django.http import Http404
-        raise Http404
-
-    # Redirect to proper page
-    if obj.slug:
-        if obj.content_type == 'video':
-            try:
-                from movies.models import Movie
-                m = Movie.objects.filter(slug=obj.slug).first()
-                if m: return redirect(f'/movies/film/{m.slug}/')
-            except Exception: pass
-        elif obj.content_type == 'music':
-            try:
-                from music.models import Track
-                t = Track.objects.filter(slug=obj.slug).first()
-                if t: return redirect(f'/music/track/{t.slug}/')
-            except Exception: pass
-        elif obj.content_type == 'image':
-            try:
-                from images.models import Image
-                img = Image.objects.filter(slug=obj.slug).first()
-                if img: return redirect(f'/images/view/{img.slug}/')
-            except Exception: pass
-        elif obj.content_type == 'blog':
-            try:
-                from blog.models import Post
-                p = Post.objects.filter(slug=obj.slug).first()
-                if p: return redirect(f'/blog/post/{p.slug}/')
-            except Exception: pass
-
-    # Fallback generic page
-    obj.views = (obj.views or 0) + 1
-    obj.save(update_fields=['views'])
-    return render(request, 'content/detail.html', {'content': obj, 'obj': obj})
-
-
 def trending_view(request):
     """Trending content across all modules."""
     trending_movies = []
@@ -272,13 +231,14 @@ def user_dashboard(request):
     except Exception:
         pass
 
-    # Wallet
+    # Wallet — only relevant for creators/admins who can actually earn money
     wallet = None
-    try:
-        from monetization.models import Wallet
-        wallet, _ = Wallet.objects.get_or_create(user=user)
-    except Exception:
-        pass
+    if user.is_creator():
+        try:
+            from monetization.models import Wallet
+            wallet, _ = Wallet.objects.get_or_create(user=user)
+        except Exception:
+            pass
 
     # Liked music
     liked_tracks = []

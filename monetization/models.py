@@ -296,6 +296,7 @@ class SubscriptionPlan(models.Model):
     """Configurable subscription tiers."""
     name        = models.CharField(max_length=100)
     slug        = models.SlugField(unique=True)
+    description = models.CharField(max_length=255, blank=True, default='')
     price       = models.DecimalField(max_digits=10, decimal_places=2)
     currency    = models.CharField(max_length=5, default='NGN')
     interval    = models.CharField(max_length=20,

@@ -40,6 +40,7 @@ class Content(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='contents'
     )
     title        = models.CharField(max_length=200)
+    slug         = models.SlugField(max_length=220, unique=True, blank=True)
     description  = models.TextField(blank=True)
     content_type = models.CharField(max_length=20, choices=TYPE_CHOICES)
     tier         = models.CharField(max_length=20, choices=TIER_CHOICES, default='free')
@@ -83,6 +84,15 @@ class Content(models.Model):
     def save(self, *args, **kwargs):
         # Keep is_published in sync with status
         self.is_published = (self.status == 'approved')
+        if not self.slug:
+            from django.utils.text import slugify
+            base = slugify(self.title) or 'content'
+            slug = base
+            i = 1
+            while Content.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                i += 1
+                slug = f'{base}-{i}'
+            self.slug = slug
         super().save(*args, **kwargs)
 
 

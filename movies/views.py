@@ -7,6 +7,7 @@ from django.http import JsonResponse, StreamingHttpResponse, FileResponse, Http4
 from django.db.models import Q
 
 from .models import Movie, Series, Season, Episode, MovieComment, MovieLike
+from core.utils import youtube_embed_url
 
 
 def _premium_check(request, obj):
@@ -52,7 +53,7 @@ def movie_browse(request):
     # Also show published series
     series_qs = Series.objects.filter(is_published=True).order_by('-created_at')
     return render(request, 'movies/browse.html', {
-        'page': page, 'series_list': series_qs[:12],
+        'movies': page, 'series': series_qs[:12],
         'q': q, 'genre': genre, 'quality': quality,
         'genres': __import__('movies.models', fromlist=['Genre']).Genre.objects.all() if hasattr(__import__('movies.models', fromlist=['Genre']), 'Genre') else [],
     })
@@ -80,6 +81,7 @@ def movie_detail(request, slug):
     return render(request, 'movies/detail.html', {
         'movie': movie, 'related': related, 'progress': progress,
         'comments': comments, 'user_liked': user_liked,
+        'trailer_embed_url': youtube_embed_url(movie.trailer_url) if movie.trailer_url else '',
     })
 
 
