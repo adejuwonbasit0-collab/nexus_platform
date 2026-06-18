@@ -5,7 +5,7 @@ from datetime import timedelta
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Sum, Case, When, IntegerField
-from django.http import FileResponse, JsonResponse
+from django.http import FileResponse, JsonResponse, Http404
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 
@@ -248,14 +248,21 @@ def download_track(request, pk):
     if track.is_premium and not request.user.is_premium:
         return redirect('/subscriptions/')
 
+    if not track.has_audio:
+        raise Http404
+
     track.downloads_count += 1
     track.save(update_fields=['downloads_count'])
 
     from accounts.models import DownloadHistory
     DownloadHistory.objects.create(
         user=request.user, content_type='music', object_id=track.pk,
-        file_url=track.audio_file.url, ip_address=request.META.get('REMOTE_ADDR'),
+        file_url=track.playable_url, ip_address=request.META.get('REMOTE_ADDR'),
     )
+
+    if track.is_external_audio:
+        # No local copy to serve — send the user to the source link directly.
+        return redirect(track.audio_url)
 
     # Branded filename: NEXUS_ArtistName_TrackTitle.mp3
     try:

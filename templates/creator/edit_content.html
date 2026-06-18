@@ -28,11 +28,18 @@
         </div>
         <div>
           <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx2);margin-bottom:6px;">Replace File <span style="color:var(--tx3);font-weight:400;">(leave blank to keep current)</span></label>
-          <input style="width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:10px 13px;color:var(--tx);font-size:13px;" type="file" name="file">
+          {% if content.source_url %}
+          <div style="font-size:12px;color:var(--tx2);margin-bottom:8px;">Current source: <a href="{{ content.source_url }}" target="_blank" style="color:var(--ac);">🔗 {{ content.source_url|truncatechars:50 }}</a></div>
+          {% elif content.file %}
+          <div style="font-size:12px;color:var(--tx2);margin-bottom:8px;">Current source: 📁 uploaded file</div>
+          {% endif %}
+          <input style="width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:10px 13px;color:var(--tx);font-size:13px;margin-bottom:8px;" type="file" name="file">
+          <input style="width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:10px 13px;color:var(--tx);font-size:13px;" type="url" name="source_url" placeholder="Or paste a new link to replace the source">
         </div>
         <div>
           <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx2);margin-bottom:6px;">Replace Thumbnail</label>
-          <input style="width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:10px 13px;color:var(--tx);font-size:13px;" type="file" name="thumbnail" accept="image/*">
+          <input style="width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:10px 13px;color:var(--tx);font-size:13px;margin-bottom:8px;" type="file" name="thumbnail" accept="image/*">
+          <input style="width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:10px 13px;color:var(--tx);font-size:13px;" type="url" name="thumbnail_url" placeholder="Or paste a link to a new thumbnail">
           {% if content.thumbnail %}
           <img src="{{ content.thumbnail.url }}" style="margin-top:10px;height:80px;border-radius:8px;object-fit:cover;">
           {% endif %}

@@ -11,7 +11,7 @@ body,html{background:#0a0a0a;}
 .mhero-content{position:relative;z-index:2;padding:50px 0 60px;}
 /* Section */
 .msec{padding:36px 0 0;}
-.msec-title{font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;color:#fff;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.msec-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.1rem;color:#fff;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
 .msec-title a{font-size:12px;color:#e50914;font-weight:500;text-decoration:none;}
 /* Poster card */
 .mc{border-radius:16px;overflow:hidden;background:#111;border:1px solid rgba(255,255,255,.06);transition:transform .22s,box-shadow .22s,border-color .22s;position:relative;display:block;text-decoration:none;box-shadow:0 4px 16px rgba(0,0,0,.25);}
@@ -52,7 +52,7 @@ body,html{background:#0a0a0a;}
         {% for g in m.genres.all|slice:":3" %}<span style="background:rgba(229,9,20,.18);color:#e50914;border:1px solid rgba(229,9,20,.3);padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;">{{ g.name }}</span>{% endfor %}
         {% if m.is_premium %}<span style="background:rgba(245,166,35,.18);color:#f5a623;border:1px solid rgba(245,166,35,.3);padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;">⭐ Premium</span>{% endif %}
       </div>
-      <h1 style="font-family:'Syne',sans-serif;font-size:clamp(1.8rem,4vw,3rem);font-weight:800;line-height:1.1;margin-bottom:12px;">{{ m.title }}</h1>
+      <h1 style="font-family:'Space Grotesk',sans-serif;font-size:clamp(1.8rem,4vw,3rem);font-weight:800;line-height:1.1;margin-bottom:12px;">{{ m.title }}</h1>
       <p style="color:rgba(255,255,255,.6);font-size:14px;line-height:1.7;margin-bottom:22px;max-width:500px;">{{ m.description|truncatechars:200 }}</p>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
         <a href="/movies/film/{{ m.slug }}/" class="btn btn-lg" style="background:#e50914;color:#fff;padding:12px 28px;font-size:15px;">▶ Watch Now</a>
@@ -64,7 +64,7 @@ body,html{background:#0a0a0a;}
   <section style="background:#0a0a0a;padding:60px 0 30px;">
     <div class="container" style="text-align:center;">
       <div style="font-size:3rem;margin-bottom:12px;opacity:.3;">🎬</div>
-      <h2 style="font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;color:#fff;margin-bottom:8px;">Movies & Series</h2>
+      <h2 style="font-family:'Space Grotesk',sans-serif;font-size:2rem;font-weight:800;color:#fff;margin-bottom:8px;">Movies & Series</h2>
       <p style="color:rgba(255,255,255,.4);font-size:14px;">Browse our collection below</p>
     </div>
   </section>
@@ -157,7 +157,7 @@ body,html{background:#0a0a0a;}
     {% if not trending and not series and not recent %}
     <div style="text-align:center;padding:100px 20px;color:rgba(255,255,255,.3);">
       <div style="font-size:3rem;margin-bottom:14px;">🎬</div>
-      <h3 style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:8px;color:rgba(255,255,255,.5);">No content yet</h3>
+      <h3 style="font-family:'Space Grotesk',sans-serif;font-weight:700;margin-bottom:8px;color:rgba(255,255,255,.5);">No content yet</h3>
       <p>Admin can add movies and series from the dashboard.</p>
     </div>
     {% endif %}

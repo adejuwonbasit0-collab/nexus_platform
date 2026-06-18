@@ -42,7 +42,8 @@ class Image(models.Model):
     title           = models.CharField(max_length=300)
     slug            = models.SlugField(unique=True, blank=True)
     description     = models.TextField(blank=True)
-    image_file      = models.ImageField(upload_to=image_orig_path)
+    image_file      = models.ImageField(upload_to=image_orig_path, null=True, blank=True)
+    image_url       = models.URLField(blank=True, help_text='External link to the image (used instead of an upload to save storage space).')
     thumbnail       = models.ImageField(upload_to=image_thumb_path, null=True, blank=True)
     category        = models.ForeignKey(Category, null=True, blank=True, on_delete=models.SET_NULL)
     tags            = models.ManyToManyField(Tag, blank=True)
@@ -71,6 +72,31 @@ class Image(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self): return self.title
+
+    @property
+    def has_image(self):
+        return bool(self.image_file) or bool(self.image_url)
+
+    @property
+    def is_external_image(self):
+        return bool(self.image_url) and not self.image_file
+
+    @property
+    def display_url(self):
+        """Best URL to show for this image: prefers an uploaded thumbnail,
+        then the full uploaded image, then falls back to the external
+        link if that's all that was provided."""
+        if self.thumbnail:
+            return self.thumbnail.url
+        if self.image_file:
+            return self.image_file.url
+        return self.image_url
+
+    @property
+    def full_url(self):
+        if self.image_file:
+            return self.image_file.url
+        return self.image_url
 
 
 class ImageComment(models.Model):

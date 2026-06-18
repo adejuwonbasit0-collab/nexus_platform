@@ -40,9 +40,10 @@ class Movie(models.Model):
     genres       = models.ManyToManyField(Genre, blank=True)
     release_year = models.IntegerField(default=2024)
     country      = models.ForeignKey(Country, null=True, blank=True, on_delete=models.SET_NULL)
-    thumbnail    = models.ImageField(upload_to=movie_thumb_path)
+    thumbnail    = models.ImageField(upload_to=movie_thumb_path, null=True, blank=True)
     trailer_url  = models.URLField(blank=True)
     video_file   = models.FileField(upload_to=movie_file_path, null=True, blank=True)
+    video_url    = models.URLField(blank=True, help_text='External link to the video file (used instead of an upload to save storage space).')
     quality      = models.CharField(max_length=5, choices=QUALITY, default='HD')
     duration     = models.IntegerField(default=0, help_text='minutes')
     is_premium   = models.BooleanField(default=False)
@@ -70,13 +71,29 @@ class Movie(models.Model):
 
     def __str__(self): return self.title
 
+    @property
+    def has_video(self):
+        return bool(self.video_file) or bool(self.video_url)
+
+    @property
+    def is_external_video(self):
+        """True when this movie's playable file is a remote link rather
+        than a locally-hosted upload."""
+        return bool(self.video_url) and not self.video_file
+
+    @property
+    def playable_url(self):
+        if self.video_file:
+            return self.video_file.url
+        return self.video_url
+
 
 class Series(models.Model):
     title        = models.CharField(max_length=300)
     slug         = models.SlugField(unique=True, blank=True)
     description  = models.TextField()
     genres       = models.ManyToManyField(Genre, blank=True)
-    thumbnail    = models.ImageField(upload_to=series_thumb_path)
+    thumbnail    = models.ImageField(upload_to=series_thumb_path, null=True, blank=True)
     release_year = models.IntegerField(default=2024)
     country      = models.ForeignKey(Country, null=True, blank=True, on_delete=models.SET_NULL)
     is_premium   = models.BooleanField(default=False)
@@ -116,13 +133,28 @@ class Episode(models.Model):
     title       = models.CharField(max_length=300)
     description = models.TextField(blank=True)
     thumbnail   = models.ImageField(upload_to=episode_thumb_path, null=True, blank=True)
-    video_file  = models.FileField(upload_to=episode_file_path)
+    video_file  = models.FileField(upload_to=episode_file_path, null=True, blank=True)
+    video_url   = models.URLField(blank=True, help_text='External link to the video file (used instead of an upload to save storage space).')
     duration    = models.IntegerField(default=0, help_text='minutes')
     views_count = models.IntegerField(default=0)
     is_published= models.BooleanField(default=True)
     created_at  = models.DateTimeField(auto_now_add=True)
     class Meta: ordering = ['number']
     def __str__(self): return f'{self.season} E{self.number}: {self.title}'
+
+    @property
+    def has_video(self):
+        return bool(self.video_file) or bool(self.video_url)
+
+    @property
+    def is_external_video(self):
+        return bool(self.video_url) and not self.video_file
+
+    @property
+    def playable_url(self):
+        if self.video_file:
+            return self.video_file.url
+        return self.video_url
 
 
 class WatchProgress(models.Model):

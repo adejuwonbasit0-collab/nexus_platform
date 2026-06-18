@@ -10,11 +10,11 @@
 .acard::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));opacity:0;transition:opacity .2s;}
 .acard:hover::before{opacity:1;}
 .acard-icon{font-size:28px;margin-bottom:10px;display:block;}
-.acard-val{font-size:28px;font-weight:800;font-family:'Syne',sans-serif;line-height:1;margin-bottom:6px;}
+.acard-val{font-size:28px;font-weight:800;font-family:'Space Grotesk',sans-serif;line-height:1;margin-bottom:6px;}
 .acard-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);}
 .acard-sub{font-size:12px;color:var(--text2);margin-top:4px;}
 .chart-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px;}
-.chart-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.chart-title{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
 </style>
 {% endblock %}
 {% block content %}
@@ -62,7 +62,7 @@
   </div>
 </div>
 
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+<div class="analytics-chart-row" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
   <div class="chart-wrap">
     <div class="chart-title">👥 User Growth — Last 30 Days</div>
     <canvas id="userChart" height="180"></canvas>
@@ -73,7 +73,7 @@
   </div>
 </div>
 
-<div style="display:grid;grid-template-columns:300px 1fr;gap:16px;margin-bottom:16px;">
+<div class="analytics-chart-row" style="display:grid;grid-template-columns:300px 1fr;gap:16px;margin-bottom:16px;">
   <div class="chart-wrap">
     <div class="chart-title">📊 Content by Type</div>
     <canvas id="contentChart" height="260"></canvas>
@@ -110,7 +110,7 @@ const ACCENT = '#7c5cfc', ACCENT2 = '#ff4d6d', ACCENT3 = '#00d4aa';
 const gridColor = 'rgba(255,255,255,0.06)';
 const textColor = '#7777aa';
 Chart.defaults.color = textColor;
-Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
 
 // User Growth
 new Chart(document.getElementById('userChart'), {

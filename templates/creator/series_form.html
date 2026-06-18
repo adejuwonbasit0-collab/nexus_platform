@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Create Series — Studio{% endblock %}
+{% block head %}
+<style>@media(max-width:480px){.cf-grid{grid-template-columns:1fr!important}.cf-grid *{grid-column:span 1!important}}</style>
+{% endblock %}
+{% block content %}
+<div class="wrap" style="max-width:700px;padding-top:40px;padding-bottom:60px;">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
+    <a href="/creator/series/" style="color:var(--tx2);font-size:13px;">← Back to My Series</a>
+  </div>
+  <h1 style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:800;margin-bottom:18px;">📺 Create Series</h1>
+
+  <div style="background:rgba(124,92,252,.07);border:1px solid rgba(124,92,252,.2);border-radius:12px;padding:16px 20px;margin-bottom:22px;font-size:13px;color:var(--tx2);line-height:1.6;">
+    <strong style="color:var(--tx);">How it works:</strong> Create the series here, then add seasons and episodes on the next screen. Everything goes live once an admin reviews and approves it.
+  </div>
+
+  <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:14px;padding:24px;box-shadow:0 4px 16px rgba(0,0,0,.2);">
+    <form method="post" enctype="multipart/form-data">{% csrf_token %}
+      <div class="cf-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="form-group" style="grid-column:span 2;"><label class="form-label">Series Title *</label><input class="form-input" name="title" required placeholder="e.g. Legend of the Blue Sea"></div>
+        <div class="form-group"><label class="form-label">Release Year</label><input class="form-input" type="number" name="release_year" value="2024" min="1900" max="2030"></div>
+        <div class="form-group"><label class="form-label">Access Tier</label>
+          <select class="form-input" name="tier">
+            <option value="free">Free</option>
+            <option value="premium">Premium</option>
+          </select>
+        </div>
+        <div class="form-group" style="grid-column:span 2;">
+          <label class="form-label">Genres</label>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;padding:10px;background:var(--bg3);border:1px solid var(--bd);border-radius:9px;">
+            {% for g in genres %}
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--tx2);">
+              <input type="checkbox" name="genres" value="{{ g.pk }}" style="accent-color:var(--ac);"> {{ g.name }}
+            </label>
+            {% empty %}
+            <span style="color:var(--tx3);font-size:13px;">No genres available yet.</span>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="form-group" style="grid-column:span 2;">
+          <label class="form-label">Cover Poster / Thumbnail</label>
+          <input class="form-input" type="file" name="thumbnail" accept="image/*" style="cursor:pointer;">
+        </div>
+        <div class="form-group" style="grid-column:span 2;"><label class="form-label">Description / Synopsis</label><textarea class="form-input" name="description" rows="4" placeholder="Series overview and synopsis…"></textarea></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:14px;">
+        <button type="submit" class="btn btn-primary">📺 Create Series &amp; Continue</button>
+        <a href="/creator/series/" class="btn btn-ghost">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

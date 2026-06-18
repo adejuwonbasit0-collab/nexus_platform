@@ -13,7 +13,24 @@ body { background: #0a0d12; }
 .track-row .title { font-size:0.84rem; font-weight:500; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .track-row .sub   { font-size:0.72rem; color:rgba(255,255,255,0.35); margin-top:2px; }
 /* Player */
-#player-bar { display:none; position:fixed; bottom:0; left:0; right:0; z-index:500; background:rgba(12,15,20,0.97); backdrop-filter:blur(20px); border-top:1px solid rgba(255,255,255,0.08); padding:10px 24px; align-items:center; gap:16px; }
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media(max-width:860px){
+  .track-body{grid-template-columns:1fr!important;gap:24px!important;}
+}
+@media(max-width:768px){
+  .track-hero{grid-template-columns:1fr!important;text-align:center;gap:20px!important;justify-items:center;}
+  .track-cover-img{width:160px!important;height:160px!important;}
+  .track-player-row{flex-wrap:wrap;}
+  .track-audio-el{max-width:100%!important;min-width:0;width:100%;}
+}
+@media(max-width:560px){
+  .credit-value{max-width:100%;text-align:left;}
+  .credit-row{flex-direction:column;gap:2px;}
+}
+@media(max-width:420px){
+  .track-cover-img{width:130px!important;height:130px!important;}
+}
 </style>
 {% endblock %}
 {% block content %}
@@ -22,15 +39,15 @@ body { background: #0a0d12; }
 <!-- Top hero -->
 <div style="position:relative; background:#0d1118; padding:48px 0 40px; border-bottom:1px solid rgba(255,255,255,0.05); overflow:hidden;">
   <div style="position:absolute;inset:0;background:radial-gradient(ellipse 40% 80% at 10% 50%,rgba(29,185,84,0.08),transparent);"></div>
-  <div class="container" style="position:relative;z-index:2;display:grid;grid-template-columns:auto 1fr;gap:36px;align-items:center;">
+  <div class="container track-hero" style="position:relative;z-index:2;display:grid;grid-template-columns:auto 1fr;gap:36px;align-items:center;">
     <!-- Cover art -->
-    <div style="position:relative;flex-shrink:0;">
+    <div class="track-cover-wrap" style="position:relative;flex-shrink:0;">
       {% if track.cover_image %}
-        <img src="{{ track.cover_image.url }}" style="width:220px;height:220px;border-radius:12px;object-fit:cover;box-shadow:0 24px 60px rgba(0,0,0,0.6);">
+        <img src="{{ track.cover_image.url }}" class="track-cover-img" style="width:220px;height:220px;border-radius:12px;object-fit:cover;box-shadow:0 24px 60px rgba(0,0,0,0.6);">
       {% elif track.album and track.album.cover_image %}
-        <img src="{{ track.album.cover_image.url }}" style="width:220px;height:220px;border-radius:12px;object-fit:cover;box-shadow:0 24px 60px rgba(0,0,0,0.6);">
+        <img src="{{ track.album.cover_image.url }}" class="track-cover-img" style="width:220px;height:220px;border-radius:12px;object-fit:cover;box-shadow:0 24px 60px rgba(0,0,0,0.6);">
       {% else %}
-        <div style="width:220px;height:220px;border-radius:12px;background:linear-gradient(135deg,#0a2010,#1db954);display:flex;align-items:center;justify-content:center;font-size:5rem;box-shadow:0 24px 60px rgba(0,0,0,0.6);">🎵</div>
+        <div class="track-cover-img" style="width:220px;height:220px;border-radius:12px;background:linear-gradient(135deg,#0a2010,#1db954);display:flex;align-items:center;justify-content:center;font-size:5rem;box-shadow:0 24px 60px rgba(0,0,0,0.6);">🎵</div>
       {% endif %}
       {% if branding and branding.show_on_player and branding.logo %}
       <div style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.75);border-radius:6px;padding:4px 8px;">
@@ -42,7 +59,7 @@ body { background: #0a0d12; }
     <!-- Track info -->
     <div>
       <div style="font-size:0.72rem;color:#1db954;font-weight:600;letter-spacing:1px;margin-bottom:8px;">TRACK</div>
-      <h1 style="font-family:'Syne',sans-serif;font-size:clamp(1.6rem,3vw,2.4rem);font-weight:800;color:#fff;margin-bottom:8px;line-height:1.2;">{{ track.title }}</h1>
+      <h1 style="font-family:'Space Grotesk',sans-serif;font-size:clamp(1.6rem,3vw,2.4rem);font-weight:800;color:#fff;margin-bottom:8px;line-height:1.2;">{{ track.title }}</h1>
 
       <!-- Artist line -->
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
@@ -71,7 +88,7 @@ body { background: #0a0d12; }
       </div>
 
       <!-- Stats -->
-      <div style="display:flex;gap:20px;font-size:0.8rem;color:rgba(255,255,255,0.35);margin-bottom:20px;">
+      <div style="display:flex;gap:20px;font-size:0.8rem;color:rgba(255,255,255,0.35);margin-bottom:20px;flex-wrap:wrap;">
         <span>▶ {{ track.plays_count }} plays</span>
         <span>⬇ {{ track.downloads_count }} downloads</span>
         <span>♥ <span id="like-count">{{ track.likes_count }}</span> likes</span>
@@ -79,13 +96,13 @@ body { background: #0a0d12; }
 
       <!-- Action buttons -->
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        {% if track.audio_file %}
+        {% if track.has_audio %}
         <button onclick="startPlay()" class="btn btn-lg" style="background:#1db954;color:var(--tx);font-weight:700;">▶ Play</button>
         {% endif %}
         <a href="/music/download/{{ track.pk }}/" class="btn btn-outline btn-lg" style="color:#fff;border-color:rgba(255,255,255,0.25);">⬇ Download MP3</a>
         {% if user.is_authenticated %}
         <button onclick="toggleLike({{ track.pk }})" id="like-btn" class="btn btn-lg" style="{% if user_liked %}background:rgba(29,185,84,0.2);color:#1db954;border:1px solid rgba(29,185,84,0.4);{% else %}background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.1);{% endif %}">
-          ♥ <span id="like-count">{{ track.likes_count }}</span>
+          ♥ <span id="like-btn-count">{{ track.likes_count }}</span>
         </button>
         {% endif %}
         <button onclick="shareContent('{{ track.title|escapejs }}','/music/track/{{ track.slug }}/')" class="btn btn-lg" style="background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.1);">↗ Share</button>
@@ -95,11 +112,11 @@ body { background: #0a0d12; }
 </div>
 
 <!-- Inline player -->
-{% if track.audio_file %}
+{% if track.has_audio %}
 <div style="background:#0d1118;border-bottom:1px solid rgba(255,255,255,0.05);padding:16px 0;">
-  <div class="container" style="display:flex;align-items:center;gap:16px;">
-    <audio id="track-audio" controls style="flex:1;accent-color:#1db954;max-width:700px;">
-      <source src="{{ track.audio_file.url }}" type="audio/mpeg">
+  <div class="container track-player-row" style="display:flex;align-items:center;gap:16px;">
+    <audio id="track-audio" controls class="track-audio-el" style="flex:1;accent-color:#1db954;max-width:700px;">
+      <source src="{{ track.playable_url }}" type="audio/mpeg">
     </audio>
     {% if branding and branding.show_on_player and branding.logo %}
     <div style="display:flex;align-items:center;gap:8px;opacity:0.6;">
@@ -112,13 +129,13 @@ body { background: #0a0d12; }
 {% endif %}
 
 <!-- Body -->
-<div class="container" style="padding:32px 20px 60px;display:grid;grid-template-columns:1fr 340px;gap:32px;">
+<div class="container track-body" style="padding:32px 20px 60px;display:grid;grid-template-columns:1fr 340px;gap:32px;">
   <div>
 
     <!-- Credits Card -->
     {% if track.produced_by or track.written_by or track.recorded_at or track.mixed_by or track.mastered_by or track.label or track.isrc %}
     <div style="background:#111;border-radius:12px;padding:22px;margin-bottom:24px;">
-      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.96rem;margin-bottom:14px;color:#fff;">📋 Credits & Info</div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.96rem;margin-bottom:14px;color:#fff;">📋 Credits & Info</div>
       {% if track.produced_by %}<div class="credit-row"><span class="credit-label">Produced by</span><span class="credit-value">{{ track.produced_by }}</span></div>{% endif %}
       {% if track.written_by %}<div class="credit-row"><span class="credit-label">Written by</span><span class="credit-value">{{ track.written_by }}</span></div>{% endif %}
       {% if track.recorded_at %}<div class="credit-row"><span class="credit-label">Recorded at</span><span class="credit-value">{{ track.recorded_at }}</span></div>{% endif %}
@@ -135,8 +152,8 @@ body { background: #0a0d12; }
     <!-- Lyrics -->
     {% if track.lyrics %}
     <div style="background:#111;border-radius:12px;padding:22px;margin-bottom:24px;">
-      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.96rem;margin-bottom:14px;color:#fff;">🎼 Lyrics</div>
-      <pre style="color:rgba(255,255,255,0.65);font-family:'Inter',sans-serif;font-size:0.88rem;line-height:2;white-space:pre-wrap;max-height:400px;overflow-y:auto;" id="lyrics-pre">{{ track.lyrics }}</pre>
+      <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.96rem;margin-bottom:14px;color:#fff;">🎼 Lyrics</div>
+      <pre style="color:rgba(255,255,255,0.65);font-family:'Plus Jakarta Sans',sans-serif;font-size:0.88rem;line-height:2;white-space:pre-wrap;max-height:400px;overflow-y:auto;" id="lyrics-pre">{{ track.lyrics }}</pre>
       {% if track.lyrics|length > 600 %}
       <button onclick="document.getElementById('lyrics-pre').style.maxHeight='none';this.style.display='none'" style="background:none;border:none;color:#1db954;font-size:0.76rem;cursor:pointer;margin-top:8px;">Show full lyrics</button>
       {% endif %}
@@ -145,12 +162,12 @@ body { background: #0a0d12; }
 
     <!-- Comments -->
     <div style="background:#111;border-radius:12px;padding:22px;">
-      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.96rem;margin-bottom:18px;color:#fff;">💬 {{ track.comments.count }} Comment{{ track.comments.count|pluralize }}</div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.96rem;margin-bottom:18px;color:#fff;">💬 {{ track.comments.count }} Comment{{ track.comments.count|pluralize }}</div>
       {% if user.is_authenticated %}
       <div style="display:flex;gap:10px;margin-bottom:20px;">
         <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#1db954,#0a7030);display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0;">{{ user.username.0|upper }}</div>
         <div style="flex:1;">
-          <input id="comment-input" type="text" placeholder="Leave a comment…" style="width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:9px 14px;color:#fff;font-family:'Inter',sans-serif;font-size:0.85rem;outline:none;margin-bottom:8px;">
+          <input id="comment-input" type="text" placeholder="Leave a comment…" style="width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:9px 14px;color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.85rem;outline:none;margin-bottom:8px;">
           <button onclick="postComment({{ track.pk }})" class="btn btn-sm" style="background:#1db954;color:var(--tx);font-weight:700;">Post</button>
         </div>
       </div>
@@ -177,7 +194,7 @@ body { background: #0a0d12; }
   <div>
     <!-- Artist card -->
     <a href="/music/artist/{{ track.artist.slug }}/" style="text-decoration:none;display:block;background:#111;border-radius:12px;padding:18px;margin-bottom:18px;">
-      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.88rem;color:#fff;margin-bottom:14px;">About the Artist</div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.88rem;color:#fff;margin-bottom:14px;">About the Artist</div>
       <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px;">
         {% if track.artist.photo %}<img src="{{ track.artist.photo.url }}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid rgba(29,185,84,0.3);">
         {% else %}<div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#0a2010,#1db954);display:flex;align-items:center;justify-content:center;font-size:1.3rem;">🎤</div>{% endif %}
@@ -193,9 +210,9 @@ body { background: #0a0d12; }
     <!-- More from artist -->
     {% if related %}
     <div style="background:#111;border-radius:12px;padding:18px;margin-bottom:18px;">
-      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.88rem;color:#fff;margin-bottom:14px;">More from {{ track.artist.name }}</div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.88rem;color:#fff;margin-bottom:14px;">More from {{ track.artist.name }}</div>
       {% for r in related %}
-      <div class="track-row" style="padding:8px 10px;margin-bottom:6px;" onclick="playRelated('{% if r.audio_file %}{{ r.audio_file.url }}{% endif %}','{{ r.title|escapejs }}','{{ r.artist.name|escapejs }}','{% if r.cover_image %}{{ r.cover_image.url }}{% elif r.album and r.album.cover_image %}{{ r.album.cover_image.url }}{% endif %}')">
+      <div class="track-row" style="padding:8px 10px;margin-bottom:6px;" onclick="playRelated('{% if r.has_audio %}{{ r.playable_url }}{% endif %}','{{ r.title|escapejs }}','{{ r.artist.name|escapejs }}','{% if r.cover_image %}{{ r.cover_image.url }}{% elif r.album and r.album.cover_image %}{{ r.album.cover_image.url }}{% endif %}')">
         {% if r.cover_image %}<img class="cover" src="{{ r.cover_image.url }}" style="width:36px;height:36px;" alt="">
         {% elif r.album and r.album.cover_image %}<img class="cover" src="{{ r.album.cover_image.url }}" style="width:36px;height:36px;" alt="">
         {% else %}<div class="cover" style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:0.8rem;">🎵</div>{% endif %}
@@ -208,7 +225,7 @@ body { background: #0a0d12; }
     <!-- Album info -->
     {% if track.album %}
     <a href="/music/album/{{ track.album.slug }}/" style="text-decoration:none;display:block;background:#111;border-radius:12px;padding:18px;">
-      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.88rem;color:#fff;margin-bottom:12px;">From the Album</div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.88rem;color:#fff;margin-bottom:12px;">From the Album</div>
       <div style="display:flex;gap:12px;align-items:center;">
         {% if track.album.cover_image %}<img src="{{ track.album.cover_image.url }}" style="width:60px;height:60px;border-radius:6px;object-fit:cover;">
         {% else %}<div style="width:60px;height:60px;border-radius:6px;background:#0a2010;display:flex;align-items:center;justify-content:center;font-size:1.5rem;">💿</div>{% endif %}
@@ -225,67 +242,39 @@ body { background: #0a0d12; }
 
 </div>
 
-<!-- Fixed Player Bar with Platform Logo -->
-<div id="player-bar">
-  <div id="pb-cover" style="width:48px;height:48px;border-radius:6px;background:linear-gradient(135deg,#0a2010,#1db954);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">🎵</div>
-  <div style="min-width:0;width:200px;">
-    <div id="pb-title" style="font-weight:600;font-size:0.86rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ track.title }}</div>
-    <div style="font-size:0.72rem;color:#1db954;">{{ track.artist.name }}</div>
-  </div>
-  <audio id="main-player" style="flex:2;max-width:440px;accent-color:#1db954;" controls></audio>
-  {% if branding and branding.show_on_player and branding.logo %}
-  <div style="opacity:0.55;display:flex;align-items:center;gap:8px;">
-    <span style="font-size:0.68rem;color:rgba(255,255,255,0.35);">on</span>
-    <img src="{{ branding.logo.url }}" style="height:24px;width:auto;">
-  </div>
-  {% endif %}
-</div>
 {% endblock %}
 {% block scripts %}
 <script>
 function startPlay() {
-  const audioUrl = '{{ track.audio_file.url|default:"" }}';
+  const audioUrl = '{{ track.playable_url|default:"" }}';
   if (!audioUrl) { showToast('No audio file available', 'e'); return; }
-  // Use page-level audio
   const audio = document.getElementById('track-audio');
-  if (audio) audio.play();
-  const bar  = document.getElementById('player-bar');
-  const main = document.getElementById('main-player');
-  if (main) { main.src = audioUrl; main.play(); }
-  if (bar) bar.style.display = 'flex';
-  {% if track.cover_image %}
-  const pbCover = document.getElementById('pb-cover');
-  if (pbCover) pbCover.innerHTML = '<img src="{{ track.cover_image.url }}" style="width:48px;height:48px;border-radius:6px;object-fit:cover;">';
-  {% elif track.album and track.album.cover_image %}
-  const pbCover2 = document.getElementById('pb-cover');
-  if (pbCover2) pbCover2.innerHTML = '<img src="{{ track.album.cover_image.url }}" style="width:48px;height:48px;border-radius:6px;object-fit:cover;">';
-  {% endif %}
-  // Also trigger global mini player
+  if (audio) { audio.play(); }
   if (typeof playMiniTrack === 'function') {
     playMiniTrack(
       audioUrl,
       '{{ track.title|escapejs }}',
       '{{ track.artist.name|escapejs }}',
-      '{% if track.cover_image %}{{ track.cover_image.url }}{% elif track.album and track.album.cover_image %}{{ track.album.cover_image.url }}{% endif %}'
+      '{% if track.cover_image %}{{ track.cover_image.url }}{% elif track.album and track.album.cover_image %}{{ track.album.cover_image.url }}{% endif %}',
+      '/music/track/{{ track.slug }}/'
     );
   }
 }
 function playRelated(url, title, artist, cover) {
-  if (!url) { showToast('No audio file', 'error'); return; }
-  const bar = document.getElementById('player-bar');
-  const main = document.getElementById('main-player');
-  document.getElementById('pb-title').textContent = title;
-  const pb = document.getElementById('pb-cover');
-  if (cover) pb.innerHTML = `<img src="${cover}" style="width:48px;height:48px;border-radius:6px;object-fit:cover;">`;
-  main.src = url; bar.style.display = 'flex'; main.play();
+  if (!url) { showToast('No audio file', 'e'); return; }
+  // Switch the page's own player to the new track too, so it stays in sync
+  const audio = document.getElementById('track-audio');
+  if (audio) { audio.src = url; audio.play(); }
+  if (typeof playMiniTrack === 'function') {
+    playMiniTrack(url, title, artist, cover);
+  }
   showToast('▶ ' + title);
 }
 async function toggleLike(pk) {
   const fd = new FormData(); fd.append('csrfmiddlewaretoken', getCookie('csrftoken'));
   const r = await fetch(`/music/like/${pk}/`, {method:'POST', body:fd});
   const d = await r.json();
-  const countEl = document.getElementById('like-count');
-  if (countEl) countEl.textContent = d.count;
+  document.querySelectorAll('#like-count, #like-btn-count').forEach(el => el.textContent = d.count);
   const btn = document.getElementById('like-btn');
   if (d.liked) { btn.style.background='rgba(29,185,84,0.2)'; btn.style.color='#1db954'; btn.style.borderColor='rgba(29,185,84,0.4)'; }
   else { btn.style.background='rgba(255,255,255,0.07)'; btn.style.color='rgba(255,255,255,0.6)'; btn.style.borderColor='rgba(255,255,255,0.1)'; }
@@ -305,9 +294,5 @@ async function postComment(pk) {
     list.prepend(div); showToast('Comment posted!');
   }
 }
-// Auto-start player bar on page load if audio present
-{% if track.audio_file %}
-document.getElementById('main-player').src = '{{ track.audio_file.url }}';
-{% endif %}
 </script>
 {% endblock %}

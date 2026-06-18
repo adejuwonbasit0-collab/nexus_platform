@@ -16,12 +16,12 @@
           <a href="/movies/series/{{ episode.season.series.slug }}/" style="color:#e50914;text-decoration:none;">{{ episode.season.series.title }}</a>
           › Season {{ episode.season.number }} › Episode {{ episode.number }}
         </div>
-        <h1 style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.3rem;color:#fff;margin-bottom:10px;">{{ episode.title }}</h1>
+        <h1 style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.3rem;color:#fff;margin-bottom:10px;">{{ episode.title }}</h1>
         <p style="color:rgba(255,255,255,0.55);font-size:0.86rem;line-height:1.7;">{{ episode.description }}</p>
       </div>
     </div>
     <div style="background:#111;border-radius:10px;padding:16px;">
-      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.88rem;color:#fff;margin-bottom:14px;">Other Episodes</div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.88rem;color:#fff;margin-bottom:14px;">Other Episodes</div>
       {% for ep in other_eps %}
       <a href="/movies/episode/{{ ep.pk }}/" style="text-decoration:none;display:flex;gap:10px;align-items:center;margin-bottom:10px;padding:8px;border-radius:6px;{% if ep.pk == episode.pk %}background:rgba(229,9,20,0.15);{% endif %}">
         {% if ep.thumbnail %}<img src="{{ ep.thumbnail.url }}" style="width:64px;height:36px;object-fit:cover;border-radius:4px;flex-shrink:0;">{% else %}<div style="width:64px;height:36px;background:#1a0808;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.8rem;">▶</div>{% endif %}

@@ -7,14 +7,14 @@
 .mv-grad{position:absolute;inset:0;background:linear-gradient(to right,rgba(8,8,14,.97) 38%,rgba(8,8,14,.4) 100%),linear-gradient(to top,rgba(8,8,14,1) 0%,transparent 45%)}
 .mv-content{position:relative;z-index:2;padding:44px 0 56px;width:100%;max-width:640px}
 .mv-badges{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
-.mv-title{font-family:'Syne',sans-serif;font-size:clamp(1.8rem,5vw,3.2rem);font-weight:800;line-height:1.1;color:#fff;margin-bottom:14px;text-shadow:0 2px 20px rgba(0,0,0,.5)}
+.mv-title{font-family:'Space Grotesk',sans-serif;font-size:clamp(1.8rem,5vw,3.2rem);font-weight:800;line-height:1.1;color:#fff;margin-bottom:14px;text-shadow:0 2px 20px rgba(0,0,0,.5)}
 .mv-meta{display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:13px;color:rgba(255,255,255,.55);margin-bottom:16px}
 .mv-desc{font-size:14px;color:rgba(255,255,255,.65);line-height:1.8;margin-bottom:24px;max-width:520px}
 .mv-btns{display:flex;flex-wrap:wrap;gap:10px}
 /* Layout */
 .mv-body{display:grid;grid-template-columns:1fr 300px;gap:28px;padding:32px 0 80px}
 .mv-panel{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.3)}
-.mv-panel-head{padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.07);font-family:'Syne',sans-serif;font-weight:700;font-size:14px}
+.mv-panel-head{padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.07);font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px}
 .mv-panel-body{padding:20px}
 /* Video */
 video{width:100%;border-radius:10px;background:#000;display:block}
@@ -64,7 +64,7 @@ video{width:100%;border-radius:10px;background:#000;display:block}
     </div>
     {% if movie.description %}<p class="mv-desc">{{ movie.description|truncatechars:300 }}</p>{% endif %}
     <div class="mv-btns">
-      {% if movie.video_file %}
+      {% if movie.has_video %}
       <a href="#player" class="btn btn-lg" style="background:#e50914;color:#fff;padding:13px 30px">▶ Watch Now</a>
       {% elif movie.trailer_url %}
       <a href="{{ movie.trailer_url }}" target="_blank" class="btn btn-lg" style="background:#e50914;color:#fff">▶ Watch Trailer</a>
@@ -81,13 +81,14 @@ video{width:100%;border-radius:10px;background:#000;display:block}
 <div class="mv-body">
   {# ── Main column ── #}
   <div>
-    {% if movie.video_file %}
+    {% if movie.has_video %}
     <div class="mv-panel" style="margin-bottom:20px" id="player">
       <div class="mv-panel-head">▶ Watch</div>
       <div class="mv-panel-body">
-        <video controls controlslist="nodownload" preload="metadata">
+        <video controls preload="metadata">
           <source src="/movies/stream/movie/{{ movie.pk }}/" type="video/mp4">
         </video>
+        <a href="/movies/download/{{ movie.pk }}/" class="btn btn-outline" style="margin-top:14px;color:#fff;width:100%;justify-content:center;">⬇ Download</a>
       </div>
     </div>
     {% elif movie.trailer_url %}

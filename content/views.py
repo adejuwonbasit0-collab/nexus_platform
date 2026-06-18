@@ -150,22 +150,30 @@ def stream_video(request, pk):
     return FileResponse(open(file_path, 'rb'), content_type=content_type)
 
 
-def _find_type_match(content_type, title):
+def _find_type_match(content_type, title, published_only=True):
     """Look up a Movie/Track/Image/Post with a matching title for this
     content_type. Returns the matched object, or None."""
     try:
         if content_type == 'video':
             from movies.models import Movie
-            return Movie.objects.filter(title=title, is_published=True).first()
+            qs = Movie.objects.filter(title=title)
+            if published_only: qs = qs.filter(is_published=True)
+            return qs.first()
         if content_type == 'music':
             from music.models import Track
-            return Track.objects.filter(title=title, is_published=True).first()
+            qs = Track.objects.filter(title=title)
+            if published_only: qs = qs.filter(is_published=True)
+            return qs.first()
         if content_type == 'image':
             from images.models import Image
-            return Image.objects.filter(title=title, is_published=True).first()
+            qs = Image.objects.filter(title=title)
+            if published_only: qs = qs.filter(is_published=True)
+            return qs.first()
         if content_type == 'blog':
             from blog.models import Post
-            return Post.objects.filter(title=title, status='published').first()
+            qs = Post.objects.filter(title=title)
+            if published_only: qs = qs.filter(status='published')
+            return qs.first()
     except Exception:
         pass
     return None
@@ -226,10 +234,13 @@ def _attach_display_info(items):
                 if cover: display_thumb = cover.url
             elif it.content_type == 'image':
                 display_url = f'/images/view/{match.slug}/'
-                if match.image_file: display_thumb = match.image_file.url
+                if getattr(match, 'has_image', False): display_thumb = match.display_url
             elif it.content_type == 'blog':
                 display_url = f'/blog/post/{match.slug}/'
-                if match.featured_img: display_thumb = match.featured_img.url
+                if match.featured_img:
+                    display_thumb = match.featured_img.url
+                elif getattr(match, 'featured_img_url', ''):
+                    display_thumb = match.featured_img_url
         it.slug = slug
         it.display_thumb = display_thumb
         it.display_url = display_url

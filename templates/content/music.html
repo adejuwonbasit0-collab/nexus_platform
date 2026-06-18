@@ -3,21 +3,11 @@
 {% block content %}
 <div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:32px 0;">
   <div class="container">
-    <h1 style="font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;margin-bottom:4px;">🎵 Music Library</h1>
+    <h1 style="font-family:'Space Grotesk',sans-serif;font-size:2rem;font-weight:800;margin-bottom:4px;">🎵 Music Library</h1>
     <p style="color:var(--text2);">Stream and download tracks from independent artists</p>
   </div>
 </div>
 <div class="container" style="padding-top:32px;padding-bottom:60px;">
-  <!-- Now playing bar (sticky) -->
-  <div id="player-bar" style="display:none;position:sticky;top:64px;z-index:100;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px 20px;margin-bottom:24px;display:flex;align-items:center;gap:16px;backdrop-filter:blur(20px);">
-    <div id="player-thumb" style="width:44px;height:44px;border-radius:8px;background:var(--bg3);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">🎵</div>
-    <div style="flex:1;min-width:0;">
-      <div id="player-title" style="font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Select a track</div>
-      <div id="player-artist" style="font-size:0.78rem;color:var(--text2);">—</div>
-    </div>
-    <audio id="main-player" style="flex:2;max-width:400px;accent-color:var(--accent);" controls></audio>
-  </div>
-  
   <div style="display:flex;flex-direction:column;gap:8px;">
     {% for track in tracks %}
     <div class="card" style="display:flex;align-items:center;gap:16px;padding:14px 20px;cursor:pointer;transition:all 0.2s;" 
@@ -55,17 +45,8 @@
 {% block scripts %}
 <script>
 function playTrack(url, title, artist, thumb) {
-  if (!url) { showToast('No audio file available', 'error'); return; }
-  const bar = document.getElementById('player-bar');
-  const audio = document.getElementById('main-player');
-  document.getElementById('player-title').textContent = title;
-  document.getElementById('player-artist').textContent = 'by ' + artist;
-  const thumbEl = document.getElementById('player-thumb');
-  if (thumb) { thumbEl.innerHTML = `<img src="${thumb}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;">`; }
-  else { thumbEl.innerHTML = '🎵'; }
-  audio.src = url;
-  bar.style.display = 'flex';
-  audio.play();
+  if (!url) { showToast('No audio file available', 'e'); return; }
+  if (typeof playMiniTrack === 'function') playMiniTrack(url, title, artist, thumb);
   showToast('Now playing: ' + title);
 }
 </script>

@@ -39,6 +39,23 @@ def youtube_embed_url(url):
     return url
 
 
+def validate_source_url(url):
+    """Basic sanity check for a pasted media link. Doesn't fetch the URL
+    (that would defeat the point of saving hosting space) — just confirms
+    it's a well-formed http(s) URL."""
+    if not url:
+        return None
+    from django.core.validators import URLValidator
+    from django.core.exceptions import ValidationError
+    if not url.lower().startswith(('http://', 'https://')):
+        return 'Link must start with http:// or https://'
+    try:
+        URLValidator()(url)
+    except ValidationError:
+        return 'That doesn\'t look like a valid link.'
+    return None
+
+
 def validate_upload(file_obj, content_type):
     if not file_obj:
         return None  # optional — let caller decide
@@ -159,3 +176,15 @@ def verify_paystack_transaction(reference):
         return {'status': False, 'message': 'Transaction verification failed'}
     except Exception as e:
         return {'status': False, 'message': str(e)}
+
+
+def get_or_create_artist_for_user(user):
+    """Every creator gets a matching music.Artist profile (auto-created on
+    first music/album upload) so Track/Album records have a valid artist FK."""
+    from music.models import Artist
+    artist = getattr(user, 'artist_profile', None)
+    if artist:
+        return artist
+    name = user.get_full_name() or user.username
+    artist, _ = Artist.objects.get_or_create(user=user, defaults={'name': name})
+    return artist
