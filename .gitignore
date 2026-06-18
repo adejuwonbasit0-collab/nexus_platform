@@ -1,0 +1,6 @@
+nexus.db
+*.db
+*.sqlite3
+*._pycache_/
+*.pyc
+_pycache_/
