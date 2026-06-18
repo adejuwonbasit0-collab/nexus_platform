@@ -122,7 +122,7 @@
       <div class="panel-head"><span class="panel-title">🔡 Typography</span></div>
       <div class="panel-body">
         <div class="form-grid">
-          <div class="fg"><label>Heading Font</label><input class="finput" name="heading_font" value="{{ theme_obj.heading_font }}" placeholder="Syne"></div>
+          <div class="fg"><label>Heading Font</label><input class="finput" name="heading_font" value="{{ theme_obj.heading_font }}" placeholder="Space Grotesk"></div>
           <div class="fg"><label>Body Font</label><input class="finput" name="body_font" value="{{ theme_obj.body_font }}" placeholder="DM Sans"></div>
           <div class="fg"><label>Heading Font URL</label><input class="finput" name="heading_font_url" value="{{ theme_obj.heading_font_url }}" placeholder="https://fonts.googleapis.com/…"></div>
           <div class="fg"><label>Body Font URL</label><input class="finput" name="body_font_url" value="{{ theme_obj.body_font_url }}"></div>
@@ -403,7 +403,7 @@
 
 {# ══════════════ EMAIL TEMPLATES ══════════════ #}
 <div class="tab-panel {% if active_tab == 'email_templates' %}active{% endif %}" data-group="cms" data-id="email_templates">
-<div style="display:grid;grid-template-columns:260px 1fr;gap:16px;height:600px;">
+<div class="cms-split-pane" style="display:grid;grid-template-columns:260px 1fr;gap:16px;height:600px;">
   <div class="panel" style="overflow-y:auto;">
     <div class="panel-head"><span class="panel-title">Templates</span></div>
     <div style="padding:8px;">

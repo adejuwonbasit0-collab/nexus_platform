@@ -3,7 +3,7 @@
 {% block extra_head %}
 <style>
 .ig-hero{background:linear-gradient(160deg,rgba(124,92,252,.12) 0%,rgba(0,212,170,.06) 60%,transparent 100%);border-bottom:1px solid var(--bd);padding:48px 0 36px;}
-.ig-hero h1{font-family:'Syne',sans-serif;font-size:clamp(1.8rem,4vw,2.8rem);font-weight:800;margin-bottom:8px;}
+.ig-hero h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(1.8rem,4vw,2.8rem);font-weight:800;margin-bottom:8px;}
 /* Category pills */
 .cat-strip{display:flex;gap:7px;flex-wrap:wrap;margin-top:18px;}
 .cat-pill{padding:5px 15px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid var(--bd);color:var(--tx2);background:rgba(255,255,255,.03);text-decoration:none;transition:all .15s;}
@@ -22,7 +22,7 @@
 .img-ph{aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;font-size:2.5rem;background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(255,77,109,.07));}
 /* Section title */
 .stitle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
-.stitle-row h2{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;}
+.stitle-row h2{font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:700;}
 .stitle-row a{font-size:13px;color:var(--ac);text-decoration:none;}
 </style>
 {% endblock %}
@@ -59,8 +59,8 @@
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">
       {% for img in featured %}
       <a href="/images/view/{{ img.slug }}/" class="img-card">
-        {% if img.image_file %}
-        <img src="{{ img.image_file.url }}" alt="{{ img.title }}" style="aspect-ratio:4/3;object-fit:cover;">
+        {% if img.has_image %}
+        <img src="{{ img.display_url }}" alt="{{ img.title }}" style="aspect-ratio:4/3;object-fit:cover;">
         {% else %}<div class="img-ph">🖼</div>{% endif %}
         <div class="img-card-overlay">
           <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ img.title }}</div>
@@ -86,8 +86,8 @@
     <div class="masonry">
       {% for img in recent %}
       <a href="/images/view/{{ img.slug }}/" class="img-card">
-        {% if img.image_file %}
-        <img src="{{ img.image_file.url }}" alt="{{ img.title }}">
+        {% if img.has_image %}
+        <img src="{{ img.display_url }}" alt="{{ img.title }}">
         {% else %}<div class="img-ph" style="aspect-ratio:{% cycle '3/4' '4/3' '1/1' %};">🖼</div>{% endif %}
         <div class="img-card-overlay">
           <div style="font-size:12px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ img.title }}</div>

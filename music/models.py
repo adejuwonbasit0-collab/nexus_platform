@@ -42,6 +42,8 @@ class Genre(models.Model):
 
 
 class Artist(models.Model):
+    user             = models.OneToOneField(settings.AUTH_USER_MODEL, null=True, blank=True,
+                                             on_delete=models.SET_NULL, related_name='artist_profile')
     name             = models.CharField(max_length=200)
     slug             = models.SlugField(unique=True, blank=True)
     bio              = models.TextField(blank=True)
@@ -81,12 +83,14 @@ class Album(models.Model):
     slug         = models.SlugField(unique=True, blank=True)
     artist       = models.ForeignKey(Artist, on_delete=models.CASCADE, related_name='albums')
     genre        = models.ForeignKey(Genre, null=True, blank=True, on_delete=models.SET_NULL)
-    cover_image  = models.ImageField(upload_to=album_cover_path)
+    cover_image  = models.ImageField(upload_to=album_cover_path, null=True, blank=True)
     release_year = models.IntegerField(default=2024)
     album_type   = models.CharField(max_length=20, choices=ALBUM_TYPES, default='album')
     description  = models.TextField(blank=True)
     label        = models.CharField(max_length=200, blank=True)
     is_published = models.BooleanField(default=True)
+    uploaded_by  = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                                      on_delete=models.SET_NULL, related_name='albums_uploaded')
     plays_count  = models.IntegerField(default=0)
     created_at   = models.DateTimeField(auto_now_add=True)
 
@@ -113,7 +117,8 @@ class Track(models.Model):
     featured_artists = models.ManyToManyField(Artist, related_name='featured_on', blank=True)
     album            = models.ForeignKey(Album, null=True, blank=True, on_delete=models.SET_NULL, related_name='tracks')
     genre            = models.ForeignKey(Genre, null=True, blank=True, on_delete=models.SET_NULL)
-    audio_file       = models.FileField(upload_to=track_audio_path)
+    audio_file       = models.FileField(upload_to=track_audio_path, null=True, blank=True)
+    audio_url        = models.URLField(blank=True, help_text='External link to the audio file (used instead of an upload to save storage space).')
     cover_image      = models.ImageField(upload_to=track_cover_path, null=True, blank=True)
     release_year     = models.IntegerField(default=2024)
     duration         = models.IntegerField(default=0, help_text='seconds')
@@ -158,6 +163,20 @@ class Track(models.Model):
         if not self.duration: return '—'
         m, s = divmod(self.duration, 60)
         return f'{m}:{s:02d}'
+
+    @property
+    def has_audio(self):
+        return bool(self.audio_file) or bool(self.audio_url)
+
+    @property
+    def is_external_audio(self):
+        return bool(self.audio_url) and not self.audio_file
+
+    @property
+    def playable_url(self):
+        if self.audio_file:
+            return self.audio_file.url
+        return self.audio_url
 
     def __str__(self): return f'{self.title} – {self.artist.name}'
 

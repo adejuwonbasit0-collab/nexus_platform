@@ -12,7 +12,7 @@
 
   {% if movies %}
   <div style="margin-bottom:36px;">
-    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;margin-bottom:16px;display:flex;align-items:center;gap:8px;">🎬 Movies <span style="font-size:0.76rem;color:var(--text2);font-weight:400;">({{ movies.count }})</span></div>
+    <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.1rem;margin-bottom:16px;display:flex;align-items:center;gap:8px;">🎬 Movies <span style="font-size:0.76rem;color:var(--text2);font-weight:400;">({{ movies.count }})</span></div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;">
       {% for m in movies %}
       <a href="/movies/film/{{ m.slug }}/" style="text-decoration:none;" class="card">
@@ -26,7 +26,7 @@
 
   {% if tracks %}
   <div style="margin-bottom:36px;">
-    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;margin-bottom:16px;">🎵 Music <span style="font-size:0.76rem;color:var(--text2);font-weight:400;">({{ tracks.count }})</span></div>
+    <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.1rem;margin-bottom:16px;">🎵 Music <span style="font-size:0.76rem;color:var(--text2);font-weight:400;">({{ tracks.count }})</span></div>
     <div style="display:flex;flex-direction:column;gap:6px;">
       {% for t in tracks %}
       <a href="/music/track/{{ t.slug }}/" style="text-decoration:none;" class="card" style="display:flex;gap:12px;align-items:center;padding:10px 14px;">
@@ -41,7 +41,7 @@
 
   {% if images %}
   <div style="margin-bottom:36px;">
-    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;margin-bottom:16px;">🖼 Images <span style="font-size:0.76rem;color:var(--text2);font-weight:400;">({{ images.count }})</span></div>
+    <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.1rem;margin-bottom:16px;">🖼 Images <span style="font-size:0.76rem;color:var(--text2);font-weight:400;">({{ images.count }})</span></div>
     <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;">
       {% for img in images %}
       <a href="/images/view/{{ img.slug }}/" style="text-decoration:none;border-radius:8px;overflow:hidden;display:block;" class="card">
@@ -54,7 +54,7 @@
 
   {% if posts %}
   <div>
-    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;margin-bottom:16px;">✍️ Blog <span style="font-size:0.76rem;color:var(--text2);font-weight:400;">({{ posts.count }})</span></div>
+    <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.1rem;margin-bottom:16px;">✍️ Blog <span style="font-size:0.76rem;color:var(--text2);font-weight:400;">({{ posts.count }})</span></div>
     <div style="display:flex;flex-direction:column;gap:10px;">
       {% for p in posts %}
       <a href="/blog/post/{{ p.slug }}/" style="text-decoration:none;" class="card" style="padding:14px 18px;display:flex;gap:14px;">

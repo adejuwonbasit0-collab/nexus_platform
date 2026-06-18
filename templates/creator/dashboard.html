@@ -8,7 +8,7 @@
 /* Sidebar */
 .cs-sidebar{width:var(--csb);flex-shrink:0;background:rgba(10,10,18,.97);border-right:1px solid rgba(255,255,255,.07);padding:20px 0 40px;position:sticky;top:60px;height:calc(100vh - 60px);overflow-y:auto;display:flex;flex-direction:column}
 .cs-logo{padding:0 16px 18px;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:14px}
-.cs-logo span{font-family:'Syne',sans-serif;font-weight:800;font-size:14px;background:linear-gradient(135deg,var(--ac),var(--ac2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.cs-logo span{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:14px;background:linear-gradient(135deg,var(--ac),var(--ac2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .csb-sec{padding:0 8px;margin-bottom:6px}
 .csb-lbl{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.25);padding:6px 10px 3px}
 .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;font-size:13px;font-weight:500;color:rgba(255,255,255,.55);cursor:pointer;border:none;background:none;width:100%;text-align:left;transition:all .15s}
@@ -24,7 +24,7 @@
 /* Panels */
 .cp{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:16px;overflow:hidden;margin-bottom:20px}
 .cp-head{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.07)}
-.cp-title{font-size:14px;font-weight:700;font-family:'Syne',sans-serif}
+.cp-title{font-size:14px;font-weight:700;font-family:'Space Grotesk',sans-serif}
 .cp-body{padding:20px}
 
 /* Stats */
@@ -32,7 +32,7 @@
 .stat{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:16px 18px;transition:all .2s}
 .stat:hover{border-color:rgba(124,92,252,.25);transform:translateY(-2px);box-shadow:0 12px 32px rgba(0,0,0,.35)}
 .stat-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.4);margin-bottom:8px}
-.stat-val{font-size:24px;font-weight:800;font-family:'Syne',sans-serif;line-height:1}
+.stat-val{font-size:24px;font-weight:800;font-family:'Space Grotesk',sans-serif;line-height:1}
 
 /* Form fields */
 .fg{display:flex;flex-direction:column;gap:5px}
@@ -71,6 +71,11 @@ select.finput option{background:#1a1a2e;color:#fff}
 .mob-btn:hover,.mob-btn.active{color:var(--ac)}
 .mob-btn .mi{font-size:18px}
 
+@media(min-width:769px) and (max-width:1024px){
+  :root{--csb:180px}
+  .cs-inner{max-width:100%;padding:24px 20px 80px}
+  .fgrid-3{grid-template-columns:1fr 1fr}
+}
 @media(max-width:768px){
   .cs-sidebar{display:none}
   .mob-nav{display:block}
@@ -79,6 +84,10 @@ select.finput option{background:#1a1a2e;color:#fff}
   .fgrid-3{grid-template-columns:1fr}
   .span2{grid-column:span 1}
   .stat-row{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:900px){
+  .panel:has(table), .card:has(table){overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{min-width:480px}
 }
 @media(max-width:400px){
   .stat-row{grid-template-columns:1fr}
@@ -122,7 +131,7 @@ select.finput option{background:#1a1a2e;color:#fff}
 {# ══ OVERVIEW ══ #}
 <div class="ctab active" id="tab-overview">
   <div style="margin-bottom:22px">
-    <h1 style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:4px">👋 Hey, {{ user.username }}</h1>
+    <h1 style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:800;margin-bottom:4px">👋 Hey, {{ user.username }}</h1>
     <p style="color:rgba(255,255,255,.4);font-size:13px">Here's your creator summary</p>
   </div>
   <div class="stat-row">
@@ -167,7 +176,7 @@ select.finput option{background:#1a1a2e;color:#fff}
 
 {# ══ MY CONTENT ══ #}
 <div class="ctab" id="tab-my-content">
-  <h2 style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:18px">📁 All My Content</h2>
+  <h2 style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:800;margin-bottom:18px">📁 All My Content</h2>
   <div class="cp">
     <div style="overflow-x:auto">
       <table style="width:100%;border-collapse:collapse;font-size:13px">
@@ -201,7 +210,7 @@ select.finput option{background:#1a1a2e;color:#fff}
 
 {# ══ MUSIC UPLOAD ══ #}
 <div class="ctab" id="tab-up-music">
-  <h2 style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:20px">🎵 Upload Music Track</h2>
+  <h2 style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:800;margin-bottom:20px">🎵 Upload Music Track</h2>
   <div class="cp"><div class="cp-body">
   <form method="post" action="/creator/upload/" enctype="multipart/form-data">{% csrf_token %}
   <input type="hidden" name="content_type" value="music">
@@ -256,7 +265,7 @@ select.finput option{background:#1a1a2e;color:#fff}
 
 {# ══ VIDEO / MOVIE UPLOAD ══ #}
 <div class="ctab" id="tab-up-video">
-  <h2 style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:20px">🎬 Upload Movie / Video</h2>
+  <h2 style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:800;margin-bottom:20px">🎬 Upload Movie / Video</h2>
   <div class="cp"><div class="cp-body">
   <form method="post" action="/creator/upload/" enctype="multipart/form-data">{% csrf_token %}
   <input type="hidden" name="content_type" value="video">
@@ -300,7 +309,7 @@ select.finput option{background:#1a1a2e;color:#fff}
 
 {# ══ IMAGE UPLOAD ══ #}
 <div class="ctab" id="tab-up-image">
-  <h2 style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:20px">🖼 Upload Image</h2>
+  <h2 style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:800;margin-bottom:20px">🖼 Upload Image</h2>
   <div class="cp"><div class="cp-body">
   <form method="post" action="/creator/upload/" enctype="multipart/form-data">{% csrf_token %}
   <input type="hidden" name="content_type" value="image">
@@ -352,7 +361,7 @@ select.finput option{background:#1a1a2e;color:#fff}
 
 {# ══ BLOG POST ══ #}
 <div class="ctab" id="tab-up-blog">
-  <h2 style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:20px">📝 Write Blog Post</h2>
+  <h2 style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:800;margin-bottom:20px">📝 Write Blog Post</h2>
   <div class="cp"><div class="cp-body">
   <form method="post" action="/creator/upload/" enctype="multipart/form-data">{% csrf_token %}
   <input type="hidden" name="content_type" value="blog">
@@ -407,7 +416,7 @@ select.finput option{background:#1a1a2e;color:#fff}
 
 {# ══ EARNINGS ══ #}
 <div class="ctab" id="tab-earnings">
-  <h2 style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:20px">💰 Earnings</h2>
+  <h2 style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:800;margin-bottom:20px">💰 Earnings</h2>
   {% if wallet %}
   <div class="stat-row">
     <div class="stat" style="background:linear-gradient(135deg,rgba(34,197,94,.1),rgba(0,212,170,.05));border-color:rgba(34,197,94,.2)">

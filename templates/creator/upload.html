@@ -1,5 +1,12 @@
 {% extends 'base.html' %}
 {% block title %}Upload Content — NEXUS{% endblock %}
+{% block head %}
+<style>
+@media(max-width:500px){
+  .upload-type-grid{grid-template-columns:repeat(2,1fr)!important;}
+}
+</style>
+{% endblock %}
 {% block content %}
 <div class="wrap" style="max-width:680px;padding-top:40px;padding-bottom:60px;">
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
@@ -10,7 +17,7 @@
     <form method="post" enctype="multipart/form-data" id="uploadForm">{% csrf_token %}
       <div class="form-group">
         <label class="form-label">Content Type</label>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:4px;">
+        <div class="upload-type-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:4px;">
           {% for v,l in content_types %}
           <label style="border:1px solid var(--bd);border-radius:9px;padding:12px;text-align:center;cursor:pointer;transition:border-color .15s;" class="type-lbl" data-val="{{ v }}">
             <input type="radio" name="content_type" value="{{ v }}" style="display:none;" onchange="updateType('{{ v }}')">
@@ -48,13 +55,22 @@
         </div>
       </div>
       <div class="form-group" id="file-group">
-        <label class="form-label" id="file-label">File *</label>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+          <label class="form-label" id="file-label" style="margin:0;">File *</label>
+          <div style="display:flex;gap:6px;background:var(--bg3);border-radius:8px;padding:3px;">
+            <button type="button" id="mode-upload-btn" onclick="setSourceMode('upload')" class="btn btn-sm" style="background:var(--ac);color:#fff;padding:5px 12px;">⬆ Upload File</button>
+            <button type="button" id="mode-link-btn" onclick="setSourceMode('link')" class="btn btn-sm" style="background:transparent;color:var(--tx2);padding:5px 12px;">🔗 Paste Link</button>
+          </div>
+        </div>
         <input class="form-input" type="file" name="file" id="file-input" style="cursor:pointer;">
+        <input class="form-input" type="url" name="source_url" id="source-url-input" placeholder="https://example.com/your-file.mp4" style="display:none;">
         <div style="font-size:11px;color:var(--tx2);margin-top:5px;" id="file-hint">Select a file to upload</div>
+        <div style="font-size:11px;color:var(--tx2);margin-top:5px;display:none;" id="link-hint">Paste a direct link to your hosted file — saves space here, plays &amp; downloads straight from the link.</div>
       </div>
       <div class="form-group">
         <label class="form-label">Thumbnail <span style="font-weight:400;color:var(--tx2);text-transform:none;font-size:11px;letter-spacing:0;">JPG/PNG/WebP — strongly recommended</span></label>
-        <input class="form-input" type="file" name="thumbnail" accept="image/*" style="cursor:pointer;">
+        <input class="form-input" type="file" name="thumbnail" accept="image/*" style="cursor:pointer;margin-bottom:8px;">
+        <input class="form-input" type="url" name="thumbnail_url" placeholder="Or paste a link to a thumbnail image instead">
       </div>
       <div style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:9px;padding:12px 14px;font-size:13px;color:#3b82f6;margin-bottom:18px;">
         ℹ️ Your content will be reviewed before going live. This usually takes under 24 hours.
@@ -85,17 +101,43 @@ lbls.forEach(lbl=>{
     lbl.style.borderColor='var(--ac)';
   });
 });
+let sourceMode = 'upload';
+function setSourceMode(mode){
+  sourceMode = mode;
+  const fi = document.getElementById('file-input');
+  const ui = document.getElementById('source-url-input');
+  const uploadBtn = document.getElementById('mode-upload-btn');
+  const linkBtn = document.getElementById('mode-link-btn');
+  const fileHint = document.getElementById('file-hint');
+  const linkHint = document.getElementById('link-hint');
+  const ct = document.querySelector('[name=content_type]:checked');
+  const showFile = !ct || (specs[ct.value] || specs.video).showFile;
+  if(mode === 'upload'){
+    fi.style.display = 'block'; ui.style.display = 'none';
+    fileHint.style.display = 'block'; linkHint.style.display = 'none';
+    fi.required = showFile; ui.required = false;
+    uploadBtn.style.background = 'var(--ac)'; uploadBtn.style.color = '#fff';
+    linkBtn.style.background = 'transparent'; linkBtn.style.color = 'var(--tx2)';
+  } else {
+    fi.style.display = 'none'; ui.style.display = 'block';
+    fileHint.style.display = 'none'; linkHint.style.display = 'block';
+    fi.required = false; ui.required = showFile;
+    linkBtn.style.background = 'var(--ac)'; linkBtn.style.color = '#fff';
+    uploadBtn.style.background = 'transparent'; uploadBtn.style.color = 'var(--tx2)';
+  }
+}
 function updateType(ct){
   const s=specs[ct]||specs.video;
   const fi=document.getElementById('file-input');
+  const ui=document.getElementById('source-url-input');
   const fg=document.getElementById('file-group');
   const bg=document.getElementById('blog-body-group');
   document.getElementById('file-label').textContent=s.label;
   document.getElementById('file-hint').textContent=s.hint;
   fi.accept=s.accept;
-  fi.required=s.showFile;
   fg.style.display=s.showFile?'block':'none';
   bg.style.display=ct==='blog'?'block':'none';
+  setSourceMode(sourceMode); // re-apply required flags for the new type
 }
 document.querySelector('[name=tier][value=free]').addEventListener('change',()=>{
   document.getElementById('tier-free').style.borderColor='var(--ac)';

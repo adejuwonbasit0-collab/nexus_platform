@@ -50,7 +50,7 @@
           {% if content.tier == 'premium' %}<span class="tier-premium">Premium</span>{% else %}<span class="tier-free">Free</span>{% endif %}
           {% if content.is_featured %}<span class="badge badge-yellow" style="font-size:11px;">⭐ Featured</span>{% endif %}
         </div>
-        <h1 style="font-family:'Syne',sans-serif;font-size:clamp(24px,4vw,36px);font-weight:800;line-height:1.15;margin-bottom:12px;">{{ content.title }}</h1>
+        <h1 style="font-family:'Space Grotesk',sans-serif;font-size:clamp(24px,4vw,36px);font-weight:800;line-height:1.15;margin-bottom:12px;">{{ content.title }}</h1>
         <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;font-size:13px;color:var(--tx2);flex-wrap:wrap;">
           <span>By <a href="/auth/profile/{{ content.creator.username }}/" style="color:var(--ac);font-weight:600;">{{ content.creator.username }}</a></span>
           <span>{{ content.created_at|date:"M d, Y" }}</span>
@@ -202,7 +202,7 @@
 {# Share Modal #}
 <div id="shareModal" class="share-modal" onclick="if(event.target===this)this.classList.remove('open')">
   <div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:20px;padding:32px;width:440px;max-width:95vw;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;flex-wrap:wrap;gap:8px;">
       <h3 style="font-size:17px;font-weight:700;">Share Content</h3>
       <button onclick="document.getElementById('shareModal').classList.remove('open')" style="background:none;border:none;color:var(--tx2);font-size:24px;cursor:pointer;">×</button>
     </div>

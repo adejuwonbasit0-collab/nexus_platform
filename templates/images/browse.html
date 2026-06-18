@@ -5,7 +5,7 @@
 <div style="background:var(--bg2);border-bottom:1px solid #e8eaf0;padding:22px 0;">
   <div class="container">
     <form method="get" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-      <input name="q" value="{{ q }}" placeholder="Search…" style="background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:8px 14px;color:var(--tx);font-family:'Inter',sans-serif;font-size:0.84rem;outline:none;width:200px;">
+      <input name="q" value="{{ q }}" placeholder="Search…" style="background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:8px 14px;color:var(--tx);font-family:'Plus Jakarta Sans',sans-serif;font-size:0.84rem;outline:none;width:200px;">
       <select name="cat" style="background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:8px 12px;color:var(--tx);font-size:0.82rem;" onchange="this.form.submit()">
         <option value="">All Categories</option>
         {% for c in cats %}<option value="{{ c.slug }}" {% if active_cat == c.slug %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
@@ -43,9 +43,9 @@
   </div>
   <div style="columns:5;gap:14px;">
     {% for img in images %}
-    <div style="break-inside:avoid;margin-bottom:14px;cursor:pointer;" onclick="openPreview('{% if img.image_file %}{{ img.image_file.url }}{% endif %}','/images/download/{{ img.pk }}/','/images/view/{{ img.slug }}/')">
+    <div style="break-inside:avoid;margin-bottom:14px;cursor:pointer;" onclick="openPreview('{% if img.has_image %}{{ img.display_url }}{% endif %}','/images/download/{{ img.pk }}/','/images/view/{{ img.slug }}/')">
       <div style="border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-        {% if img.image_file %}<img src="{{ img.image_file.url }}" style="width:100%;display:block;" loading="lazy">
+        {% if img.has_image %}<img src="{{ img.display_url }}" style="width:100%;display:block;" loading="lazy">
         {% else %}<div style="width:100%;height:160px;background:#e8eaf0;display:flex;align-items:center;justify-content:center;font-size:1.8rem;">🖼</div>{% endif %}
         <div style="padding:7px 10px;background:var(--bg2);">
           <div style="font-size:0.76rem;font-weight:500;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ img.title }}</div>

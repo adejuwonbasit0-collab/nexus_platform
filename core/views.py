@@ -158,6 +158,39 @@ def admin_approve_content(request, pk):
     content = get_object_or_404(Content, pk=pk)
     content.status = 'approved'
     content.save(update_fields=['status'])
+
+    # Publish the matching Movie/Track/Image/Post created alongside this
+    # Content row when the creator uploaded it.
+    try:
+        from content.views import _find_type_match
+        match = _find_type_match(content.content_type, content.title, published_only=False)
+        if match:
+            if hasattr(match, 'is_published'):
+                match.is_published = True
+                match.save(update_fields=['is_published'])
+            elif hasattr(match, 'status'):  # blog Post uses status
+                match.status = 'published'
+                match.save(update_fields=['status'])
+        else:
+            # Also check Series (video) / Album (music) created by creators
+            if content.content_type == 'video':
+                from movies.models import Series
+                series = Series.objects.filter(title=content.title, uploaded_by=content.creator).first()
+                if series and not series.is_published:
+                    series.is_published = True
+                    series.save(update_fields=['is_published'])
+                    for season in series.seasons.all():
+                        season.episodes.update(is_published=True)
+            elif content.content_type == 'music':
+                from music.models import Album
+                album = Album.objects.filter(title=content.title, uploaded_by=content.creator).first()
+                if album and not album.is_published:
+                    album.is_published = True
+                    album.save(update_fields=['is_published'])
+                    album.tracks.update(is_published=True)
+    except Exception:
+        pass
+
     notify(content.creator, 'content_approved', '✅ Content Approved',
            f'Your upload "{content.title}" has been approved and is now live.',
            link=f'/content/{content.pk}/')
@@ -639,7 +672,11 @@ def admin_add_episode(request, series_pk):
             duration=int(request.POST.get('duration', 0) or 0),
         )
         f = request.FILES.get('file') or request.FILES.get('video_file')
-        if f: ep.video_file = f
+        source_url = request.POST.get('source_url', '').strip()
+        if f:
+            ep.video_file = f
+        elif source_url:
+            ep.video_url = source_url
         if 'thumbnail' in request.FILES: ep.thumbnail = request.FILES['thumbnail']
         ep.save()
         messages.success(request, f'Episode "{ep.title}" added to Season {season_num}.')
@@ -778,23 +815,27 @@ def creator_dashboard(request):
 
 @_creator_required
 def creator_upload(request):
-    from core.utils import validate_upload, validate_thumbnail
+    from core.utils import validate_upload, validate_thumbnail, validate_source_url, get_or_create_artist_for_user
     if request.method == 'POST':
         content_type = request.POST.get('content_type', '')
         title        = request.POST.get('title', '').strip()
         description  = request.POST.get('description', '').strip()
         tier         = request.POST.get('tier', 'free')
         file_obj     = request.FILES.get('file')
+        source_url   = request.POST.get('source_url', '').strip()
         thumb_obj    = request.FILES.get('thumbnail')
+        thumb_url    = request.POST.get('thumbnail_url', '').strip()
         price        = request.POST.get('price', 0) or 0
 
-        err = validate_upload(file_obj, content_type) or validate_thumbnail(thumb_obj)
+        err = (validate_upload(file_obj, content_type) or validate_thumbnail(thumb_obj)
+               or validate_source_url(source_url) or validate_source_url(thumb_url))
+        has_source = bool(file_obj) or bool(source_url)
         if err:
             messages.error(request, err)
         elif not title:
             messages.error(request, 'Title is required.')
-        elif not file_obj and content_type != 'blog':
-            messages.error(request, 'File is required.')
+        elif not has_source and content_type != 'blog':
+            messages.error(request, 'Provide a file upload or a link to the media.')
         else:
             c = Content.objects.create(
                 creator=request.user,
@@ -802,8 +843,57 @@ def creator_upload(request):
                 content_type=content_type, tier=tier,
                 status='pending',
                 file=file_obj, thumbnail=thumb_obj,
+                source_url=source_url,
                 price=price,
             )
+
+            # Also create the real type-specific record so once approved,
+            # it actually appears on /movies/, /music/, /images/, /blog/.
+            # A pasted link is stored as-is (no download) to save hosting
+            # space, and is used directly for both playback and download.
+            try:
+                is_premium = (tier == 'premium')
+                if content_type == 'video':
+                    from movies.models import Movie
+                    Movie.objects.create(
+                        title=title, description=description,
+                        thumbnail=thumb_obj or None,
+                        video_file=file_obj, video_url=source_url,
+                        is_premium=is_premium, is_published=False,
+                        uploaded_by=request.user,
+                    )
+                elif content_type == 'music':
+                    from music.models import Track
+                    artist = get_or_create_artist_for_user(request.user)
+                    Track.objects.create(
+                        title=title, artist=artist,
+                        audio_file=file_obj, audio_url=source_url,
+                        cover_image=thumb_obj or None,
+                        is_premium=is_premium, is_published=False,
+                        uploaded_by=request.user,
+                    )
+                elif content_type == 'image':
+                    from images.models import Image
+                    Image.objects.create(
+                        title=title, description=description,
+                        image_file=file_obj, image_url=source_url,
+                        thumbnail=thumb_obj or None,
+                        is_premium=is_premium, is_published=False,
+                        uploaded_by=request.user,
+                    )
+                elif content_type == 'blog':
+                    from blog.models import Post
+                    Post.objects.create(
+                        title=title, author=request.user,
+                        content=request.POST.get('body', description),
+                        excerpt=description[:500],
+                        featured_img=thumb_obj or None,
+                        featured_img_url=thumb_url or source_url,
+                        status='draft',
+                    )
+            except Exception as e:
+                messages.warning(request, f'Saved for review, but the live record had an issue: {e}')
+
             try:
                 from automation.engine import WorkflowEngine
                 WorkflowEngine.fire('content.uploaded', {
@@ -833,18 +923,75 @@ def creator_delete_content(request, pk):
 
 @_creator_required
 def creator_edit_content(request, pk):
+    from core.utils import validate_source_url
     content = get_object_or_404(Content, pk=pk, creator=request.user)
     if request.method == 'POST':
+        old_title = content.title
         content.title = request.POST.get('title', content.title).strip() or content.title
         content.description = request.POST.get('description', content.description)
         content.tier = request.POST.get('tier', content.tier)
+        source_url = request.POST.get('source_url', '').strip()
+        thumb_url  = request.POST.get('thumbnail_url', '').strip()
+
+        err = validate_source_url(source_url) or validate_source_url(thumb_url)
+        if err:
+            messages.error(request, err)
+            return render(request, 'creator/edit_content.html', {
+                'content': content,
+                'tiers': [('free', 'Free'), ('premium', 'Premium')],
+            })
+
         if request.FILES.get('file'):
             content.file = request.FILES['file']
+            content.source_url = ''
+        elif source_url:
+            content.source_url = source_url
+            content.file = None
         if request.FILES.get('thumbnail'):
             content.thumbnail = request.FILES['thumbnail']
         # Re-submit for approval on edit
         content.status = 'pending'
         content.save()
+
+        # Propagate changes to the matching live record so an edit (new
+        # title, swapped file/link, tier change) actually takes effect.
+        try:
+            from content.views import _find_type_match
+            match = _find_type_match(content.content_type, old_title, published_only=False)
+            if match:
+                match.title = content.title
+                if hasattr(match, 'description'):
+                    match.description = content.description
+                if hasattr(match, 'is_premium'):
+                    match.is_premium = (content.tier == 'premium')
+                file_obj = request.FILES.get('file')
+                thumb_obj = request.FILES.get('thumbnail')
+                if content.content_type == 'video':
+                    if file_obj: match.video_file = file_obj
+                    elif source_url: match.video_url = source_url; match.video_file = None
+                    if thumb_obj: match.thumbnail = thumb_obj
+                elif content.content_type == 'music':
+                    if file_obj: match.audio_file = file_obj
+                    elif source_url: match.audio_url = source_url; match.audio_file = None
+                    if thumb_obj: match.cover_image = thumb_obj
+                elif content.content_type == 'image':
+                    if file_obj: match.image_file = file_obj
+                    elif source_url: match.image_url = source_url; match.image_file = None
+                    if thumb_obj: match.thumbnail = thumb_obj
+                elif content.content_type == 'blog':
+                    if thumb_obj: match.featured_img = thumb_obj
+                    elif thumb_url: match.featured_img_url = thumb_url
+                    body = request.POST.get('body')
+                    if body: match.content = body
+                # Edits go back to pending review, matching the Content row.
+                if hasattr(match, 'is_published'):
+                    match.is_published = False
+                elif hasattr(match, 'status'):
+                    match.status = 'draft'
+                match.save()
+        except Exception as e:
+            messages.warning(request, f'Content updated, but the live record had an issue: {e}')
+
         messages.success(request, f'"{content.title}" updated and re-submitted for review.')
         return redirect('creator_dashboard')
     return render(request, 'creator/edit_content.html', {
@@ -905,6 +1052,181 @@ def creator_withdraw(request):
             messages.error(request, str(e))
 
     return render(request, 'creator/withdraw.html', {'wallet': wallet})
+
+
+# ── Creator: Series & Episodes ──────────────────────────────────────────────
+
+@_creator_required
+def creator_series_list(request):
+    from movies.models import Series
+    series = Series.objects.filter(uploaded_by=request.user).prefetch_related('seasons__episodes').order_by('-created_at')
+    return render(request, 'creator/series_list.html', {'series': series})
+
+
+@_creator_required
+def creator_create_series(request):
+    from movies.models import Series, Genre
+    if request.method == 'POST':
+        from django.utils.text import slugify
+        title = request.POST.get('title', '').strip()
+        if not title:
+            messages.error(request, 'Title is required.')
+            return redirect('creator_create_series')
+        base_slug = slugify(title)
+        slug, n = base_slug, 1
+        while Series.objects.filter(slug=slug).exists():
+            slug = f'{base_slug}-{n}'; n += 1
+        s = Series(
+            title=title, slug=slug,
+            description=request.POST.get('description', ''),
+            is_published=False,  # goes live once admin approves
+            is_premium=request.POST.get('tier') == 'premium',
+            release_year=int(request.POST.get('release_year', 2024) or 2024),
+            uploaded_by=request.user,
+        )
+        if 'thumbnail' in request.FILES:
+            s.thumbnail = request.FILES['thumbnail']
+        s.save()
+        genre_pks = request.POST.getlist('genres')
+        if genre_pks:
+            s.genres.set(Genre.objects.filter(pk__in=genre_pks))
+        try:
+            Content.objects.get_or_create(
+                title=s.title, content_type='video', creator=request.user,
+                defaults={'description': s.description, 'status': 'pending',
+                          'tier': 'premium' if s.is_premium else 'free'}
+            )
+        except Exception:
+            pass
+        messages.success(request, f'Series "{s.title}" created — now add episodes. It will go live once approved.')
+        return redirect('creator_series_episodes', series_pk=s.pk)
+    genres = Genre.objects.all()
+    return render(request, 'creator/series_form.html', {'genres': genres})
+
+
+@_creator_required
+def creator_series_episodes(request, series_pk):
+    from movies.models import Series, Season, Episode
+    series = get_object_or_404(Series, pk=series_pk, uploaded_by=request.user)
+    if request.method == 'POST':
+        season_num = int(request.POST.get('season', 1))
+        season, _  = Season.objects.get_or_create(series=series, number=season_num)
+        ep = Episode(
+            season=season,
+            number=int(request.POST.get('episode_number', 1)),
+            title=request.POST.get('title', ''),
+            description=request.POST.get('description', ''),
+            is_published=False,  # follows series approval
+            duration=int(request.POST.get('duration', 0) or 0),
+        )
+        f = request.FILES.get('file') or request.FILES.get('video_file')
+        source_url = request.POST.get('source_url', '').strip()
+        if not f and not source_url:
+            messages.error(request, 'Provide a video file or a link to it.')
+            return redirect('creator_series_episodes', series_pk=series_pk)
+        if f:
+            ep.video_file = f
+        elif source_url:
+            ep.video_url = source_url
+        if 'thumbnail' in request.FILES: ep.thumbnail = request.FILES['thumbnail']
+        ep.save()
+        messages.success(request, f'Episode "{ep.title}" added to Season {season_num}.')
+        if request.POST.get('add_another'):
+            return redirect('creator_series_episodes', series_pk=series_pk)
+        return redirect('creator_series_list')
+    seasons = series.seasons.prefetch_related('episodes').order_by('number')
+    last_season = seasons.last()
+    next_ep = (last_season.episodes.count() + 1) if last_season else 1
+    return render(request, 'creator/episode_form.html', {
+        'series': series, 'seasons': seasons, 'next_episode_number': next_ep,
+    })
+
+
+# ── Creator: Albums ──────────────────────────────────────────────────────────
+
+@_creator_required
+def creator_albums_list(request):
+    from music.models import Album
+    from core.utils import get_or_create_artist_for_user
+    artist = get_or_create_artist_for_user(request.user)
+    albums = Album.objects.filter(uploaded_by=request.user).prefetch_related('tracks').order_by('-created_at')
+    return render(request, 'creator/albums_list.html', {'albums': albums, 'artist': artist})
+
+
+@_creator_required
+def creator_create_album(request):
+    from music.models import Album, Genre
+    from core.utils import get_or_create_artist_for_user
+    artist = get_or_create_artist_for_user(request.user)
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        if not title:
+            messages.error(request, 'Title is required.')
+            return redirect('creator_create_album')
+        album = Album(
+            title=title, artist=artist,
+            description=request.POST.get('description', ''),
+            album_type=request.POST.get('album_type', 'album'),
+            release_year=int(request.POST.get('release_year', 2024) or 2024),
+            is_published=False,  # goes live once admin approves
+            uploaded_by=request.user,
+        )
+        genre_pk = request.POST.get('genre')
+        if genre_pk:
+            album.genre_id = genre_pk
+        if 'cover_image' in request.FILES:
+            album.cover_image = request.FILES['cover_image']
+        album.save()
+        try:
+            Content.objects.get_or_create(
+                title=album.title, content_type='music', creator=request.user,
+                defaults={'description': album.description, 'status': 'pending'}
+            )
+        except Exception:
+            pass
+        messages.success(request, f'Album "{album.title}" created — now add tracks. It will go live once approved.')
+        return redirect('creator_album_tracks', album_pk=album.pk)
+    genres = Genre.objects.all()
+    return render(request, 'creator/album_form.html', {'genres': genres, 'artist': artist})
+
+
+@_creator_required
+def creator_album_tracks(request, album_pk):
+    from music.models import Album, Track
+    album = get_object_or_404(Album, pk=album_pk, uploaded_by=request.user)
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        if not title:
+            messages.error(request, 'Track title is required.')
+            return redirect('creator_album_tracks', album_pk=album_pk)
+        t = Track(
+            title=title, artist=album.artist, album=album,
+            genre=album.genre,
+            is_premium=request.POST.get('tier') == 'premium',
+            is_published=False,
+            uploaded_by=request.user,
+            duration=int(request.POST.get('duration', 0) or 0),
+        )
+        f = request.FILES.get('file') or request.FILES.get('audio_file')
+        source_url = request.POST.get('source_url', '').strip()
+        if not f and not source_url:
+            messages.error(request, 'Provide an audio file or a link to it.')
+            return redirect('creator_album_tracks', album_pk=album_pk)
+        if f:
+            t.audio_file = f
+        elif source_url:
+            t.audio_url = source_url
+        if 'cover_image' in request.FILES:
+            t.cover_image = request.FILES['cover_image']
+        else:
+            t.cover_image = album.cover_image
+        t.save()
+        messages.success(request, f'Track "{t.title}" added to "{album.title}".')
+        if request.POST.get('add_another'):
+            return redirect('creator_album_tracks', album_pk=album_pk)
+        return redirect('creator_albums_list')
+    tracks = album.tracks.order_by('-created_at')
+    return render(request, 'creator/album_track_form.html', {'album': album, 'tracks': tracks})
 
 
 # ── Per-Module Content Admin Views ────────────────────────────────────────────
@@ -1043,7 +1365,11 @@ def admin_movies(request):
                     is_published=request.POST.get('is_published')=='on',
                 )
                 f = request.FILES.get('file') or request.FILES.get('video_file')
-                if f: ep.video_file = f
+                src = request.POST.get('source_url', '').strip()
+                if f:
+                    ep.video_file = f
+                elif src:
+                    ep.video_url = src
                 if 'thumbnail' in request.FILES: ep.thumbnail = request.FILES['thumbnail']
                 ep.save()
                 messages.success(request, f'Episode "{ep.title}" added.')
@@ -1633,22 +1959,4 @@ def creator_upload_image(request):
 @_creator_required
 def creator_manage_content(request):
     """List creator's content (redirect to dashboard where content is shown)."""
-    return redirect('creator_dashboard')
-
-
-@_creator_required
-def creator_edit_content(request, pk):
-    """Edit a specific content item – not implemented yet."""
-    messages.warning(request, 'Editing not yet implemented. Use dashboard.')
-    return redirect('creator_dashboard')
-
-
-@_creator_required
-def creator_delete_content(request, pk):
-    """Delete a content item belonging to the creator."""
-    from content.models import Content
-    content = get_object_or_404(Content, pk=pk, creator=request.user)
-    title = content.title
-    content.delete()
-    messages.success(request, f'"{title}" deleted.')
     return redirect('creator_dashboard')

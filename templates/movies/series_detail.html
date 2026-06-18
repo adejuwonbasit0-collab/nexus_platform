@@ -62,7 +62,7 @@
           <span class="meta-tag">{{ seasons|length }} Season{{ seasons|length|pluralize }}</span>
           {% if series.is_premium %}<span class="meta-tag" style="background:rgba(245,158,11,.2);color:#fcd34d;border-color:rgba(245,158,11,.25);">⭐ Premium</span>{% endif %}
         </div>
-        <h1 style="font-family:'Syne',sans-serif;font-size:clamp(1.5rem,3.5vw,2.6rem);font-weight:800;color:#fff;margin-bottom:12px;text-shadow:0 2px 20px rgba(0,0,0,.5);">{{ series.title }}</h1>
+        <h1 style="font-family:'Space Grotesk',sans-serif;font-size:clamp(1.5rem,3.5vw,2.6rem);font-weight:800;color:#fff;margin-bottom:12px;text-shadow:0 2px 20px rgba(0,0,0,.5);">{{ series.title }}</h1>
         <p style="color:rgba(255,255,255,.6);font-size:14px;line-height:1.7;max-width:520px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">{{ series.description }}</p>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:18px;">
           <button onclick="shareContent('{{ series.title|escapejs }}','/movies/series/{{ series.slug }}/')" style="padding:10px 20px;border-radius:9px;background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);cursor:pointer;font-size:13px;font-weight:600;">↗ Share</button>
@@ -76,7 +76,7 @@
 
   <div>
     {# SEASONS & EPISODES #}
-    <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:18px;">📺 Seasons & Episodes</div>
+    <div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:800;margin-bottom:18px;">📺 Seasons & Episodes</div>
 
     {% for season in seasons %}
     <div class="season-block">
@@ -121,7 +121,7 @@
 
     {# DESCRIPTION #}
     <div style="background:rgba(255,255,255,.03);border:1px solid var(--bd);border-radius:14px;padding:22px;margin-top:8px;">
-      <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:12px;">About</div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;margin-bottom:12px;">About</div>
       <p style="color:var(--tx2);line-height:1.8;font-size:14px;">{{ series.description }}</p>
     </div>
   </div>

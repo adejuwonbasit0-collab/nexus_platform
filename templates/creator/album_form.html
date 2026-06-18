@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}Create Album — Studio{% endblock %}
+{% block head %}
+<style>@media(max-width:480px){.cf-grid{grid-template-columns:1fr!important}.cf-grid *{grid-column:span 1!important}}</style>
+{% endblock %}
+{% block content %}
+<div class="wrap" style="max-width:700px;padding-top:40px;padding-bottom:60px;">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
+    <a href="/creator/albums/" style="color:var(--tx2);font-size:13px;">← Back to My Albums</a>
+  </div>
+  <h1 style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:800;margin-bottom:18px;">💿 Create Album</h1>
+
+  <div style="background:rgba(124,92,252,.07);border:1px solid rgba(124,92,252,.2);border-radius:12px;padding:16px 20px;margin-bottom:22px;font-size:13px;color:var(--tx2);line-height:1.6;">
+    <strong style="color:var(--tx);">How it works:</strong> Create the album here under your artist profile
+    "<strong style="color:var(--tx);">{{ artist.name }}</strong>", then add tracks on the next screen. It goes
+    live once an admin reviews and approves it.
+  </div>
+
+  <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:14px;padding:24px;box-shadow:0 4px 16px rgba(0,0,0,.2);">
+    <form method="post" enctype="multipart/form-data">{% csrf_token %}
+      <div class="cf-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="form-group" style="grid-column:span 2;"><label class="form-label">Album Title *</label><input class="form-input" name="title" required placeholder="e.g. Midnight Sessions"></div>
+        <div class="form-group"><label class="form-label">Type</label>
+          <select class="form-input" name="album_type">
+            <option value="album">Album</option>
+            <option value="ep">EP</option>
+            <option value="single">Single</option>
+            <option value="compilation">Compilation</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Release Year</label><input class="form-input" type="number" name="release_year" value="2024" min="1900" max="2030"></div>
+        <div class="form-group" style="grid-column:span 2;"><label class="form-label">Genre</label>
+          <select class="form-input" name="genre">
+            <option value="">— Select genre —</option>
+            {% for g in genres %}<option value="{{ g.pk }}">{{ g.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group" style="grid-column:span 2;">
+          <label class="form-label">Cover Art</label>
+          <input class="form-input" type="file" name="cover_image" accept="image/*" style="cursor:pointer;">
+        </div>
+        <div class="form-group" style="grid-column:span 2;"><label class="form-label">Description</label><textarea class="form-input" name="description" rows="4" placeholder="Tell listeners about this album…"></textarea></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:14px;">
+        <button type="submit" class="btn btn-primary">💿 Create Album &amp; Continue</button>
+        <a href="/creator/albums/" class="btn btn-ghost">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

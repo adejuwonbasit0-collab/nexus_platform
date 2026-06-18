@@ -27,6 +27,7 @@ class Post(models.Model):
     category     = models.ForeignKey(Category, null=True, blank=True, on_delete=models.SET_NULL)
     tags         = models.ManyToManyField(Tag, blank=True)
     featured_img = models.ImageField(upload_to='blog/covers/', null=True, blank=True)
+    featured_img_url = models.URLField(blank=True, help_text='External link to a cover image (used instead of an upload to save storage space).')
     content      = models.TextField()
     excerpt      = models.TextField(blank=True, max_length=500)
     status       = models.CharField(max_length=20, choices=STATUS, default='draft')
@@ -52,6 +53,12 @@ class Post(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self): return self.title
+
+    @property
+    def cover_url(self):
+        if self.featured_img:
+            return self.featured_img.url
+        return self.featured_img_url
 
 
 class Comment(models.Model):

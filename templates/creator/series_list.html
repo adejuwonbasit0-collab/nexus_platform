@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}My Series — Studio{% endblock %}
+{% block content %}
+<div class="wrap" style="max-width:900px;padding-top:40px;padding-bottom:60px;">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
+    <a href="/creator/" style="color:var(--tx2);font-size:13px;">← Back to Studio</a>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+    <h1 style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:800;">📺 My Series</h1>
+    <a href="/creator/series/new/" class="btn btn-primary btn-sm">+ New Series</a>
+  </div>
+
+  {% for s in series %}
+  <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:0 4px 16px rgba(0,0,0,.2);">
+    <div style="display:flex;align-items:start;gap:16px;">
+      {% if s.thumbnail %}<img src="{{ s.thumbnail.url }}" style="width:72px;height:108px;object-fit:cover;border-radius:8px;flex-shrink:0;">
+      {% else %}<div style="width:72px;height:108px;background:var(--bg3);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.8rem;flex-shrink:0;">📺</div>{% endif %}
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:6px;flex-wrap:wrap;gap:8px;">
+          <h3 style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;">{{ s.title }}</h3>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <span class="badge {% if s.is_published %}badge-green{% else %}badge-gray{% endif %}" style="font-size:10px;">{% if s.is_published %}Live{% else %}Pending Review{% endif %}</span>
+            <a href="/creator/series/{{ s.pk }}/episodes/" class="btn btn-primary btn-sm">+ Add Episode</a>
+          </div>
+        </div>
+        <p style="color:var(--tx2);font-size:13px;margin-bottom:10px;">{{ s.description|truncatechars:150 }}</p>
+        <div style="font-size:12px;color:var(--tx2);margin-bottom:8px;">{{ s.seasons.count }} season{{ s.seasons.count|pluralize }}</div>
+        {% for season in s.seasons.all %}
+        <div style="margin-top:8px;padding:10px 12px;background:rgba(255,255,255,.03);border-radius:8px;">
+          <div style="font-weight:600;font-size:13px;margin-bottom:6px;">Season {{ season.number }}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            {% for ep in season.episodes.all %}
+            <span style="background:rgba(255,255,255,.05);border:1px solid var(--bd);padding:3px 10px;border-radius:6px;font-size:11px;">E{{ ep.number }}: {{ ep.title|truncatechars:20 }}</span>
+            {% empty %}<span style="color:var(--tx2);font-size:12px;">No episodes yet</span>
+            {% endfor %}
+          </div>
+        </div>
+        {% empty %}
+        <div style="margin-top:8px;padding:10px 12px;background:rgba(255,255,255,.03);border-radius:8px;color:var(--tx2);font-size:12px;">No seasons yet — add your first episode above.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div style="text-align:center;padding:80px 20px;color:var(--tx2);">
+    <div style="font-size:2.5rem;margin-bottom:12px;">📺</div>
+    <div>You haven't created any series yet.</div>
+    <a href="/creator/series/new/" class="btn btn-primary" style="margin-top:16px;">Create Your First Series</a>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

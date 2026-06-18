@@ -9,7 +9,7 @@
 .ep-breadcrumb{font-size:12px;color:var(--tx2);margin-bottom:10px;}
 .ep-breadcrumb a{color:var(--ac);text-decoration:none;}
 .ep-breadcrumb a:hover{text-decoration:underline;}
-.ep-title{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;margin-bottom:8px;}
+.ep-title{font-family:'Space Grotesk',sans-serif;font-size:1.5rem;font-weight:800;margin-bottom:8px;}
 .ep-meta{font-size:13px;color:var(--tx2);}
 .ep-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
 .btn-ep{padding:9px 20px;border-radius:9px;font-size:13px;font-weight:600;border:none;cursor:pointer;transition:all .18s;text-decoration:none;display:inline-flex;align-items:center;gap:7px;}
@@ -43,7 +43,7 @@
   <div>
     {# VIDEO PLAYER #}
     <div class="video-wrap">
-      {% if episode.video_file %}
+      {% if episode.has_video %}
       <video id="ep-player" controls preload="metadata" style="width:100%;height:100%;">
         <source src="/movies/stream/episode/{{ episode.pk }}/" type="video/mp4">
         Your browser does not support video playback.
@@ -55,6 +55,9 @@
       </div>
       {% endif %}
     </div>
+    {% if episode.has_video %}
+    <a href="/movies/episode/download/{{ episode.pk }}/" class="btn btn-outline" style="margin-top:10px;width:100%;justify-content:center;">⬇ Download Episode</a>
+    {% endif %}
 
     {# EPISODE INFO #}
     <div class="ep-info-card">
@@ -80,7 +83,7 @@
 
     {# COMMENTS #}
     <div style="background:rgba(255,255,255,.03);border:1px solid var(--bd);border-radius:14px;padding:22px;">
-      <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin-bottom:18px;">💬 Comments</div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;margin-bottom:18px;">💬 Comments</div>
       {% if user.is_authenticated %}
       <div style="display:flex;gap:10px;margin-bottom:22px;">
         <div class="comment-avatar">{{ user.username|slice:":1"|upper }}</div>

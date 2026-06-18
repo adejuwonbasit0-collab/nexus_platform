@@ -69,10 +69,15 @@ def download_image(request, pk):
                 return HttpResponseForbidden('Premium subscription required')
         except Exception:
             pass
+    if not image.has_image:
+        raise Http404
+    Image.objects.filter(pk=pk).update(downloads_count=image.downloads_count + 1)
+    if image.is_external_image:
+        # No local copy to serve — send the user to the source link directly.
+        return redirect(image.image_url)
     f = image.image_file or image.thumbnail
     if not f or not os.path.exists(f.path):
         raise Http404
-    Image.objects.filter(pk=pk).update(downloads_count=image.downloads_count + 1)
     return FileResponse(open(f.path, 'rb'), as_attachment=True,
                         filename=f'{image.title}.jpg')
 

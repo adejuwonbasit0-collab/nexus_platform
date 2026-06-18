@@ -7,7 +7,7 @@
 {% if global_seo %}<meta name="description" content="{% block desc %}{{ global_seo.meta_description }}{% endblock %}">{% endif %}
 {% if branding and branding.favicon %}<link rel="icon" href="{{ branding.favicon.url }}">{% else %}<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%237c5cfc'/><text x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-size='18' fill='white'>N</text></svg>">{% endif %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
 /* ═══════════════════════════════════════════════════════
    NEXUS · DESIGN SYSTEM v2
@@ -43,7 +43,7 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
 body{
-  font-family:'Inter',system-ui,sans-serif;
+  font-family:'Plus Jakarta Sans',system-ui,sans-serif;
   background:var(--bg); color:var(--tx);
   min-height:100vh; line-height:1.6;
   -webkit-font-smoothing:antialiased;
@@ -71,7 +71,7 @@ input,select,textarea,button{font-family:inherit;font-size:inherit}
   height:100%;max-width:1360px;margin:0 auto;padding:0 24px;
 }
 .nav-logo{
-  font-family:'Syne',sans-serif;font-size:22px;font-weight:800;
+  font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:800;
   background:linear-gradient(135deg,var(--ac),var(--ac2));
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
   letter-spacing:-.5px;flex-shrink:0;margin-right:6px;
@@ -228,7 +228,7 @@ input,select,textarea,button{font-family:inherit;font-size:inherit}
 .sec{padding:56px 0}
 .sec-sm{padding:36px 0}
 .stitle{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;gap:12px}
-.stitle h2{font-family:'Syne',sans-serif;font-size:18px;font-weight:800}
+.stitle h2{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:800}
 .stitle h2 span{background:linear-gradient(135deg,var(--ac),var(--ac2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .stitle a{font-size:12px;color:var(--ac);font-weight:600;flex-shrink:0}
 .stitle a:hover{text-decoration:underline}
@@ -345,7 +345,7 @@ select.form-input option,select.finput option{background:var(--bg3);color:var(--
 /* ── Footer ──────────────────────────────────────────────── */
 .footer{border-top:1px solid var(--bd);padding:52px 0 28px;margin-top:80px;background:linear-gradient(180deg,transparent,rgba(124,92,252,.03))}
 .footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:48px;margin-bottom:40px}
-.footer-logo{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;background:linear-gradient(135deg,var(--ac),var(--ac2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:12px}
+.footer-logo{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:800;background:linear-gradient(135deg,var(--ac),var(--ac2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:12px}
 .footer-desc{font-size:13px;color:var(--tx2);line-height:1.75;max-width:270px}
 .footer-col h4{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--tx3);margin-bottom:14px}
 .footer-col a{display:block;font-size:13px;color:var(--tx2);margin-bottom:9px;transition:color .15s}
@@ -364,9 +364,22 @@ select.form-input option,select.finput option{background:var(--bg3);color:var(--
 ::-webkit-scrollbar-thumb:hover{background:var(--tx2)}
 
 /* ═══════════════════════ RESPONSIVE ═══════════════════════ */
+/* Any panel/card containing a table becomes horizontally
+   scrollable on narrower screens instead of overflowing/breaking
+   the layout. Safe no-op on browsers without :has() support. */
+@media(max-width:860px){
+  .panel:has(table), .card:has(table), .table-wrap, [class*="panel-body"]:has(table){
+    overflow-x:auto;-webkit-overflow-scrolling:touch;
+  }
+  table{min-width:520px;}
+}
 @media(max-width:1100px){
   .footer-grid{grid-template-columns:1fr 1fr 1fr;gap:32px}
   .poster-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
+}
+@media(max-width:1024px){
+  .nav-search{width:140px}
+  .content-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px}
 }
 @media(max-width:900px){
   .nav-links{display:none}
@@ -392,6 +405,30 @@ select.form-input option,select.finput option{background:var(--bg3);color:var(--
   .footer-grid{grid-template-columns:1fr}
 }
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* ═══════════════ GLOBAL MOBILE SAFETY NET ═══════════════
+   Blanket rules so any section/card/form/flex-row across the
+   site behaves on phones & tablets even if a specific page
+   wasn't hand-tuned. flex-wrap is forced everywhere except rows
+   explicitly marked .no-wrap (rare; used for single-line toolbars
+   that must scroll instead of wrap, e.g. tab bars). */
+@media(max-width:760px){
+  div[style*="display:flex"]:not(.no-wrap):not([style*="flex-direction:column"]),
+  div[style*="display: flex"]:not(.no-wrap):not([style*="flex-direction:column"]){
+    flex-wrap:wrap!important;
+  }
+  /* Common "two-panel" / "sidebar + content" desktop layouts collapse to
+     a single full-width column. Anything using inline grid-template-columns
+     with 2+ tracks (the most common cause of mobile overflow site-wide). */
+  div[style*="grid-template-columns"]:not(.poster-grid):not(.content-grid):not(.music-grid):not(.footer-grid):not(.stat-grid):not(.stats-row):not(.analytics-grid):not(.upload-type-grid):not(.artist-tile-grid):not(.cf-grid):not(.profile-name-grid):not(.dash-module-grid):not(.dash-stats-grid):not(.analytics-chart-row):not(.cms-split-pane){
+    grid-template-columns:1fr!important;
+  }
+  /* Cards, panels, and form wrappers go full width with no fixed caps */
+  .card,.panel,.plan-card,.mv-panel,.cs-hero-grid,
+  form,.form-card,[class*="form-group"]{
+    max-width:100%!important;
+  }
+}
 </style>
 {% block extra_head %}{% endblock %}
 {% block head %}{% endblock %}
@@ -606,7 +643,7 @@ function toggleSiteTheme(){
 
 {# ── Persistent Mini Music Player ──────────────────────────── #}
 <div id="mini-player" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:8000;background:rgba(8,8,14,.94);backdrop-filter:blur(24px);border-top:1px solid rgba(124,92,252,.2);padding:10px 20px;align-items:center;gap:14px;padding-bottom:max(10px,env(safe-area-inset-bottom))">
-  <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1">
+  <div onclick="mpExpand()" style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;cursor:pointer">
     <div id="mp-cover" style="width:40px;height:40px;border-radius:8px;background:rgba(124,92,252,.2);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:18px">🎵</div>
     <div style="min-width:0">
       <div id="mp-title" style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff;max-width:180px">—</div>
@@ -629,6 +666,58 @@ function toggleSiteTheme(){
   <button onclick="mpClose()" style="background:none;border:none;color:rgba(255,255,255,.35);cursor:pointer;font-size:18px;padding:4px;flex-shrink:0">×</button>
   <audio id="mini-audio" preload="none"></audio>
 </div>
+
+{# ── Full-Screen Player Overlay ──────────────────────────────── #}
+<div id="fs-player" style="display:none;position:fixed;inset:0;z-index:9000;background:#0a0710;overflow:hidden;">
+  <div id="fs-bg" style="position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(60px) brightness(.4);transform:scale(1.2);transition:background-image .4s ease;"></div>
+  <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,7,16,.55) 0%,rgba(8,7,16,.85) 55%,rgba(8,7,16,.97) 100%);"></div>
+
+  <div style="position:relative;z-index:2;height:100%;display:flex;flex-direction:column;max-width:480px;margin:0 auto;padding:18px 24px max(18px,env(safe-area-inset-bottom));">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+      <button onclick="mpCollapse()" aria-label="Minimize" style="background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:22px;padding:8px;line-height:1;">⌄</button>
+      <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.45);">Now Playing</div>
+      <a id="fs-detail-link" href="#" style="background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:18px;padding:8px;line-height:1;text-decoration:none;">⋯</a>
+    </div>
+
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:20px 0;">
+      <div id="fs-cover" style="width:min(78vw,340px);height:min(78vw,340px);border-radius:18px;background:rgba(124,92,252,.2);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:64px;box-shadow:0 30px 80px rgba(0,0,0,.5);flex-shrink:0;">🎵</div>
+    </div>
+
+    <div style="flex-shrink:0;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:22px;">
+        <div style="min-width:0;flex:1;">
+          <div id="fs-title" style="font-size:22px;font-weight:800;font-family:'Space Grotesk',sans-serif;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">—</div>
+          <div id="fs-artist" style="font-size:14px;color:rgba(255,255,255,.55);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">—</div>
+        </div>
+        <button id="fs-likebtn" onclick="mpToggleLikeFs()" style="background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:24px;padding:4px;flex-shrink:0;">♡</button>
+      </div>
+
+      <div id="fs-bar" onclick="mpSeekClick(event)" style="height:5px;background:rgba(255,255,255,.15);border-radius:3px;cursor:pointer;position:relative;margin-bottom:8px;">
+        <div id="fs-progress" style="height:100%;background:var(--ac);border-radius:3px;width:0%;transition:width .2s;pointer-events:none;position:relative;">
+          <div style="position:absolute;right:-6px;top:50%;transform:translateY(-50%);width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.4);"></div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,.4);margin-bottom:18px;">
+        <span id="fs-cur">0:00</span>
+        <span id="fs-dur">0:00</span>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+        <button id="fs-shufflebtn" onclick="mpToggleShuffle()" aria-label="Shuffle" style="background:none;border:none;color:rgba(255,255,255,.45);cursor:pointer;font-size:18px;padding:8px;">🔀</button>
+        <button onclick="mpSeek(-10)" aria-label="Back 10 seconds" style="background:none;border:none;color:rgba(255,255,255,.8);cursor:pointer;font-size:24px;padding:8px;">⏮</button>
+        <button id="fs-playbtn" onclick="mpTogglePlay()" aria-label="Play/Pause" style="width:64px;height:64px;border-radius:50%;background:#fff;border:none;cursor:pointer;font-size:24px;display:flex;align-items:center;justify-content:center;color:#0a0710;flex-shrink:0;box-shadow:0 8px 24px rgba(0,0,0,.4);">▶</button>
+        <button onclick="mpSeek(10)" aria-label="Forward 10 seconds" style="background:none;border:none;color:rgba(255,255,255,.8);cursor:pointer;font-size:24px;padding:8px;">⏭</button>
+        <button id="fs-repeatbtn" onclick="mpToggleRepeat()" aria-label="Repeat" style="background:none;border:none;color:rgba(255,255,255,.45);cursor:pointer;font-size:18px;padding:8px;">🔁</button>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:13px;color:rgba(255,255,255,.4);flex-shrink:0;">🔈</span>
+        <input id="fs-vol" type="range" min="0" max="1" step="0.05" value="1" oninput="mpSetVol(this.value)" style="flex:1;accent-color:var(--ac);">
+        <span style="font-size:13px;color:rgba(255,255,255,.4);flex-shrink:0;">🔊</span>
+      </div>
+    </div>
+  </div>
+</div>
 <script>
 const _A=document.getElementById('mini-audio');
 const _P=document.getElementById('mp-progress');
@@ -638,25 +727,119 @@ const _B=document.getElementById('mp-playbtn');
 const _W=document.getElementById('mini-player');
 function _ft(s){const m=Math.floor(s/60);return m+':'+(('0'+Math.floor(s%60)).slice(-2))}
 if(_A){
-  _A.addEventListener('timeupdate',()=>{if(!_A.duration)return;_P.style.width=(_A.currentTime/_A.duration*100)+'%';_C.textContent=_ft(_A.currentTime)});
-  _A.addEventListener('loadedmetadata',()=>{_D.textContent=_ft(_A.duration)});
-  _A.addEventListener('ended',()=>{_B.textContent='▶'});
-  _A.addEventListener('play',()=>{_B.textContent='⏸'});
-  _A.addEventListener('pause',()=>{_B.textContent='▶'});
+  _A.addEventListener('timeupdate',()=>{
+    if(!_A.duration)return;
+    const pct=(_A.currentTime/_A.duration*100)+'%';
+    _P.style.width=pct;_C.textContent=_ft(_A.currentTime);
+    const fp=document.getElementById('fs-progress'),fc=document.getElementById('fs-cur');
+    if(fp)fp.style.width=pct; if(fc)fc.textContent=_ft(_A.currentTime);
+  });
+  _A.addEventListener('loadedmetadata',()=>{
+    _D.textContent=_ft(_A.duration);
+    const fd=document.getElementById('fs-dur');
+    if(fd)fd.textContent=_ft(_A.duration);
+  });
+  _A.addEventListener('ended',()=>{
+    _B.textContent='▶';
+    const fb=document.getElementById('fs-playbtn');
+    if(fb)fb.textContent='▶';
+  });
+  _A.addEventListener('play',()=>{
+    _B.textContent='⏸';
+    const fb=document.getElementById('fs-playbtn');
+    if(fb)fb.textContent='⏸';
+  });
+  _A.addEventListener('pause',()=>{
+    _B.textContent='▶';
+    const fb=document.getElementById('fs-playbtn');
+    if(fb)fb.textContent='▶';
+  });
 }
-function playMiniTrack(url,title,artist,coverUrl){
+function playMiniTrack(url,title,artist,coverUrl,detailUrl){
   if(!_A)return;_A.src=url;_A.play();
   document.getElementById('mp-title').textContent=title;
   document.getElementById('mp-artist').textContent=artist;
   const cv=document.getElementById('mp-cover');
   cv.innerHTML=coverUrl?`<img src="${coverUrl}" style="width:100%;height:100%;object-fit:cover">`:'🎵';
   _W.style.display='flex';document.body.style.paddingBottom='68px';
+  // Keep the full-screen view in sync too, in case it's already open
+  // or gets opened next.
+  document.getElementById('fs-title').textContent=title;
+  document.getElementById('fs-artist').textContent=artist;
+  const fc=document.getElementById('fs-cover');
+  const bg=document.getElementById('fs-bg');
+  if(coverUrl){
+    fc.innerHTML=`<img src="${coverUrl}" style="width:100%;height:100%;object-fit:cover">`;
+    bg.style.backgroundImage=`url('${coverUrl}')`;
+  } else {
+    fc.innerHTML='🎵';
+    bg.style.backgroundImage='none';
+  }
+  const link=document.getElementById('fs-detail-link');
+  if(link) link.href = detailUrl || '#';
 }
 function mpTogglePlay(){if(_A)_A.paused?_A.play():_A.pause()}
 function mpSeek(s){if(_A)_A.currentTime=Math.max(0,_A.currentTime+s)}
-function mpSeekClick(e){if(!_A||!_A.duration)return;const r=e.currentTarget.getBoundingClientRect();_A.currentTime=((e.clientX-r.left)/r.width)*_A.duration}
-function mpSetVol(v){if(_A)_A.volume=v}
-function mpClose(){if(_A){_A.pause();_A.src=''}_W.style.display='none';document.body.style.paddingBottom=''}
+function mpSeekClick(e){
+  if(!_A||!_A.duration)return;
+  const r=e.currentTarget.getBoundingClientRect();
+  _A.currentTime=((e.clientX-r.left)/r.width)*_A.duration;
+}
+function mpSetVol(v){
+  if(_A)_A.volume=v;
+  const v1=document.getElementById('mp-vol'),v2=document.getElementById('fs-vol');
+  if(v1)v1.value=v; if(v2)v2.value=v;
+}
+function mpClose(){if(_A){_A.pause();_A.src=''}_W.style.display='none';document.body.style.paddingBottom='';mpCollapse();}
+
+/* ── Full-screen player ──────────────────────────────────── */
+let _mpShuffle=false, _mpRepeat=false, _mpLiked=false;
+function mpExpand(){
+  const fs=document.getElementById('fs-player');
+  if(!fs||_W.style.display==='none')return;
+  fs.style.display='block';
+  document.body.style.overflow='hidden';
+}
+function mpCollapse(){
+  const fs=document.getElementById('fs-player');
+  if(fs)fs.style.display='none';
+  document.body.style.overflow='';
+}
+function mpToggleShuffle(){
+  _mpShuffle=!_mpShuffle;
+  const b=document.getElementById('fs-shufflebtn');
+  if(b)b.style.color=_mpShuffle?'var(--ac)':'rgba(255,255,255,.45)';
+}
+function mpToggleRepeat(){
+  _mpRepeat=!_mpRepeat;
+  if(_A)_A.loop=_mpRepeat;
+  const b=document.getElementById('fs-repeatbtn');
+  if(b)b.style.color=_mpRepeat?'var(--ac)':'rgba(255,255,255,.45)';
+}
+function mpToggleLikeFs(){
+  _mpLiked=!_mpLiked;
+  const b=document.getElementById('fs-likebtn');
+  if(b){b.textContent=_mpLiked?'♥':'♡';b.style.color=_mpLiked?'var(--ac)':'rgba(255,255,255,.5)';}
+}
+// Swipe-down-to-dismiss on the full-screen player (touch devices)
+(function(){
+  const fs=document.getElementById('fs-player');
+  if(!fs)return;
+  let startY=null;
+  fs.addEventListener('touchstart',e=>{startY=e.touches[0].clientY;},{passive:true});
+  fs.addEventListener('touchmove',e=>{
+    if(startY===null)return;
+    const dy=e.touches[0].clientY-startY;
+    if(dy>0) fs.style.transform=`translateY(${dy}px)`;
+  },{passive:true});
+  fs.addEventListener('touchend',e=>{
+    if(startY===null)return;
+    const dy=(e.changedTouches[0].clientY-startY);
+    fs.style.transform='';
+    if(dy>120) mpCollapse();
+    startY=null;
+  });
+})();
 </script>
 {% block scripts %}{% endblock %}
 </body>

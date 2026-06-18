@@ -3,7 +3,7 @@
 {% block topbar_title %}Finance Center{% endblock %}
 {% block content %}
 
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;">
+<div class="stat-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;">
   <div class="stat-card accent"><div class="stat-label">Total Revenue</div><div class="stat-value">₦{{ stats.total_revenue|default:0 }}</div></div>
   <div class="stat-card green"><div class="stat-label">Creator Earnings</div><div class="stat-value">₦{{ stats.total_earnings|default:0 }}</div></div>
   <div class="stat-card {% if stats.pending_withdrawals_count > 0 %}yellow{% endif %}">
@@ -73,7 +73,7 @@
 
 {# ─── Subscription Plans ─── #}
 <div class="panel" style="margin-top:24px;">
-  <div class="panel-head" style="display:flex;justify-content:space-between;align-items:center;">
+  <div class="panel-head" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
     <span class="panel-title">💎 Subscription Plans</span>
     <button onclick="document.getElementById('new-plan-form').style.display=document.getElementById('new-plan-form').style.display==='none'?'block':'none'" class="btn btn-primary btn-sm">+ New Plan</button>
   </div>

@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Add Track — {{ album.title }}{% endblock %}
+{% block head %}
+<style>@media(max-width:480px){.cf-grid{grid-template-columns:1fr!important}.cf-grid *{grid-column:span 1!important}}</style>
+{% endblock %}
+{% block content %}
+<div class="wrap" style="max-width:700px;padding-top:40px;padding-bottom:60px;">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
+    <a href="/creator/albums/" style="color:var(--tx2);font-size:13px;">← Back to My Albums</a>
+  </div>
+  <h1 style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:800;margin-bottom:18px;">🎵 Add Track</h1>
+
+  <div style="background:rgba(0,212,170,.06);border:1px solid rgba(0,212,170,.15);border-radius:12px;padding:14px 20px;margin-bottom:22px;font-size:13px;color:var(--tx2);">
+    Adding track to: <strong style="color:var(--tx);">{{ album.title }}</strong>
+    {% if tracks %} · {{ tracks.count }} track{{ tracks.count|pluralize }} so far{% endif %}
+  </div>
+
+  <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:14px;padding:24px;box-shadow:0 4px 16px rgba(0,0,0,.2);">
+    <form method="post" enctype="multipart/form-data">{% csrf_token %}
+      <div class="cf-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="form-group" style="grid-column:span 2;"><label class="form-label">Track Title *</label><input class="form-input" name="title" required placeholder="e.g. Sunset Drive"></div>
+        <div class="form-group" style="grid-column:span 2;">
+          <label class="form-label">Audio File *</label>
+          <input class="form-input" type="file" name="file" accept="audio/*" style="cursor:pointer;margin-bottom:8px;">
+          <input class="form-input" type="url" name="source_url" placeholder="Or paste a direct link to the audio file (saves storage space)">
+        </div>
+        <div class="form-group"><label class="form-label">Duration (seconds)</label><input class="form-input" type="number" name="duration" placeholder="210" min="1"></div>
+        <div class="form-group" style="grid-column:span 2;"><label class="form-label">Cover Art <span style="font-weight:400;color:var(--tx2);text-transform:none;font-size:11px;">defaults to album cover if left blank</span></label>
+          <input class="form-input" type="file" name="cover_image" accept="image/*" style="cursor:pointer;">
+        </div>
+        <div class="form-group" style="grid-column:span 2;"><label class="form-label">Access Tier</label>
+          <select class="form-input" name="tier">
+            <option value="free">Free</option>
+            <option value="premium">Premium</option>
+          </select>
+        </div>
+      </div>
+      <div style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:9px;padding:12px 14px;font-size:13px;color:#3b82f6;margin:14px 0;">
+        ℹ️ Tracks go live once your album is reviewed and approved.
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button type="submit" class="btn btn-primary">🎵 Add Track</button>
+        <button type="submit" name="add_another" value="1" class="btn btn-secondary">Add &amp; Continue →</button>
+        <a href="/creator/albums/" class="btn btn-ghost">Back to My Albums</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

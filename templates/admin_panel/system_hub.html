@@ -13,7 +13,7 @@
 {# ══════════════ LIVE HEALTH ══════════════ #}
 <div class="tab-panel {% if active_tab == 'health' %}active{% endif %}" data-group="sys" data-id="health">
 
-<div class="stats-row" style="grid-template-columns:repeat(4,1fr);">
+<div class="stats-row">
   <div class="stat-card {% if sys_stats.errors_24h > 0 %}red{% else %}green{% endif %}">
     <div class="stat-label">Errors (24h)</div>
     <div class="stat-value" style="{% if sys_stats.errors_24h > 0 %}color:var(--red){% else %}color:var(--green){% endif %}">{{ sys_stats.errors_24h }}</div>

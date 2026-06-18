@@ -116,12 +116,16 @@ def episode_watch(request, pk):
 def stream_video(request, model, pk):
     if model == 'movie':
         obj = get_object_or_404(Movie, pk=pk, is_published=True)
-        if not obj.video_file: raise Http404
-        file_path = obj.video_file.path
     else:
         obj = get_object_or_404(Episode, pk=pk)
-        if not obj.video_file: raise Http404
-        file_path = obj.video_file.path
+
+    if not obj.has_video: raise Http404
+    if obj.is_external_video:
+        # Hosted on an external service (saves local storage) — just send
+        # the browser straight there instead of proxying through Django.
+        return redirect(obj.video_url)
+
+    file_path = obj.video_file.path
     if not os.path.exists(file_path): raise Http404
     file_size = os.path.getsize(file_path)
     ct, _ = mimetypes.guess_type(file_path)
@@ -156,9 +160,14 @@ def download_movie(request, pk):
     movie = get_object_or_404(Movie, pk=pk, is_published=True)
     block = _premium_check(request, movie)
     if block: return block
-    if not movie.video_file or not os.path.exists(movie.video_file.path):
+    if not movie.has_video:
         raise Http404
     Movie.objects.filter(pk=pk).update(downloads_count=movie.downloads_count + 1)
+    if movie.is_external_video:
+        # No local copy to serve — send the user to the source link directly.
+        return redirect(movie.video_url)
+    if not os.path.exists(movie.video_file.path):
+        raise Http404
     return FileResponse(
         open(movie.video_file.path, 'rb'),
         as_attachment=True,
@@ -171,7 +180,11 @@ def download_episode(request, pk):
     ep = get_object_or_404(Episode, pk=pk)
     block = _premium_check(request, ep.season.series)
     if block: return block
-    if not ep.video_file or not os.path.exists(ep.video_file.path):
+    if not ep.has_video:
+        raise Http404
+    if ep.is_external_video:
+        return redirect(ep.video_url)
+    if not os.path.exists(ep.video_file.path):
         raise Http404
     return FileResponse(
         open(ep.video_file.path, 'rb'),
