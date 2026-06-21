@@ -21,8 +21,6 @@ body { background: #0a0d12; }
 @media(max-width:768px){
   .track-hero{grid-template-columns:1fr!important;text-align:center;gap:20px!important;justify-items:center;}
   .track-cover-img{width:160px!important;height:160px!important;}
-  .track-player-row{flex-wrap:wrap;}
-  .track-audio-el{max-width:100%!important;min-width:0;width:100%;}
 }
 @media(max-width:560px){
   .credit-value{max-width:100%;text-align:left;}
@@ -111,19 +109,15 @@ body { background: #0a0d12; }
   </div>
 </div>
 
-<!-- Inline player -->
+<!-- Trigger global mini-player on page load -->
 {% if track.has_audio %}
-<div style="background:#0d1118;border-bottom:1px solid rgba(255,255,255,0.05);padding:16px 0;">
-  <div class="container track-player-row" style="display:flex;align-items:center;gap:16px;">
-    <audio id="track-audio" controls class="track-audio-el" style="flex:1;accent-color:#1db954;max-width:700px;">
-      <source src="{{ track.playable_url }}" type="audio/mpeg">
-    </audio>
-    {% if branding and branding.show_on_player and branding.logo %}
-    <div style="display:flex;align-items:center;gap:8px;opacity:0.6;">
-      <span style="font-size:0.7rem;color:rgba(255,255,255,0.4);">Streaming on</span>
-      <img src="{{ branding.logo.url }}" style="height:22px;width:auto;">
-    </div>
+<div style="background:#0d1118;border-bottom:1px solid rgba(255,255,255,0.05);padding:14px 0;">
+  <div class="container" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <button onclick="startPlay()" class="btn" style="background:#1db954;color:#000;font-weight:700;padding:10px 24px;border-radius:24px;font-size:15px;">▶ Play</button>
+    {% if request.user.is_authenticated %}
+    <a href="/music/download/{{ track.pk }}/" class="btn btn-outline" style="padding:10px 20px;border-radius:24px;font-size:14px;color:rgba(255,255,255,.7);">⬇ Download</a>
     {% endif %}
+    <span style="font-size:12px;color:rgba(255,255,255,.3);">Tap Play — then press the bar at the bottom to open full controls</span>
   </div>
 </div>
 {% endif %}
@@ -248,23 +242,19 @@ body { background: #0a0d12; }
 function startPlay() {
   const audioUrl = '{{ track.playable_url|default:"" }}';
   if (!audioUrl) { showToast('No audio file available', 'e'); return; }
-  const audio = document.getElementById('track-audio');
-  if (audio) { audio.play(); }
   if (typeof playMiniTrack === 'function') {
     playMiniTrack(
       audioUrl,
       '{{ track.title|escapejs }}',
       '{{ track.artist.name|escapejs }}',
       '{% if track.cover_image %}{{ track.cover_image.url }}{% elif track.album and track.album.cover_image %}{{ track.album.cover_image.url }}{% endif %}',
-      '/music/track/{{ track.slug }}/'
+      '/music/track/{{ track.slug }}/',
+      {{ track.pk }}
     );
   }
 }
 function playRelated(url, title, artist, cover) {
   if (!url) { showToast('No audio file', 'e'); return; }
-  // Switch the page's own player to the new track too, so it stays in sync
-  const audio = document.getElementById('track-audio');
-  if (audio) { audio.src = url; audio.play(); }
   if (typeof playMiniTrack === 'function') {
     playMiniTrack(url, title, artist, cover);
   }

@@ -257,6 +257,8 @@ input,select,textarea,button{font-family:inherit;font-size:inherit}
 
 /* ── Forms ───────────────────────────────────────────────── */
 .form-label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--tx2);margin-bottom:6px}
+.form-group{margin-bottom:18px}
+.form-group:last-child{margin-bottom:0}
 .form-input,.form-textarea,.finput{
   width:100%;background:rgba(255,255,255,.05);border:1px solid var(--bd);
   border-radius:var(--r);padding:10px 13px;color:var(--tx);font-size:13.5px;outline:none;
@@ -755,15 +757,19 @@ if(_A){
     if(fb)fb.textContent='▶';
   });
 }
-function playMiniTrack(url,title,artist,coverUrl,detailUrl){
+let _currentTrackPk = null;
+function playMiniTrack(url,title,artist,coverUrl,detailUrl,trackPk){
   if(!_A)return;_A.src=url;_A.play();
+  _currentTrackPk = trackPk || null;
+  // Reset like state
+  _mpLiked = false;
+  const lb = document.getElementById('fs-likebtn');
+  if(lb){lb.textContent='♡';lb.style.color='rgba(255,255,255,.5)';}
   document.getElementById('mp-title').textContent=title;
   document.getElementById('mp-artist').textContent=artist;
   const cv=document.getElementById('mp-cover');
   cv.innerHTML=coverUrl?`<img src="${coverUrl}" style="width:100%;height:100%;object-fit:cover">`:'🎵';
   _W.style.display='flex';document.body.style.paddingBottom='68px';
-  // Keep the full-screen view in sync too, in case it's already open
-  // or gets opened next.
   document.getElementById('fs-title').textContent=title;
   document.getElementById('fs-artist').textContent=artist;
   const fc=document.getElementById('fs-cover');
@@ -816,10 +822,23 @@ function mpToggleRepeat(){
   const b=document.getElementById('fs-repeatbtn');
   if(b)b.style.color=_mpRepeat?'var(--ac)':'rgba(255,255,255,.45)';
 }
-function mpToggleLikeFs(){
-  _mpLiked=!_mpLiked;
-  const b=document.getElementById('fs-likebtn');
-  if(b){b.textContent=_mpLiked?'♥':'♡';b.style.color=_mpLiked?'var(--ac)':'rgba(255,255,255,.5)';}
+async function mpToggleLikeFs(){
+  if(!_currentTrackPk){
+    _mpLiked=!_mpLiked;
+    const b=document.getElementById('fs-likebtn');
+    if(b){b.textContent=_mpLiked?'♥':'♡';b.style.color=_mpLiked?'var(--ac)':'rgba(255,255,255,.5)';}
+    return;
+  }
+  try{
+    const fd=new FormData();
+    fd.append('csrfmiddlewaretoken', typeof getCookie==='function'?getCookie('csrftoken'):'');
+    const r=await fetch(`/music/like/${_currentTrackPk}/`,{method:'POST',body:fd});
+    const d=await r.json();
+    _mpLiked=d.liked;
+    const b=document.getElementById('fs-likebtn');
+    if(b){b.textContent=_mpLiked?'♥':'♡';b.style.color=_mpLiked?'var(--ac)':'rgba(255,255,255,.5)';}
+    if(typeof showToast==='function') showToast(_mpLiked?'♥ Liked':'♡ Removed');
+  }catch(e){console.error('like error',e);}
 }
 // Swipe-down-to-dismiss on the full-screen player (touch devices)
 (function(){

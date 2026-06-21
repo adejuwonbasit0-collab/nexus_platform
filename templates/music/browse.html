@@ -30,7 +30,7 @@
   <div style="color:rgba(255,255,255,0.4);font-size:0.8rem;margin-bottom:16px;">{{ tracks.count }} track{{ tracks.count|pluralize }} found</div>
   <div style="display:flex;flex-direction:column;gap:6px;">
     {% for t in tracks %}
-    <div class="track-row" onclick="window.location='/music/track/{{ t.slug }}/'">
+    <div class="track-row" onclick="playTrack('{% if t.has_audio %}{{ t.playable_url }}{% endif %}','{{ t.title|escapejs }}','{{ t.artist.name|escapejs }}','{% if t.cover_image %}{{ t.cover_image.url }}{% elif t.album and t.album.cover_image %}{{ t.album.cover_image.url }}{% endif %}',{{ t.pk }},'/music/track/{{ t.slug }}/')">
       {% if t.cover_image %}<img src="{{ t.cover_image.url }}" style="width:44px;height:44px;border-radius:6px;object-fit:cover;flex-shrink:0;">
       {% elif t.album and t.album.cover_image %}<img src="{{ t.album.cover_image.url }}" style="width:44px;height:44px;border-radius:6px;object-fit:cover;flex-shrink:0;">
       {% else %}<div style="width:44px;height:44px;border-radius:6px;background:#0a2010;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1rem;">🎵</div>{% endif %}
@@ -60,9 +60,9 @@
 {% endblock %}
 {% block scripts %}
 <script>
-function playTrack(url,title,artist,cover){
+function playTrack(url,title,artist,cover,pk,detailUrl){
   if(!url){showToast('No audio file','e');return;}
-  if (typeof playMiniTrack === 'function') playMiniTrack(url, title, artist, cover);
+  if (typeof playMiniTrack === 'function') playMiniTrack(url, title, artist, cover, detailUrl||null, pk||null);
   showToast('▶ '+title);
 }
 </script>
