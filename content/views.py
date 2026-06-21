@@ -29,7 +29,7 @@ def home(request):
     recent_videos  = Content.objects.filter(status='approved', content_type='video')[:8]
     recent_music   = Content.objects.filter(status='approved', content_type='music')[:8]
     recent_blogs   = Content.objects.filter(status='approved', content_type='blog')[:6]
-    series_list    = Series.objects.filter(status='approved')[:6]
+    series_list    = Series.objects.filter(is_published=True)[:6]
     categories     = Category.objects.all()
     return render(request, 'home.html', {
         'featured':      featured,
@@ -90,9 +90,9 @@ def content_detail(request, slug):
 
 
 def series_detail(request, pk):
-    series   = get_object_or_404(Series, pk=pk, status='approved')
+    series   = get_object_or_404(Series, pk=pk)
     seasons  = series.seasons.prefetch_related('episodes').order_by('number')
-    comments = series.comments.order_by('-created_at')[:20]
+    comments = []
     return render(request, 'content/series_detail.html', {
         'series': series, 'seasons': seasons, 'comments': comments,
     })
@@ -388,5 +388,5 @@ def music_library(request):
 
 def movies_page(request):
     movies      = Content.objects.filter(status='approved', content_type='video').order_by('-created_at')
-    series_list = Series.objects.filter(status='approved')
+    series_list = Series.objects.filter(is_published=True)
     return render(request, 'content/movies.html', {'movies': movies, 'series_list': series_list})

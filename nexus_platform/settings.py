@@ -246,3 +246,8 @@ if SENTRY_DSN:
         sentry_sdk.init(dsn=SENTRY_DSN, traces_sample_rate=0.1)
     except ImportError:
         pass
+
+# Email timeout — prevents upload/form POSTs from hanging forever when
+# the automation engine fires a send_email workflow action with no SMTP
+# server configured or a slow/unreachable one (Django default = no timeout).
+EMAIL_TIMEOUT = 5  # seconds

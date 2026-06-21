@@ -214,6 +214,27 @@
       background:linear-gradient(135deg,rgba(124,92,252,.04),transparent);
     }
     .panel-title{font-size:14px;font-weight:700;display:flex;align-items:center;gap:9px}
+    /* ── Form fields ─────────────────────────────────────────── */
+    .form-label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;
+      letter-spacing:.06em;color:var(--text2);margin-bottom:5px}
+    .form-group{margin-bottom:16px}
+    .form-group:last-child{margin-bottom:0}
+    .form-input,.form-control,.finput,
+    input[type="text"]:not([class]),input[type="number"]:not([class]),
+    input[type="email"]:not([class]),input[type="url"]:not([class]),
+    input[type="password"]:not([class]),input[type="date"]:not([class]),
+    select:not([class]),textarea:not([class]){
+      width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);
+      border-radius:8px;padding:9px 13px;color:var(--text);font-size:13px;
+      outline:none;transition:border-color .15s,box-shadow .15s;
+    }
+    .form-input:focus,.form-control:focus,.finput:focus{
+      border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,92,252,.14);
+    }
+    select.form-input,select.form-control,select:not([class]){cursor:pointer}
+    textarea.form-input,textarea.form-control,textarea:not([class]){
+      resize:vertical;min-height:80px;line-height:1.5
+    }
     .panel-body{padding:20px}
 
     /* ── Stat cards ──────────────────────────────────────────────── */

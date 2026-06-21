@@ -171,7 +171,7 @@ const trackSlugs = {
 function playTrack(url, title, artist, cover, pk) {
   if (!url) { showToast('No audio file available', 'e'); return; }
   const detailUrl = (pk && trackSlugs[pk]) ? ('/music/track/' + trackSlugs[pk] + '/') : null;
-  if (typeof playMiniTrack === 'function') playMiniTrack(url, title, artist, cover, detailUrl);
+  if (typeof playMiniTrack === 'function') playMiniTrack(url, title, artist, cover, detailUrl, pk);
   showToast('▶ ' + title);
 }
 </script>
