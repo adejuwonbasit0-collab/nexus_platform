@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+{% block title %}Discover Music — NEXUS{% endblock %}
+{% block head %}
+<style>
+body{background:#060810;}
+.disc-wrap{max-width:540px;margin:0 auto;padding:48px 20px 100px;text-align:center;}
+.disc-title{font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:800;color:#fff;margin-bottom:8px;}
+.disc-sub{color:rgba(255,255,255,.45);font-size:14px;margin-bottom:40px;line-height:1.6;}
+.disc-btn{width:160px;height:160px;border-radius:50%;border:3px solid rgba(124,92,252,.4);background:rgba(124,92,252,.12);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 32px;transition:all .25s;position:relative;overflow:hidden;}
+.disc-btn:hover{border-color:var(--ac);background:rgba(124,92,252,.22);}
+.disc-btn.listening{border-color:#1db954;background:rgba(29,185,84,.15);animation:disc-pulse 1.5s ease-in-out infinite;}
+@keyframes disc-pulse{0%,100%{box-shadow:0 0 0 0 rgba(29,185,84,.4);}50%{box-shadow:0 0 0 24px rgba(29,185,84,0);}}
+.disc-icon{font-size:48px;margin-bottom:6px;}
+.disc-label{font-size:13px;font-weight:600;color:rgba(255,255,255,.7);}
+.disc-status{min-height:32px;font-size:14px;color:rgba(255,255,255,.5);margin-bottom:24px;}
+.hint-row{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;}
+.hint-row input{flex:1;min-width:140px;}
+.result-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:20px;display:none;text-align:left;margin-top:20px;}
+.result-card.show{display:block;}
+.cand-list{display:flex;flex-direction:column;gap:8px;margin-top:16px;}
+.cand-row{display:flex;align-items:center;gap:12px;padding:10px 12px;background:rgba(255,255,255,.04);border-radius:10px;cursor:pointer;transition:background .18s;}
+.cand-row:hover{background:rgba(255,255,255,.09);}
+.cand-cover{width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0;background:rgba(124,92,252,.2);display:flex;align-items:center;justify-content:center;font-size:18px;}
+</style>
+{% endblock %}
+{% block content %}
+<div class="disc-wrap">
+  <div class="disc-title">🎵 Discover</div>
+  <div class="disc-sub">Hold your phone near the music being played, press the button, and we'll identify it from our library.</div>
+
+  <button class="disc-btn" id="discBtn" onclick="toggleListen()">
+    <div class="disc-icon" id="discIcon">🎙</div>
+    <div class="disc-label" id="discLabel">Tap to Listen</div>
+  </button>
+
+  <div class="disc-status" id="discStatus">Ready — press the button and hold near the music.</div>
+
+  <div style="color:rgba(255,255,255,.4);font-size:12px;margin-bottom:16px;">— or type what you know —</div>
+  <div class="hint-row">
+    <input class="form-input" id="hintTitle" placeholder="Song title hint…">
+    <input class="form-input" id="hintArtist" placeholder="Artist name hint…">
+  </div>
+  <button class="btn btn-primary" onclick="searchByHint()" style="width:100%;margin-bottom:8px;">🔍 Search by name</button>
+
+  <div class="result-card" id="resultCard">
+    <div id="resultContent"></div>
+  </div>
+</div>
+
+<script>
+let mediaStream = null;
+let mediaRecorder = null;
+let isListening = false;
+let audioChunks = [];
+let speechResult = '';
+const CSRF = '{{ csrf_token }}';
+
+async function toggleListen() {
+  if (isListening) { stopListen(); return; }
+  const btn = document.getElementById('discBtn');
+  const status = document.getElementById('discStatus');
+  // Try microphone access
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch(e) {
+    setStatus('🚫 Microphone access denied. Use the text search below instead.');
+    return;
+  }
+  isListening = true;
+  btn.classList.add('listening');
+  document.getElementById('discIcon').textContent = '⏹';
+  document.getElementById('discLabel').textContent = 'Listening…';
+  setStatus('🎙 Listening for music… hold near the speaker for 5 seconds.');
+  audioChunks = [];
+  speechResult = '';
+
+  // Web Speech API for lyrics/title recognition (Chrome/Edge only)
+  if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recog = new SR();
+    recog.continuous = true;
+    recog.interimResults = true;
+    recog.onresult = e => {
+      speechResult = Array.from(e.results).map(r => r[0].transcript).join(' ');
+    };
+    recog.start();
+    window._disc_recog = recog;
+  }
+
+  // Record 5 seconds of audio to get duration context
+  mediaRecorder = new MediaRecorder(mediaStream);
+  mediaRecorder.ondataavailable = e => { if(e.data.size > 0) audioChunks.push(e.data); };
+  mediaRecorder.onstop = () => { analyseRecording(); };
+  mediaRecorder.start();
+
+  // Auto-stop after 6 seconds
+  setTimeout(() => { if(isListening) stopListen(); }, 6000);
+}
+
+function stopListen() {
+  isListening = false;
+  if(mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+  if(mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+  if(window._disc_recog) { try{window._disc_recog.stop();}catch(e){} }
+  const btn = document.getElementById('discBtn');
+  btn.classList.remove('listening');
+  document.getElementById('discIcon').textContent = '🎙';
+  document.getElementById('discLabel').textContent = 'Tap to Listen';
+  setStatus('⏳ Analysing…');
+}
+
+async function analyseRecording() {
+  // Get duration of recorded audio
+  const blob = new Blob(audioChunks, { type: 'audio/webm' });
+  const url  = URL.createObjectURL(blob);
+  const tmpAudio = new Audio(url);
+  await new Promise(res => { tmpAudio.onloadedmetadata = res; tmpAudio.onerror = res; });
+  const duration = tmpAudio.duration || 0;
+  URL.revokeObjectURL(url);
+
+  // Send hint data to the identify endpoint
+  const fd = new FormData();
+  fd.append('csrfmiddlewaretoken', CSRF);
+  fd.append('duration', duration.toFixed(1));
+  if(speechResult) fd.append('hint_title', speechResult.slice(0, 200));
+  await identify(fd);
+}
+
+async function searchByHint() {
+  const t = document.getElementById('hintTitle').value.trim();
+  const a = document.getElementById('hintArtist').value.trim();
+  if(!t && !a) { setStatus('Enter a title or artist name first.'); return; }
+  setStatus('🔍 Searching…');
+  const fd = new FormData();
+  fd.append('csrfmiddlewaretoken', CSRF);
+  if(t) fd.append('hint_title', t);
+  if(a) fd.append('hint_artist', a);
+  await identify(fd);
+}
+
+async function identify(fd) {
+  try {
+    const r = await fetch('/music/discover/identify/', { method:'POST', body:fd });
+    const d = await r.json();
+    showResult(d);
+  } catch(e) {
+    setStatus('❌ Something went wrong. Try again.');
+  }
+}
+
+function showResult(d) {
+  const card  = document.getElementById('resultCard');
+  const inner = document.getElementById('resultContent');
+  card.classList.add('show');
+
+  if(d.matched && d.track) {
+    const t = d.track;
+    const cover = t.cover ? `<img src="${t.cover}" style="width:80px;height:80px;border-radius:12px;object-fit:cover;margin-bottom:12px;">` : '<div style="width:80px;height:80px;border-radius:12px;background:rgba(124,92,252,.2);display:flex;align-items:center;justify-content:center;font-size:2rem;margin-bottom:12px;">🎵</div>';
+    inner.innerHTML = `<div style="text-align:center;">${cover}<div style="font-size:18px;font-weight:800;color:#fff;font-family:'Space Grotesk',sans-serif;">${t.title}</div><div style="color:rgba(255,255,255,.5);font-size:13px;margin-top:4px;">by ${t.artist}</div><div style="display:flex;gap:10px;justify-content:center;margin-top:16px;"><button class="btn btn-primary" onclick="playMiniTrack('${t.url}','${t.title.replace(/'/g,"\\'")}','${t.artist.replace(/'/g,"\\'")}','${t.cover}','/music/track/${t.slug}/',${t.pk})">▶ Play</button><a href="/music/track/${t.slug}/" class="btn btn-outline">View Track</a></div></div>`;
+    setStatus('✅ Found a match!');
+  } else if(d.candidates && d.candidates.length) {
+    let html = `<div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:12px;">No exact match — here are possible results:</div><div class="cand-list">`;
+    d.candidates.forEach(t => {
+      const cover = t.cover ? `<img src="${t.cover}" class="cand-cover">` : '<div class="cand-cover">🎵</div>';
+      html += `<div class="cand-row" onclick="playMiniTrack('${t.url}','${t.title.replace(/'/g,"\\'")}','${t.artist.replace(/'/g,"\\'")}','${t.cover}','/music/track/${t.slug}/',${t.pk})">${cover}<div style="min-width:0;flex:1;"><div style="font-weight:500;font-size:13px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.title}</div><div style="font-size:11px;color:rgba(255,255,255,.4);">${t.artist}</div></div><a href="/music/track/${t.slug}/" onclick="event.stopPropagation()" style="font-size:11px;color:rgba(255,255,255,.35);text-decoration:none;padding:4px;">→</a></div>`;
+    });
+    html += '</div>';
+    inner.innerHTML = html;
+    setStatus('Here are the closest matches from our library:');
+  } else {
+    inner.innerHTML = `<div style="text-align:center;color:rgba(255,255,255,.4);">No tracks found. Try adding more music to the platform!</div>`;
+    setStatus('');
+  }
+}
+
+function setStatus(msg) { document.getElementById('discStatus').textContent = msg; }
+</script>
+{% endblock %}

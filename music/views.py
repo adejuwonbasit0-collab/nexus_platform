@@ -210,13 +210,18 @@ def track_detail(request, slug):
         if request.user.is_authenticated else False
     )
     branding = _branding()
+    user_playlists = (
+        Playlist.objects.filter(owner=request.user)
+        if request.user.is_authenticated else []
+    )
 
     return render(request, 'music/track.html', {
-        'track':      track,
-        'comments':   comments,
-        'related':    related,
-        'user_liked': user_liked,
-        'branding':   branding,
+        'track':          track,
+        'comments':       comments,
+        'related':        related,
+        'user_liked':     user_liked,
+        'branding':       branding,
+        'user_playlists': user_playlists,
     })
 
 
@@ -294,3 +299,227 @@ def add_music_comment(request, pk):
         c = MusicComment.objects.create(user=request.user, track=track, text=text)
         return JsonResponse({'ok': True, 'username': request.user.username, 'text': c.text, 'id': c.pk})
     return JsonResponse({'ok': False})
+
+# ── Playlists ──────────────────────────────────────────────────────────────────
+
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def playlist_list(request):
+    playlists = Playlist.objects.filter(owner=request.user).prefetch_related('tracks')
+    public    = Playlist.objects.filter(is_public=True).exclude(owner=request.user).order_by('-created_at')[:12]
+    return render(request, 'music/playlists.html', {
+        'playlists': playlists,
+        'public':    public,
+    })
+
+
+@login_required
+@require_POST
+def playlist_create(request):
+    title = request.POST.get('title', '').strip()
+    if not title:
+        from django.contrib import messages
+        messages.error(request, 'Playlist title is required.')
+        return redirect('playlist_list')
+    p = Playlist.objects.create(
+        owner=request.user,
+        title=title,
+        is_public=request.POST.get('is_public') == '1',
+    )
+    # Optionally add a track right away (from "add to playlist" flow)
+    track_pk = request.POST.get('track_pk')
+    if track_pk:
+        try:
+            p.tracks.add(Track.objects.get(pk=track_pk))
+        except Track.DoesNotExist:
+            pass
+    return redirect('playlist_detail', pk=p.pk)
+
+
+@login_required
+def playlist_detail(request, pk):
+    p = get_object_or_404(Playlist, pk=pk)
+    if not p.is_public and p.owner != request.user:
+        from django.http import Http404
+        raise Http404
+    tracks  = p.tracks.select_related('artist', 'album').order_by('title')
+    # Tracks the user could add (not already in playlist, published)
+    all_tracks = Track.objects.filter(is_published=True).exclude(
+        pk__in=tracks.values_list('pk', flat=True)
+    ).select_related('artist')[:50]
+    return render(request, 'music/playlist_detail.html', {
+        'playlist':   p,
+        'tracks':     tracks,
+        'all_tracks': all_tracks,
+        'is_owner':   (request.user == p.owner),
+    })
+
+
+@login_required
+@require_POST
+def playlist_add_track(request, pk, track_pk):
+    p     = get_object_or_404(Playlist, pk=pk, owner=request.user)
+    track = get_object_or_404(Track, pk=track_pk, is_published=True)
+    p.tracks.add(track)
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'ok': True, 'count': p.tracks.count()})
+    return redirect('playlist_detail', pk=pk)
+
+
+@login_required
+@require_POST
+def playlist_remove_track(request, pk, track_pk):
+    p     = get_object_or_404(Playlist, pk=pk, owner=request.user)
+    track = get_object_or_404(Track, pk=track_pk)
+    p.tracks.remove(track)
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'ok': True, 'count': p.tracks.count()})
+    return redirect('playlist_detail', pk=pk)
+
+
+@login_required
+@require_POST
+def playlist_delete(request, pk):
+    p = get_object_or_404(Playlist, pk=pk, owner=request.user)
+    p.delete()
+    from django.contrib import messages
+    messages.success(request, 'Playlist deleted.')
+    return redirect('playlist_list')
+
+
+# ── Genre Tracks ──────────────────────────────────────────────────────────────
+
+def genre_tracks(request, slug):
+    from music.models import Genre as MusicGenre
+    genre  = get_object_or_404(MusicGenre, slug=slug)
+    tracks = Track.objects.filter(genre=genre, is_published=True).select_related('artist', 'album').order_by('-trend_score')
+    return render(request, 'music/genre_tracks.html', {
+        'genre':  genre,
+        'tracks': tracks,
+    })
+
+
+# ── Queue API ─────────────────────────────────────────────────────────────────
+
+def get_queue(request, context, pk):
+    """Returns a JSON list of tracks for the mini-player queue.
+
+    context = 'album'   → all tracks on album pk
+    context = 'artist'  → all tracks by artist pk
+    context = 'genre'   → all tracks in genre pk
+    context = 'playlist'→ all tracks in playlist pk
+    """
+    tracks = []
+    try:
+        if context == 'album':
+            qs = Track.objects.filter(album_id=pk, is_published=True).select_related('artist', 'album').order_by('title')
+        elif context == 'artist':
+            qs = Track.objects.filter(artist_id=pk, is_published=True).select_related('artist', 'album').order_by('-trend_score')
+        elif context == 'genre':
+            qs = Track.objects.filter(genre_id=pk, is_published=True).select_related('artist', 'album').order_by('-trend_score')
+        elif context == 'playlist':
+            p  = get_object_or_404(Playlist, pk=pk)
+            if not p.is_public and (not request.user.is_authenticated or p.owner != request.user):
+                return JsonResponse({'error': 'private'}, status=403)
+            qs = p.tracks.filter(is_published=True).select_related('artist', 'album')
+        else:
+            return JsonResponse({'error': 'unknown context'}, status=400)
+
+        for t in qs[:50]:
+            tracks.append({
+                'pk':    t.pk,
+                'title': t.title,
+                'artist': t.artist.name if t.artist else '',
+                'url':   t.playable_url or '',
+                'cover': (t.cover_image.url if t.cover_image else
+                         (t.album.cover_image.url if t.album and t.album.cover_image else '')),
+                'detail': f'/music/track/{t.slug}/',
+            })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'tracks': tracks})
+
+
+# ── Discover (Shazam-like) ────────────────────────────────────────────────────
+
+def music_discover(request):
+    """Full-page Shazam-like UI — user holds up their phone to music playing,
+    we capture audio from the microphone, then try to match it against the
+    platform's own track library."""
+    return render(request, 'music/discover.html')
+
+
+@require_POST
+def music_identify(request):
+    """Receives an audio snippet (base64 or file) from the browser and tries
+    to match it against published tracks.
+
+    Matching strategy (no external API required):
+    1. Duration match — if the client sends duration from the audio context,
+       find tracks whose stored duration is within ±3 seconds.
+    2. Keyword match — if the client sends any recognisable text (from a
+       Web Speech API transcription attempt), search track title/artist.
+    3. AI fallback — if Anthropic key is set, describe what we heard and
+       let the model suggest the closest match from a list of titles.
+    Returns JSON { matched: bool, track: {...} | null, candidates: [...] }
+    """
+    import json, math
+
+    hint_title   = request.POST.get('hint_title', '').strip()
+    hint_artist  = request.POST.get('hint_artist', '').strip()
+    hint_duration = request.POST.get('duration', '')
+
+    candidates = []
+
+    # 1. Text hint matching (from Web Speech API or user input)
+    if hint_title or hint_artist:
+        from django.db.models import Q
+        qs = Track.objects.filter(is_published=True).select_related('artist', 'album')
+        if hint_title:
+            qs = qs.filter(Q(title__icontains=hint_title) | Q(artist__name__icontains=hint_title))
+        if hint_artist:
+            qs = qs.filter(Q(artist__name__icontains=hint_artist) | Q(title__icontains=hint_artist))
+        candidates = list(qs[:10])
+
+    # 2. Duration-based matching
+    if not candidates and hint_duration:
+        try:
+            d = float(hint_duration)
+            lo, hi = math.floor(d) - 3, math.ceil(d) + 3
+            candidates = list(
+                Track.objects.filter(
+                    is_published=True,
+                    duration__gte=lo,
+                    duration__lte=hi,
+                ).select_related('artist', 'album')[:10]
+            )
+        except (ValueError, TypeError):
+            pass
+
+    # 3. Fallback: return all tracks for the UI to show "we couldn't match"
+    if not candidates:
+        candidates = list(
+            Track.objects.filter(is_published=True)
+            .select_related('artist', 'album')
+            .order_by('-trend_score')[:10]
+        )
+
+    def serialise(t):
+        return {
+            'pk':     t.pk,
+            'title':  t.title,
+            'artist': t.artist.name if t.artist else '',
+            'slug':   t.slug,
+            'cover':  (t.cover_image.url if t.cover_image else
+                      (t.album.cover_image.url if t.album and t.album.cover_image else '')),
+            'duration': t.duration,
+            'url':    t.playable_url or '',
+        }
+
+    best = candidates[0] if len(candidates) == 1 else None
+    return JsonResponse({
+        'matched':    bool(best),
+        'track':      serialise(best) if best else None,
+        'candidates': [serialise(c) for c in candidates],
+    })

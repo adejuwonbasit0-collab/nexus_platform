@@ -104,6 +104,9 @@ body { background: #0a0d12; }
         </button>
         {% endif %}
         <button onclick="shareContent('{{ track.title|escapejs }}','/music/track/{{ track.slug }}/')" class="btn btn-lg" style="background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.1);">↗ Share</button>
+        {% if user.is_authenticated %}
+        <button onclick="document.getElementById('pl-modal').style.display='flex'" class="btn btn-lg" style="background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.1);">📋 Playlist</button>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -285,4 +288,29 @@ async function postComment(pk) {
   }
 }
 </script>
+
+{% if user.is_authenticated %}
+<div id="pl-modal" style="display:none;position:fixed;inset:0;z-index:9100;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
+  <div class="card" style="width:min(400px,95vw);padding:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:8px;">
+      <h3 style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;">Add to Playlist</h3>
+      <button onclick="document.getElementById('pl-modal').style.display='none'" style="background:none;border:none;color:var(--tx2);cursor:pointer;font-size:18px;">✕</button>
+    </div>
+    {% if user_playlists %}
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
+      {% for p in user_playlists %}
+      <form method="post" action="/music/playlists/{{ p.pk }}/add/{{ track.pk }}/">{% csrf_token %}
+        <button type="submit" style="width:100%;text-align:left;background:rgba(255,255,255,.04);border:1px solid var(--bd);border-radius:10px;padding:10px 14px;color:var(--tx);cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
+          <span>📋 {{ p.title }}</span><span style="font-size:11px;color:var(--tx2);">{{ p.tracks.count }} tracks</span>
+        </button>
+      </form>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p style="color:var(--tx2);font-size:13px;margin-bottom:16px;">You have no playlists yet.</p>
+    {% endif %}
+    <a href="/music/playlists/" class="btn btn-primary" style="width:100%;justify-content:center;">+ Create New Playlist</a>
+  </div>
+</div>
+{% endif %}
 {% endblock %}

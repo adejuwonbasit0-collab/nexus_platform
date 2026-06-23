@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block title %}My Playlists{% endblock %}
+{% block content %}
+<div class="wrap" style="max-width:900px;padding-top:36px;padding-bottom:80px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:24px;">
+    <h1 style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:800;">📋 Playlists</h1>
+    <div>
+      <button onclick="document.getElementById('create-modal').style.display='flex'" class="btn btn-primary">+ New Playlist</button>
+    </div>
+  </div>
+
+  <h2 style="font-size:14px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px;">My Playlists</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;margin-bottom:36px;">
+    {% for p in playlists %}
+    <a href="/music/playlists/{{ p.pk }}/" style="text-decoration:none;">
+      <div class="card" style="padding:0;overflow:hidden;transition:transform .2s,box-shadow .2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+        <div style="height:140px;background:linear-gradient(135deg,rgba(124,92,252,.4),rgba(0,212,170,.2));display:flex;align-items:center;justify-content:center;font-size:2.5rem;">
+          {% if p.cover %}<img src="{{ p.cover.url }}" style="width:100%;height:100%;object-fit:cover;">{% else %}📋{% endif %}
+        </div>
+        <div style="padding:12px;">
+          <div style="font-weight:700;font-size:14px;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ p.title }}</div>
+          <div style="font-size:11px;color:var(--tx2);">{{ p.tracks.count }} track{{ p.tracks.count|pluralize }} · {% if p.is_public %}🌍 Public{% else %}🔒 Private{% endif %}</div>
+        </div>
+      </div>
+    </a>
+    {% empty %}
+    <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--tx2);">
+      <div style="font-size:2.5rem;margin-bottom:10px;">📋</div>
+      No playlists yet — create your first one!
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if public %}
+  <h2 style="font-size:14px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px;">Public Playlists</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;">
+    {% for p in public %}
+    <a href="/music/playlists/{{ p.pk }}/" style="text-decoration:none;">
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div style="height:120px;background:linear-gradient(135deg,rgba(255,77,109,.3),rgba(124,92,252,.3));display:flex;align-items:center;justify-content:center;font-size:2rem;">
+          {% if p.cover %}<img src="{{ p.cover.url }}" style="width:100%;height:100%;object-fit:cover;">{% else %}📋{% endif %}
+        </div>
+        <div style="padding:10px;">
+          <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ p.title }}</div>
+          <div style="font-size:11px;color:var(--tx2);">by {{ p.owner.username }} · {{ p.tracks.count }} tracks</div>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<!-- Create modal -->
+<div id="create-modal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
+  <div class="card" style="width:min(480px,96vw);padding:28px;">
+    <h3 style="font-family:'Space Grotesk',sans-serif;font-weight:700;margin-bottom:20px;">Create Playlist</h3>
+    <form method="post" action="/music/playlists/create/">{% csrf_token %}
+      <div class="form-group"><label class="form-label">Title *</label><input class="form-input" name="title" placeholder="My Playlist" required></div>
+      <div class="form-group" style="display:flex;align-items:center;gap:10px;">
+        <input type="checkbox" name="is_public" value="1" id="pub-check" checked style="accent-color:var(--ac);">
+        <label for="pub-check" style="font-size:13px;color:var(--tx2);cursor:pointer;">Make this playlist public</label>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px;">
+        <button type="submit" class="btn btn-primary">Create Playlist</button>
+        <button type="button" class="btn btn-ghost" onclick="document.getElementById('create-modal').style.display='none'">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
