@@ -256,3 +256,121 @@ def add_movie_comment(request, pk):
         'text': comment.text,
         'id': comment.pk,
     })
+
+# ── Subtitles / Transcript (stored + AI summary fallback) ───────────────────
+
+def movie_subtitles(request, pk):
+    """Returns subtitles/transcript for a movie as JSON.
+    If stored subtitles exist → return them immediately.
+    If not → call Claude to generate a scene-by-scene summary/description
+    (clearly labelled as AI-generated summary, NOT a real transcript).
+    """
+    movie = get_object_or_404(Movie, pk=pk, is_published=True)
+
+    if movie.subtitles.strip():
+        return JsonResponse({
+            'ok': True,
+            'subtitles': movie.subtitles,
+            'ai_generated': False,
+            'title': movie.title,
+            'type': 'stored',
+        })
+
+    from core.utils import get_ai_key
+    import json as _json
+    import urllib.request
+
+    api_key = get_ai_key('anthropic')
+    if not api_key:
+        return JsonResponse({
+            'ok': False,
+            'error': 'no_key',
+            'message': 'No Anthropic API key configured. Add one in Settings → AI Settings to enable AI summaries.',
+        })
+
+    try:
+        genres = ', '.join(movie.genres.values_list('name', flat=True)) if hasattr(movie, 'genres') else ''
+        prompt = (
+            f'You are a film assistant. Write a detailed scene-by-scene description '
+            f'for the movie "{movie.title}"'
+            + (f' ({genres})' if genres else '')
+            + (f'. Description: {movie.description[:500]}' if movie.description else '')
+            + '. Format as numbered scenes like:\n'
+            '[Scene 1 - Opening]\n<description>\n\n[Scene 2 - ...]\n<description>\n\n'
+            'Include dialogue snippets where iconic. Label this clearly as an '
+            'AI-generated scene summary, not an actual transcript. Aim for 10-15 scenes.'
+        )
+        payload = {
+            'model': 'claude-sonnet-4-6',
+            'max_tokens': 1500,
+            'messages': [{'role': 'user', 'content': prompt}],
+        }
+        data = _json.dumps(payload).encode()
+        req  = urllib.request.Request(
+            'https://api.anthropic.com/v1/messages',
+            data=data,
+            headers={
+                'Content-Type': 'application/json',
+                'x-api-key': api_key,
+                'anthropic-version': '2023-06-01',
+            }
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            result = _json.loads(resp.read())
+        generated = result['content'][0]['text']
+
+        Movie.objects.filter(pk=pk).update(subtitles='[AI Scene Summary]\n\n' + generated)
+
+        return JsonResponse({
+            'ok': True,
+            'subtitles': '[AI Scene Summary]\n\n' + generated,
+            'ai_generated': True,
+            'title': movie.title,
+            'type': 'ai_summary',
+        })
+
+    except Exception as e:
+        return JsonResponse({'ok': False, 'error': str(e)})
+
+
+def episode_subtitles(request, pk):
+    """Same as movie_subtitles but for episodes."""
+    ep = get_object_or_404(Episode, pk=pk)
+
+    if ep.subtitles.strip():
+        return JsonResponse({'ok': True, 'subtitles': ep.subtitles,
+                             'ai_generated': False, 'title': ep.title, 'type': 'stored'})
+
+    from core.utils import get_ai_key
+    import json as _json, urllib.request
+
+    api_key = get_ai_key('anthropic')
+    if not api_key:
+        return JsonResponse({'ok': False, 'error': 'no_key',
+                             'message': 'No Anthropic API key configured.'})
+    try:
+        series_title = ep.season.series.title if ep.season and ep.season.series else ''
+        prompt = (
+            f'Write a scene-by-scene description for "{ep.title}"'
+            + (f', Season {ep.season.number} Episode {ep.number}' if ep.season else '')
+            + (f' of {series_title}' if series_title else '')
+            + (f'. Synopsis: {ep.description[:400]}' if ep.description else '')
+            + '. Format as [Scene N - Title]\ndescription\n\nfor 8-12 scenes. '
+            'Label as AI-generated scene summary.'
+        )
+        payload = {'model': 'claude-sonnet-4-6', 'max_tokens': 1200,
+                   'messages': [{'role': 'user', 'content': prompt}]}
+        data = _json.dumps(payload).encode()
+        req  = urllib.request.Request(
+            'https://api.anthropic.com/v1/messages', data=data,
+            headers={'Content-Type': 'application/json', 'x-api-key': api_key,
+                     'anthropic-version': '2023-06-01'}
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            result = _json.loads(resp.read())
+        generated = result['content'][0]['text']
+        Episode.objects.filter(pk=pk).update(subtitles='[AI Scene Summary]\n\n' + generated)
+        return JsonResponse({'ok': True, 'subtitles': '[AI Scene Summary]\n\n' + generated,
+                             'ai_generated': True, 'title': ep.title, 'type': 'ai_summary'})
+    except Exception as e:
+        return JsonResponse({'ok': False, 'error': str(e)})

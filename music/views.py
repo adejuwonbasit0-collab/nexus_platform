@@ -523,3 +523,80 @@ def music_identify(request):
         'track':      serialise(best) if best else None,
         'candidates': [serialise(c) for c in candidates],
     })
+
+
+# ── Lyrics (stored + AI generation) ──────────────────────────────────────────
+
+def track_lyrics(request, pk):
+    """Returns lyrics as JSON.
+    If the track has stored lyrics → return them immediately.
+    If not and the user is authenticated → call Claude to generate plausible
+    lyrics, cache them on the Track, return them labelled 'ai_generated'.
+    """
+    track = get_object_or_404(Track, pk=pk, is_published=True)
+
+    if track.lyrics.strip():
+        return JsonResponse({
+            'ok': True,
+            'lyrics': track.lyrics,
+            'ai_generated': False,
+            'title': track.title,
+            'artist': track.artist.name if track.artist else '',
+        })
+
+    # Attempt AI generation via Anthropic
+    from core.utils import get_ai_key
+    import json as _json
+    import urllib.request, urllib.error
+
+    api_key = get_ai_key('anthropic')
+    if not api_key:
+        return JsonResponse({
+            'ok': False,
+            'error': 'no_key',
+            'message': 'No Anthropic API key configured. Add one in Settings → AI Settings to enable AI lyrics.',
+        })
+
+    try:
+        artist_name = track.artist.name if track.artist else 'Unknown Artist'
+        genre_name  = track.genre.name  if track.genre  else ''
+        prompt = (
+            f'Write complete, original song lyrics for a track called "{track.title}" '
+            f'by {artist_name}'
+            + (f' in the {genre_name} genre' if genre_name else '')
+            + '. Include verses, a chorus, and a bridge. Format with clear section '
+            'labels like [Verse 1], [Chorus], [Bridge]. '
+            'These are AI-generated lyrics for demonstration purposes.'
+        )
+        payload = {
+            'model': 'claude-sonnet-4-6',
+            'max_tokens': 1024,
+            'messages': [{'role': 'user', 'content': prompt}],
+        }
+        data = _json.dumps(payload).encode()
+        req  = urllib.request.Request(
+            'https://api.anthropic.com/v1/messages',
+            data=data,
+            headers={
+                'Content-Type': 'application/json',
+                'x-api-key': api_key,
+                'anthropic-version': '2023-06-01',
+            }
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            result = _json.loads(resp.read())
+        generated = result['content'][0]['text']
+
+        # Cache on the track so future requests are instant (no repeated API calls)
+        Track.objects.filter(pk=pk).update(lyrics='[AI Generated]\n\n' + generated)
+
+        return JsonResponse({
+            'ok': True,
+            'lyrics': '[AI Generated]\n\n' + generated,
+            'ai_generated': True,
+            'title': track.title,
+            'artist': artist_name,
+        })
+
+    except Exception as e:
+        return JsonResponse({'ok': False, 'error': str(e)})

@@ -104,6 +104,7 @@ body { background: #0a0d12; }
         </button>
         {% endif %}
         <button onclick="shareContent('{{ track.title|escapejs }}','/music/track/{{ track.slug }}/')" class="btn btn-lg" style="background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.1);">↗ Share</button>
+        <button onclick="openLyrics()" class="btn btn-lg" style="background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.1);">📝 Lyrics</button>
         {% if user.is_authenticated %}
         <button onclick="document.getElementById('pl-modal').style.display='flex'" class="btn btn-lg" style="background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.1);">📋 Playlist</button>
         {% endif %}
@@ -313,4 +314,71 @@ async function postComment(pk) {
   </div>
 </div>
 {% endif %}
+
+{# ── Lyrics panel ────────────────────────────────────────── #}
+<div id="lyrics-panel" style="display:none;position:fixed;inset:0;z-index:9200;background:rgba(8,8,14,.97);overflow-y:auto;padding:0;" onclick="if(event.target===this)closeLyrics()">
+  <div style="max-width:640px;margin:0 auto;padding:24px 20px 80px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;position:sticky;top:0;background:rgba(8,8,14,.97);padding:16px 0;z-index:2;">
+      <div>
+        <div id="lyrics-title" style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:18px;color:#fff;">Lyrics</div>
+        <div id="lyrics-artist" style="font-size:12px;color:rgba(255,255,255,.4);margin-top:2px;"></div>
+      </div>
+      <button onclick="closeLyrics()" style="background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.6);cursor:pointer;font-size:18px;width:36px;height:36px;border-radius:50%;">✕</button>
+    </div>
+    <div id="lyrics-badge" style="display:none;background:rgba(124,92,252,.15);border:1px solid rgba(124,92,252,.3);border-radius:8px;padding:8px 14px;font-size:11px;color:rgba(124,92,252,.9);margin-bottom:18px;line-height:1.5;">
+      ✨ AI-Generated — These lyrics were created by AI and may not match the actual song. They are for demonstration purposes only.
+    </div>
+    <div id="lyrics-loading" style="text-align:center;padding:60px 0;color:rgba(255,255,255,.35);">
+      <div style="font-size:2rem;margin-bottom:12px;animation:spin 1s linear infinite;display:inline-block;">⟳</div>
+      <div style="font-size:13px;">Loading lyrics…</div>
+    </div>
+    <div id="lyrics-body" style="display:none;font-size:15px;line-height:2;color:rgba(255,255,255,.85);white-space:pre-wrap;font-weight:400;"></div>
+    <div id="lyrics-error" style="display:none;text-align:center;padding:40px 0;color:rgba(255,255,255,.35);">
+      <div style="font-size:2rem;margin-bottom:10px;">🎵</div>
+      <div id="lyrics-error-msg" style="font-size:13px;"></div>
+      <a href="/admin-panel/settings/" style="display:inline-block;margin-top:16px;font-size:12px;color:rgba(124,92,252,.7);">Configure AI Settings →</a>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+</style>
+
+<script>
+const _trackPk = {{ track.pk }};
+let _lyricsLoaded = false;
+
+async function openLyrics() {
+  const panel = document.getElementById('lyrics-panel');
+  panel.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  document.getElementById('lyrics-title').textContent = '{{ track.title|escapejs }}';
+  document.getElementById('lyrics-artist').textContent = 'by {{ track.artist.name|escapejs }}';
+  if (_lyricsLoaded) return;
+  try {
+    const r = await fetch(`/music/lyrics/${_trackPk}/`);
+    const d = await r.json();
+    document.getElementById('lyrics-loading').style.display = 'none';
+    if (d.ok) {
+      _lyricsLoaded = true;
+      document.getElementById('lyrics-body').textContent = d.lyrics;
+      document.getElementById('lyrics-body').style.display = 'block';
+      if (d.ai_generated) document.getElementById('lyrics-badge').style.display = 'block';
+    } else {
+      document.getElementById('lyrics-error-msg').textContent = d.message || 'Could not load lyrics.';
+      document.getElementById('lyrics-error').style.display = 'block';
+    }
+  } catch(e) {
+    document.getElementById('lyrics-loading').style.display = 'none';
+    document.getElementById('lyrics-error-msg').textContent = 'Network error — please try again.';
+    document.getElementById('lyrics-error').style.display = 'block';
+  }
+}
+
+function closeLyrics() {
+  document.getElementById('lyrics-panel').style.display = 'none';
+  document.body.style.overflow = '';
+}
+</script>
 {% endblock %}

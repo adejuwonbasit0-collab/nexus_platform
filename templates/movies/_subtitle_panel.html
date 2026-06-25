@@ -1,0 +1,111 @@
+{# Shared subtitle/scene-summary panel — included by movie/detail.html and episode_watch.html #}
+<div id="sub-panel" style="display:none;position:fixed;inset:0;z-index:9200;background:rgba(6,7,14,.97);overflow-y:auto;">
+  <div style="max-width:700px;margin:0 auto;padding:24px 20px 100px;">
+
+    <div style="position:sticky;top:0;background:rgba(6,7,14,.97);padding:16px 0 14px;z-index:2;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:20px;">
+      <div>
+        <div id="sub-title" style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:18px;color:#fff;">Subtitles</div>
+        <div id="sub-type-label" style="font-size:11px;color:rgba(255,255,255,.4);margin-top:3px;"></div>
+      </div>
+      <button onclick="closeSubtitles()" style="background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.6);cursor:pointer;font-size:18px;width:36px;height:36px;border-radius:50%;">✕</button>
+    </div>
+
+    <div id="sub-ai-badge" style="display:none;background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.25);border-radius:10px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:rgba(200,180,255,.8);line-height:1.6;">
+      ✨ <strong>AI Scene Summary</strong> — This is an AI-generated scene-by-scene description, not an actual transcript extracted from the video. It gives you a sense of the story but may not match the exact dialogue or scenes.
+      <br><br>
+      To add real subtitles (SRT format), paste them in the admin panel under this movie's edit page.
+    </div>
+
+    <div id="sub-loading" style="text-align:center;padding:80px 0;color:rgba(255,255,255,.3);">
+      <div style="font-size:2.5rem;margin-bottom:14px;animation:sub-spin 1s linear infinite;display:inline-block;">⟳</div>
+      <div style="font-size:14px;">Fetching subtitles…</div>
+      <div style="font-size:12px;margin-top:6px;color:rgba(255,255,255,.2);">If none are stored, AI will generate a scene summary.</div>
+    </div>
+
+    <div id="sub-body" style="display:none;">
+      <div id="sub-text" style="font-size:14px;line-height:1.9;color:rgba(255,255,255,.78);white-space:pre-wrap;font-family:monospace;"></div>
+    </div>
+
+    <div id="sub-error" style="display:none;text-align:center;padding:60px 0;color:rgba(255,255,255,.3);">
+      <div style="font-size:2.5rem;margin-bottom:12px;">📄</div>
+      <div id="sub-error-msg" style="font-size:13px;margin-bottom:16px;"></div>
+      <a href="/admin-panel/ai-settings/" style="font-size:12px;color:rgba(124,92,252,.6);">Configure AI Settings →</a>
+    </div>
+
+  </div>
+</div>
+
+<style>
+@keyframes sub-spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+</style>
+
+<script>
+let _subLoaded = null; // { type, pk } — prevents re-fetching same content
+
+async function openSubtitles(type, pk, title) {
+  const panel = document.getElementById('sub-panel');
+  panel.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  document.getElementById('sub-title').textContent = title || 'Subtitles';
+
+  // Reset UI
+  document.getElementById('sub-body').style.display = 'none';
+  document.getElementById('sub-error').style.display = 'none';
+  document.getElementById('sub-ai-badge').style.display = 'none';
+
+  // Don't re-fetch if same content
+  if (_subLoaded && _subLoaded.type === type && _subLoaded.pk === pk) {
+    document.getElementById('sub-loading').style.display = 'none';
+    document.getElementById('sub-body').style.display = 'block';
+    return;
+  }
+
+  document.getElementById('sub-loading').style.display = 'block';
+
+  const url = type === 'movie'
+    ? `/movies/subtitles/${pk}/`
+    : `/movies/episode/subtitles/${pk}/`;
+
+  try {
+    const r = await fetch(url);
+    const d = await r.json();
+    document.getElementById('sub-loading').style.display = 'none';
+
+    if (d.ok) {
+      _subLoaded = { type, pk };
+      document.getElementById('sub-text').textContent = d.subtitles;
+      document.getElementById('sub-body').style.display = 'block';
+
+      const typeLabel = d.type === 'stored'
+        ? '✅ Official subtitles'
+        : '✨ AI-generated scene summary';
+      document.getElementById('sub-type-label').textContent = typeLabel;
+
+      if (d.ai_generated) {
+        document.getElementById('sub-ai-badge').style.display = 'block';
+      }
+    } else {
+      document.getElementById('sub-error-msg').textContent =
+        d.message || 'Could not load subtitles.';
+      document.getElementById('sub-error').style.display = 'block';
+    }
+  } catch(e) {
+    document.getElementById('sub-loading').style.display = 'none';
+    document.getElementById('sub-error-msg').textContent = 'Network error. Please try again.';
+    document.getElementById('sub-error').style.display = 'block';
+  }
+}
+
+function closeSubtitles() {
+  document.getElementById('sub-panel').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+// Esc key closes panels
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeSubtitles();
+    if (typeof closeLyrics === 'function') closeLyrics();
+  }
+});
+</script>

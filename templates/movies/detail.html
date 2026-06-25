@@ -73,6 +73,7 @@ video{width:100%;border-radius:10px;background:#000;display:block}
         ♥ <span id="like-count">{{ movie.likes_count|default:0 }}</span>
       </button>
       <button onclick="shareContent('{{ movie.title|escapejs }}','/movies/film/{{ movie.slug }}/')" class="btn btn-lg btn-outline" style="color:#fff">↗ Share</button>
+      <button onclick="openSubtitles('movie',{{ movie.pk }},'{{ movie.title|escapejs }}')" class="btn btn-lg btn-outline" style="color:#fff">📄 Subtitles</button>
     </div>
   </div>
 </section>
@@ -206,4 +207,7 @@ async function postMovieComment(pk) {
   } catch(e) { showToast('Error','e'); }
 }
 </script>
+
+{# ── Subtitle / Scene Summary panel ─────────────────────── #}
+{% include 'movies/_subtitle_panel.html' %}
 {% endblock %}

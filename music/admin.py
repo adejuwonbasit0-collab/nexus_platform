@@ -74,7 +74,12 @@ class TrackAdmin(admin.ModelAdmin):
         ('Files',        {'fields': ['audio_file', 'cover_image']}),
         ('Release Info', {'fields': ['release_year', 'duration', 'country', 'label', 'isrc']}),
         ('Credits',      {'fields': ['produced_by', 'written_by', 'recorded_at', 'mixed_by', 'mastered_by']}),
-        ('Lyrics',       {'fields': ['lyrics'], 'classes': ['collapse']}),
+        ('Lyrics', {
+            'fields': ['lyrics'],
+            'description': 'Paste the official lyrics here. If left blank, '
+                           'users can request AI-generated lyrics (requires Anthropic API key in Settings). '
+                           'AI lyrics are clearly labelled and cached after the first request.',
+        }),
         ('Flags',        {'fields': ['is_published', 'is_premium', 'is_featured', 'is_song_of_day', 'uploaded_by']}),
         ('Stats (read-only)', {'fields': ['plays_count', 'downloads_count', 'likes_count', 'trend_score']}),
     ]

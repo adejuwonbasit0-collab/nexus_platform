@@ -22,6 +22,8 @@ urlpatterns = [
     path('discover/identify/',            views.music_identify,       name='music_identify'),
     # Genre filter shortcut
     path('genre/<slug:slug>/',            views.genre_tracks,         name='genre_tracks'),
+    # Lyrics
+    path('lyrics/<int:pk>/',              views.track_lyrics,         name='track_lyrics'),
     # Queue API (returns JSON list of tracks for a context)
     path('queue/<str:context>/<int:pk>/', views.get_queue,            name='music_queue'),
 ]
