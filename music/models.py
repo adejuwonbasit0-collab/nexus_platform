@@ -123,6 +123,7 @@ class Track(models.Model):
     release_year     = models.IntegerField(default=2024)
     duration         = models.IntegerField(default=0, help_text='seconds')
     lyrics           = models.TextField(blank=True)
+    lyrics_lrc       = models.TextField(blank=True, help_text='Timestamped LRC format e.g. [00:12.50] Line of lyrics')
     # Credits
     produced_by  = models.CharField(max_length=300, blank=True)
     recorded_at  = models.CharField(max_length=300, blank=True)

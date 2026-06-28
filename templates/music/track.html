@@ -316,69 +316,282 @@ async function postComment(pk) {
 {% endif %}
 
 {# ── Lyrics panel ────────────────────────────────────────── #}
-<div id="lyrics-panel" style="display:none;position:fixed;inset:0;z-index:9200;background:rgba(8,8,14,.97);overflow-y:auto;padding:0;" onclick="if(event.target===this)closeLyrics()">
-  <div style="max-width:640px;margin:0 auto;padding:24px 20px 80px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;position:sticky;top:0;background:rgba(8,8,14,.97);padding:16px 0;z-index:2;">
-      <div>
-        <div id="lyrics-title" style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:18px;color:#fff;">Lyrics</div>
-        <div id="lyrics-artist" style="font-size:12px;color:rgba(255,255,255,.4);margin-top:2px;"></div>
-      </div>
+<!-- ═══════ BOOMPLAY-STYLE SCROLLING LYRICS PANEL ═══════ -->
+<div id="lyrics-panel" style="display:none;position:fixed;inset:0;z-index:9200;background:rgba(6,7,14,.98);flex-direction:column;">
+
+  <!-- Header -->
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:18px 20px;background:rgba(6,7,14,.95);border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0;">
+    <div>
+      <div id="lyr-title" style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:17px;color:#fff;">{{ track.title }}</div>
+      <div id="lyr-artist" style="font-size:12px;color:rgba(255,255,255,.4);margin-top:2px;">{{ track.artist.name }}</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <!-- Live caption toggle (speech-to-text while playing) -->
+      <button id="lyr-caption-btn" onclick="toggleCaption()" title="Live captions" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);cursor:pointer;font-size:12px;padding:6px 12px;border-radius:20px;transition:all .2s;">🎙 Live</button>
       <button onclick="closeLyrics()" style="background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.6);cursor:pointer;font-size:18px;width:36px;height:36px;border-radius:50%;">✕</button>
     </div>
-    <div id="lyrics-badge" style="display:none;background:rgba(124,92,252,.15);border:1px solid rgba(124,92,252,.3);border-radius:8px;padding:8px 14px;font-size:11px;color:rgba(124,92,252,.9);margin-bottom:18px;line-height:1.5;">
-      ✨ AI-Generated — These lyrics were created by AI and may not match the actual song. They are for demonstration purposes only.
+  </div>
+
+  <!-- AI / Source badge -->
+  <div id="lyr-badge" style="display:none;background:rgba(124,92,252,.12);border-bottom:1px solid rgba(124,92,252,.2);padding:8px 20px;font-size:11px;color:rgba(180,160,255,.8);flex-shrink:0;"></div>
+
+  <!-- Lyrics scroll area -->
+  <div id="lyr-scroll" style="flex:1;overflow-y:auto;padding:20px 20px 120px;-webkit-overflow-scrolling:touch;">
+
+    <!-- Loading state -->
+    <div id="lyr-loading" style="text-align:center;padding:80px 0;color:rgba(255,255,255,.3);">
+      <div style="font-size:2.5rem;margin-bottom:14px;display:inline-block;animation:lyr-spin 1s linear infinite;">⟳</div>
+      <div style="font-size:14px;">Loading lyrics…</div>
+      <div style="font-size:11px;margin-top:6px;color:rgba(255,255,255,.2);">Checking database, then trying Whisper / AI…</div>
     </div>
-    <div id="lyrics-loading" style="text-align:center;padding:60px 0;color:rgba(255,255,255,.35);">
-      <div style="font-size:2rem;margin-bottom:12px;animation:spin 1s linear infinite;display:inline-block;">⟳</div>
-      <div style="font-size:13px;">Loading lyrics…</div>
+
+    <!-- Scrolling LRC lyrics (highlighted line by line) -->
+    <div id="lyr-lrc-container" style="display:none;max-width:640px;margin:0 auto;">
+      <!-- Lines injected by JS -->
     </div>
-    <div id="lyrics-body" style="display:none;font-size:15px;line-height:2;color:rgba(255,255,255,.85);white-space:pre-wrap;font-weight:400;"></div>
-    <div id="lyrics-error" style="display:none;text-align:center;padding:40px 0;color:rgba(255,255,255,.35);">
-      <div style="font-size:2rem;margin-bottom:10px;">🎵</div>
-      <div id="lyrics-error-msg" style="font-size:13px;"></div>
-      <a href="/admin-panel/settings/" style="display:inline-block;margin-top:16px;font-size:12px;color:rgba(124,92,252,.7);">Configure AI Settings →</a>
+
+    <!-- Plain (non-timed) lyrics -->
+    <div id="lyr-plain" style="display:none;max-width:640px;margin:0 auto;font-size:15px;line-height:2.2;color:rgba(255,255,255,.75);white-space:pre-wrap;font-weight:400;"></div>
+
+    <!-- Live speech-to-text captions -->
+    <div id="lyr-live" style="display:none;max-width:640px;margin:0 auto;">
+      <div style="text-align:center;color:rgba(255,255,255,.3);font-size:12px;margin-bottom:20px;">🎙 Listening to audio — captions appear in real time</div>
+      <div id="lyr-live-text" style="font-size:18px;line-height:1.8;color:#fff;text-align:center;font-weight:500;min-height:80px;"></div>
+      <div id="lyr-live-interim" style="font-size:15px;color:rgba(255,255,255,.35);text-align:center;margin-top:8px;font-style:italic;"></div>
     </div>
+
+    <!-- Error state -->
+    <div id="lyr-error" style="display:none;text-align:center;padding:60px 0;color:rgba(255,255,255,.3);">
+      <div style="font-size:2.5rem;margin-bottom:12px;">🎵</div>
+      <div id="lyr-error-msg" style="font-size:13px;margin-bottom:14px;"></div>
+      <a href="/admin-panel/ai-settings/" style="font-size:12px;color:rgba(124,92,252,.6);">Configure AI Settings →</a>
+    </div>
+
+  </div>
+
+  <!-- Mini player bar at bottom of lyrics panel (stays in sync) -->
+  <div style="flex-shrink:0;background:rgba(6,7,14,.97);border-top:1px solid rgba(255,255,255,.07);padding:12px 20px;display:flex;align-items:center;gap:14px;">
+    <div style="width:40px;height:40px;border-radius:8px;overflow:hidden;flex-shrink:0;background:rgba(124,92,252,.2);display:flex;align-items:center;justify-content:center;font-size:18px;">
+      {% if track.cover_image %}<img src="{{ track.cover_image.url }}" style="width:100%;height:100%;object-fit:cover;">
+      {% elif track.album and track.album.cover_image %}<img src="{{ track.album.cover_image.url }}" style="width:100%;height:100%;object-fit:cover;">
+      {% else %}🎵{% endif %}
+    </div>
+    <div style="flex:1;min-width:0;">
+      <div id="lyr-progress-bar" style="height:3px;background:rgba(255,255,255,.12);border-radius:2px;margin-bottom:6px;cursor:pointer;" onclick="seekFromLyrBar(event)">
+        <div id="lyr-progress-fill" style="height:100%;background:var(--ac);border-radius:2px;width:0%;transition:width .4s linear;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;">
+        <span id="lyr-time-cur" style="font-size:10px;color:rgba(255,255,255,.35);">0:00</span>
+        <span id="lyr-time-dur" style="font-size:10px;color:rgba(255,255,255,.35);">{{ track.duration_str }}</span>
+      </div>
+    </div>
+    <button onclick="if(typeof mpTogglePlay==='function')mpTogglePlay()" id="lyr-play-btn" style="width:36px;height:36px;border-radius:50%;background:var(--ac);border:none;cursor:pointer;font-size:14px;color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;">▶</button>
   </div>
 </div>
 
 <style>
-@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes lyr-spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes lyr-fade-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.lyr-line{
+  display:block;padding:12px 0;font-size:17px;font-weight:500;color:rgba(255,255,255,.3);
+  text-align:center;transition:color .3s,font-size .3s,transform .3s;line-height:1.5;
+  cursor:pointer;
+}
+.lyr-line.active{
+  color:#fff;font-size:22px;font-weight:700;transform:scale(1.04);
+}
+.lyr-line.past{color:rgba(255,255,255,.2);}
 </style>
 
 <script>
 const _trackPk = {{ track.pk }};
-let _lyricsLoaded = false;
+let _lyricsData = null;
+let _lrcLines = [];   // [{time, text, el}]
+let _captionOn = false;
+let _speechRec = null;
+let _lyrSyncRAF = null;
 
+// ── Open / Close ─────────────────────────────────────────────────────────────
 async function openLyrics() {
   const panel = document.getElementById('lyrics-panel');
-  panel.style.display = 'block';
+  panel.style.display = 'flex';
   document.body.style.overflow = 'hidden';
-  document.getElementById('lyrics-title').textContent = '{{ track.title|escapejs }}';
-  document.getElementById('lyrics-artist').textContent = 'by {{ track.artist.name|escapejs }}';
-  if (_lyricsLoaded) return;
+  if (_lyricsData) { _startLyrSync(); return; }
   try {
     const r = await fetch(`/music/lyrics/${_trackPk}/`);
     const d = await r.json();
-    document.getElementById('lyrics-loading').style.display = 'none';
-    if (d.ok) {
-      _lyricsLoaded = true;
-      document.getElementById('lyrics-body').textContent = d.lyrics;
-      document.getElementById('lyrics-body').style.display = 'block';
-      if (d.ai_generated) document.getElementById('lyrics-badge').style.display = 'block';
-    } else {
-      document.getElementById('lyrics-error-msg').textContent = d.message || 'Could not load lyrics.';
-      document.getElementById('lyrics-error').style.display = 'block';
+    document.getElementById('lyr-loading').style.display = 'none';
+    if (!d.ok) {
+      document.getElementById('lyr-error-msg').textContent = d.message || 'Could not load lyrics.';
+      document.getElementById('lyr-error').style.display = 'block';
+      return;
     }
+    _lyricsData = d;
+    _renderLyrics(d);
   } catch(e) {
-    document.getElementById('lyrics-loading').style.display = 'none';
-    document.getElementById('lyrics-error-msg').textContent = 'Network error — please try again.';
-    document.getElementById('lyrics-error').style.display = 'block';
+    document.getElementById('lyr-loading').style.display = 'none';
+    document.getElementById('lyr-error-msg').textContent = 'Network error — please try again.';
+    document.getElementById('lyr-error').style.display = 'block';
   }
 }
 
 function closeLyrics() {
   document.getElementById('lyrics-panel').style.display = 'none';
   document.body.style.overflow = '';
+  cancelAnimationFrame(_lyrSyncRAF);
+  if (_speechRec) { try{_speechRec.stop();}catch(e){} }
+}
+
+// ── Render lyrics ─────────────────────────────────────────────────────────────
+function _renderLyrics(d) {
+  // Badge
+  if (d.ai_generated) {
+    const badge = document.getElementById('lyr-badge');
+    const src = {'whisper':'🎙 Auto-transcribed by Whisper speech-to-text','claude':'✨ AI-Generated by Claude','stored':'✅ Official lyrics','stored_lrc':'✅ Official synced lyrics'}[d.source] || '✨ AI-Generated';
+    badge.textContent = src + (d.source.startsWith('whisper')||d.source==='claude' ? ' — may not match exactly' : '');
+    badge.style.display = 'block';
+  }
+
+  if (d.has_lrc && d.lrc) {
+    _renderLRC(d.lrc);
+  } else {
+    document.getElementById('lyr-plain').textContent = d.lyrics || '';
+    document.getElementById('lyr-plain').style.display = 'block';
+  }
+  _startLyrSync();
+}
+
+function _renderLRC(lrcText) {
+  const container = document.getElementById('lyr-lrc-container');
+  container.innerHTML = '';
+  _lrcLines = [];
+  const re = /\[(\d{2}):(\d{2})\.(\d{2,3})\]\s*(.*)/;
+  lrcText.split('\n').forEach(line => {
+    const m = line.match(re);
+    if (!m) return;
+    const secs = parseInt(m[1])*60 + parseFloat(m[2]+'.'+m[3]);
+    const text = m[4].trim();
+    if (!text) return;
+    const el = document.createElement('span');
+    el.className = 'lyr-line';
+    el.textContent = text;
+    el.onclick = () => { if(typeof mpSeek==='function'){const a=document.getElementById('mini-audio');if(a)a.currentTime=secs;} };
+    container.appendChild(el);
+    _lrcLines.push({time: secs, text, el});
+  });
+  container.style.display = 'block';
+}
+
+// ── Real-time sync loop ───────────────────────────────────────────────────────
+function _startLyrSync() {
+  cancelAnimationFrame(_lyrSyncRAF);
+  const audio = document.getElementById('mini-audio');
+  if (!audio) return;
+
+  function sync() {
+    const ct = audio.currentTime;
+    const dur = audio.duration || 0;
+
+    // Progress bar in lyrics panel
+    if (dur) {
+      document.getElementById('lyr-progress-fill').style.width = (ct/dur*100)+'%';
+      document.getElementById('lyr-time-cur').textContent = _fmt(ct);
+    }
+
+    // Play/pause button state
+    const pb = document.getElementById('lyr-play-btn');
+    if (pb) pb.textContent = audio.paused ? '▶' : '⏸';
+
+    // Highlight current LRC line
+    if (_lrcLines.length) {
+      let active = -1;
+      for (let i = 0; i < _lrcLines.length; i++) {
+        if (_lrcLines[i].time <= ct) active = i;
+        else break;
+      }
+      _lrcLines.forEach((l, i) => {
+        l.el.className = 'lyr-line' + (i === active ? ' active' : i < active ? ' past' : '');
+      });
+      // Auto-scroll active line into view
+      if (active >= 0) {
+        const el = _lrcLines[active].el;
+        const scroll = document.getElementById('lyr-scroll');
+        const top = el.offsetTop - scroll.clientHeight/2 + el.clientHeight/2;
+        scroll.scrollTo({top, behavior:'smooth'});
+      }
+    }
+
+    _lyrSyncRAF = requestAnimationFrame(sync);
+  }
+  _lyrSyncRAF = requestAnimationFrame(sync);
+}
+
+function _fmt(s) {
+  const m = Math.floor(s/60);
+  return m+':'+(Math.floor(s%60)+'').padStart(2,'0');
+}
+
+function seekFromLyrBar(e) {
+  const audio = document.getElementById('mini-audio');
+  if (!audio || !audio.duration) return;
+  const bar = e.currentTarget;
+  const pct = (e.clientX - bar.getBoundingClientRect().left) / bar.offsetWidth;
+  audio.currentTime = pct * audio.duration;
+}
+
+// ── Live speech-to-text captions ─────────────────────────────────────────────
+function toggleCaption() {
+  if (_captionOn) {
+    _captionOn = false;
+    if (_speechRec) { try{_speechRec.stop();}catch(e){} }
+    document.getElementById('lyr-live').style.display = 'none';
+    document.getElementById('lyr-caption-btn').style.color = 'rgba(255,255,255,.5)';
+    document.getElementById('lyr-caption-btn').style.borderColor = 'rgba(255,255,255,.1)';
+    if (_lyricsData) {
+      document.getElementById('lyr-lrc-container').style.display = _lyricsData.has_lrc ? 'block' : 'none';
+      document.getElementById('lyr-plain').style.display = _lyricsData.has_lrc ? 'none' : 'block';
+    }
+  } else {
+    _captionOn = true;
+    document.getElementById('lyr-caption-btn').style.color = '#1db954';
+    document.getElementById('lyr-caption-btn').style.borderColor = '#1db954';
+    document.getElementById('lyr-lrc-container').style.display = 'none';
+    document.getElementById('lyr-plain').style.display = 'none';
+    document.getElementById('lyr-live').style.display = 'block';
+    _startSpeechCaption();
+  }
+}
+
+function _startSpeechCaption() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    document.getElementById('lyr-live-text').textContent = '⚠️ Live captions require Chrome or Edge browser.';
+    return;
+  }
+  _speechRec = new SR();
+  _speechRec.continuous = true;
+  _speechRec.interimResults = true;
+  _speechRec.lang = 'en-US';
+
+  let finalText = '';
+  _speechRec.onresult = e => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) { finalText += t + ' '; }
+      else { interim = t; }
+    }
+    document.getElementById('lyr-live-text').textContent = finalText.slice(-300);
+    document.getElementById('lyr-live-interim').textContent = interim;
+  };
+
+  _speechRec.onend = () => {
+    if (_captionOn) setTimeout(() => { try{_speechRec.start();}catch(e){} }, 300);
+  };
+
+  try { _speechRec.start(); } catch(e) {
+    document.getElementById('lyr-live-text').textContent = '⚠️ Microphone access denied.';
+  }
 }
 </script>
 {% endblock %}

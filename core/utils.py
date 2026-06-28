@@ -188,3 +188,35 @@ def get_or_create_artist_for_user(user):
     name = user.get_full_name() or user.username
     artist, _ = Artist.objects.get_or_create(user=user, defaults={'name': name})
     return artist
+
+
+def get_site_name():
+    """Return the configured platform/site name (e.g. 'Bazilin').
+    Used for branded download filenames so every download carries the
+    platform brand rather than a generic title."""
+    try:
+        from core.models import SiteSettings
+        name = SiteSettings.objects.get(key='site_name').value
+        return name.strip() or 'NEXUS'
+    except Exception:
+        return 'NEXUS'
+
+
+def safe_filename(s):
+    """Convert a string to a safe filename component (no spaces, slashes, or
+    special chars that break file downloads across platforms)."""
+    import re
+    s = s.strip()
+    s = re.sub(r'[^\w\s\-]', '', s)
+    s = re.sub(r'[\s]+', '_', s)
+    return s[:80]
+
+
+def branded_filename(title, artist='', ext='mp4'):
+    """Build a branded download filename: SITENAME_Artist_Title.ext"""
+    name = get_site_name()
+    parts = [safe_filename(name.upper())]
+    if artist:
+        parts.append(safe_filename(artist))
+    parts.append(safe_filename(title))
+    return '_'.join(p for p in parts if p) + '.' + ext.lstrip('.')

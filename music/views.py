@@ -451,77 +451,91 @@ def music_discover(request):
 
 
 @require_POST
+@require_POST
 def music_identify(request):
-    """Receives an audio snippet (base64 or file) from the browser and tries
-    to match it against published tracks.
-
-    Matching strategy (no external API required):
-    1. Duration match — if the client sends duration from the audio context,
-       find tracks whose stored duration is within ±3 seconds.
-    2. Keyword match — if the client sends any recognisable text (from a
-       Web Speech API transcription attempt), search track title/artist.
-    3. AI fallback — if Anthropic key is set, describe what we heard and
-       let the model suggest the closest match from a list of titles.
-    Returns JSON { matched: bool, track: {...} | null, candidates: [...] }
     """
-    import json, math
+    4-layer music identification:
+    1. Whisper transcribes the audio blob → text search in DB
+    2. AudD.io global fingerprinting (works for any song worldwide)
+    3. Claude AI matches transcript against DB track list
+    4. Duration + keyword fallback (always returns something)
+    """
+    from music.identify_service import (
+        whisper_transcribe, audd_identify,
+        claude_identify, db_search, serialise_track,
+    )
 
+    # Collect inputs
     hint_title   = request.POST.get('hint_title', '').strip()
     hint_artist  = request.POST.get('hint_artist', '').strip()
     hint_duration = request.POST.get('duration', '')
+    audio_file   = request.FILES.get('audio')
+    audio_bytes  = audio_file.read() if audio_file else None
 
+    transcript = ''
+    external_match = None   # from AudD
+    db_match  = None        # from own library
     candidates = []
 
-    # 1. Text hint matching (from Web Speech API or user input)
-    if hint_title or hint_artist:
-        from django.db.models import Q
-        qs = Track.objects.filter(is_published=True).select_related('artist', 'album')
-        if hint_title:
-            qs = qs.filter(Q(title__icontains=hint_title) | Q(artist__name__icontains=hint_title))
-        if hint_artist:
-            qs = qs.filter(Q(artist__name__icontains=hint_artist) | Q(title__icontains=hint_artist))
-        candidates = list(qs[:10])
+    # ── Layer 1: Whisper transcription ────────────────────────────────────
+    if audio_bytes:
+        mime = getattr(audio_file, 'content_type', 'audio/webm')
+        transcript = whisper_transcribe(audio_bytes, mime)
+        if transcript:
+            # Update hint_title with transcribed words
+            hint_title = hint_title or transcript[:200]
 
-    # 2. Duration-based matching
-    if not candidates and hint_duration:
-        try:
-            d = float(hint_duration)
-            lo, hi = math.floor(d) - 3, math.ceil(d) + 3
-            candidates = list(
-                Track.objects.filter(
-                    is_published=True,
-                    duration__gte=lo,
-                    duration__lte=hi,
-                ).select_related('artist', 'album')[:10]
+    # ── Layer 2: AudD global fingerprint ──────────────────────────────────
+    if audio_bytes:
+        ext_result = audd_identify(audio_bytes)
+        if ext_result:
+            external_match = ext_result
+            # Also search our DB for the identified title
+            db_hits = db_search(
+                hint_title=ext_result.get('title',''),
+                hint_artist=ext_result.get('artist','')
             )
-        except (ValueError, TypeError):
-            pass
+            if db_hits:
+                db_match = serialise_track(db_hits[0])
 
-    # 3. Fallback: return all tracks for the UI to show "we couldn't match"
-    if not candidates:
-        candidates = list(
-            Track.objects.filter(is_published=True)
-            .select_related('artist', 'album')
-            .order_by('-trend_score')[:10]
-        )
+    # ── Layer 3: DB search with all hints ─────────────────────────────────
+    db_candidates = db_search(hint_title, hint_artist, hint_duration)
 
-    def serialise(t):
-        return {
-            'pk':     t.pk,
-            'title':  t.title,
-            'artist': t.artist.name if t.artist else '',
-            'slug':   t.slug,
-            'cover':  (t.cover_image.url if t.cover_image else
-                      (t.album.cover_image.url if t.album and t.album.cover_image else '')),
-            'duration': t.duration,
-            'url':    t.playable_url or '',
-        }
+    # ── Layer 4: Claude narrows DB candidates ─────────────────────────────
+    if not db_match and transcript and db_candidates:
+        track_dicts = [serialise_track(t) for t in db_candidates]
+        claude_pick = claude_identify(transcript, track_dicts)
+        if claude_pick:
+            db_match = claude_pick
 
-    best = candidates[0] if len(candidates) == 1 else None
+    # Build candidates list
+    candidates = [serialise_track(t) for t in db_candidates]
+
+    # If AudD found something not in our DB, prepend it as a suggestion
+    if external_match and not db_match:
+        candidates.insert(0, {
+            'pk': None,
+            'title':  external_match.get('title',''),
+            'artist': external_match.get('artist',''),
+            'album':  external_match.get('album',''),
+            'slug':   None,
+            'cover':  external_match.get('cover',''),
+            'duration': 0,
+            'url':    '',
+            'in_library': False,
+            'spotify_url': (external_match.get('spotify',{}) or {}).get('external_urls',{}).get('spotify',''),
+            'apple_url':   (external_match.get('apple_music',{}) or {}).get('url',''),
+        })
+
+    matched  = bool(db_match or external_match)
+    best     = db_match or (candidates[0] if candidates else None)
+
     return JsonResponse({
-        'matched':    bool(best),
-        'track':      serialise(best) if best else None,
-        'candidates': [serialise(c) for c in candidates],
+        'matched':    matched,
+        'transcript': transcript,
+        'track':      best,
+        'external':   external_match,
+        'candidates': candidates[:10],
     })
 
 
@@ -529,37 +543,84 @@ def music_identify(request):
 
 def track_lyrics(request, pk):
     """Returns lyrics as JSON.
-    If the track has stored lyrics → return them immediately.
-    If not and the user is authenticated → call Claude to generate plausible
-    lyrics, cache them on the Track, return them labelled 'ai_generated'.
+    Priority:
+    1. Stored LRC (timestamped) lyrics  → real-time scrolling
+    2. Stored plain lyrics              → static display
+    3. Whisper transcription of audio   → auto-generated LRC
+    4. Claude AI text generation        → AI plain lyrics
     """
     track = get_object_or_404(Track, pk=pk, is_published=True)
+    artist_name = track.artist.name if track.artist else 'Unknown Artist'
 
-    if track.lyrics.strip():
+    # 1. Stored LRC
+    if track.lyrics_lrc.strip():
         return JsonResponse({
-            'ok': True,
-            'lyrics': track.lyrics,
-            'ai_generated': False,
-            'title': track.title,
-            'artist': track.artist.name if track.artist else '',
+            'ok': True, 'has_lrc': True,
+            'lyrics': track.lyrics, 'lrc': track.lyrics_lrc,
+            'ai_generated': False, 'source': 'stored_lrc',
+            'title': track.title, 'artist': artist_name,
         })
 
-    # Attempt AI generation via Anthropic
-    from core.utils import get_ai_key
-    import json as _json
-    import urllib.request, urllib.error
+    # 2. Stored plain lyrics
+    if track.lyrics.strip():
+        return JsonResponse({
+            'ok': True, 'has_lrc': False,
+            'lyrics': track.lyrics, 'lrc': '',
+            'ai_generated': False, 'source': 'stored',
+            'title': track.title, 'artist': artist_name,
+        })
 
+    from core.utils import get_ai_key
+    import json as _json, urllib.request
+
+    # 3. Whisper transcription (if audio file exists and OpenAI key configured)
+    openai_key = get_ai_key('openai')
+    if openai_key and track.audio_file:
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=openai_key)
+            with open(track.audio_file.path, 'rb') as f:
+                # verbose_json gives us word-level timestamps for LRC
+                transcript = client.audio.transcriptions.create(
+                    model='whisper-1',
+                    file=f,
+                    response_format='verbose_json',
+                    timestamp_granularities=['segment'],
+                )
+            # Build LRC from Whisper segments
+            lrc_lines = []
+            plain_lines = []
+            for seg in (transcript.segments or []):
+                t = seg.get('start', 0) if isinstance(seg, dict) else seg.start
+                text = seg.get('text', '').strip() if isinstance(seg, dict) else seg.text.strip()
+                if text:
+                    mins = int(t // 60)
+                    secs = t % 60
+                    lrc_lines.append(f'[{mins:02d}:{secs:05.2f}] {text}')
+                    plain_lines.append(text)
+            if lrc_lines:
+                lrc_text = '\n'.join(lrc_lines)
+                plain_text = '[Whisper Transcription]\n\n' + '\n'.join(plain_lines)
+                Track.objects.filter(pk=pk).update(lyrics=plain_text, lyrics_lrc=lrc_text)
+                return JsonResponse({
+                    'ok': True, 'has_lrc': True,
+                    'lyrics': plain_text, 'lrc': lrc_text,
+                    'ai_generated': True, 'source': 'whisper',
+                    'title': track.title, 'artist': artist_name,
+                })
+        except Exception:
+            pass  # fall through to Claude
+
+    # 4. Claude AI text generation
     api_key = get_ai_key('anthropic')
     if not api_key:
         return JsonResponse({
-            'ok': False,
-            'error': 'no_key',
-            'message': 'No Anthropic API key configured. Add one in Settings → AI Settings to enable AI lyrics.',
+            'ok': False, 'error': 'no_key',
+            'message': 'No API key configured. Add an Anthropic or OpenAI key in Settings → AI Settings.',
         })
 
     try:
-        artist_name = track.artist.name if track.artist else 'Unknown Artist'
-        genre_name  = track.genre.name  if track.genre  else ''
+        genre_name = track.genre.name if track.genre else ''
         prompt = (
             f'Write complete, original song lyrics for a track called "{track.title}" '
             f'by {artist_name}'
@@ -575,27 +636,20 @@ def track_lyrics(request, pk):
         }
         data = _json.dumps(payload).encode()
         req  = urllib.request.Request(
-            'https://api.anthropic.com/v1/messages',
-            data=data,
-            headers={
-                'Content-Type': 'application/json',
-                'x-api-key': api_key,
-                'anthropic-version': '2023-06-01',
-            }
+            'https://api.anthropic.com/v1/messages', data=data,
+            headers={'Content-Type': 'application/json',
+                     'x-api-key': api_key, 'anthropic-version': '2023-06-01'}
         )
         with urllib.request.urlopen(req, timeout=30) as resp:
             result = _json.loads(resp.read())
         generated = result['content'][0]['text']
-
-        # Cache on the track so future requests are instant (no repeated API calls)
-        Track.objects.filter(pk=pk).update(lyrics='[AI Generated]\n\n' + generated)
-
+        plain = '[AI Generated]\n\n' + generated
+        Track.objects.filter(pk=pk).update(lyrics=plain)
         return JsonResponse({
-            'ok': True,
-            'lyrics': '[AI Generated]\n\n' + generated,
-            'ai_generated': True,
-            'title': track.title,
-            'artist': artist_name,
+            'ok': True, 'has_lrc': False,
+            'lyrics': plain, 'lrc': '',
+            'ai_generated': True, 'source': 'claude',
+            'title': track.title, 'artist': artist_name,
         })
 
     except Exception as e:

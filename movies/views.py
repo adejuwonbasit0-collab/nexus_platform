@@ -160,6 +160,7 @@ def download_movie(request, pk):
     movie = get_object_or_404(Movie, pk=pk, is_published=True)
     block = _premium_check(request, movie)
     if block: return block
+    from core.utils import branded_filename
     if not movie.has_video:
         raise Http404
     Movie.objects.filter(pk=pk).update(downloads_count=movie.downloads_count + 1)
@@ -171,7 +172,7 @@ def download_movie(request, pk):
     return FileResponse(
         open(movie.video_file.path, 'rb'),
         as_attachment=True,
-        filename=f'{movie.title}.mp4'
+        filename=branded_filename(movie.title, ext=os.path.splitext(movie.video_file.name)[1] or '.mp4')
     )
 
 
@@ -180,6 +181,7 @@ def download_episode(request, pk):
     ep = get_object_or_404(Episode, pk=pk)
     block = _premium_check(request, ep.season.series)
     if block: return block
+    from core.utils import branded_filename
     if not ep.has_video:
         raise Http404
     if ep.is_external_video:
@@ -189,7 +191,7 @@ def download_episode(request, pk):
     return FileResponse(
         open(ep.video_file.path, 'rb'),
         as_attachment=True,
-        filename=f'S{ep.season.number}E{ep.number}_{ep.title}.mp4'
+        filename=branded_filename(f'S{ep.season.number}E{ep.number}_{ep.title}', ext=os.path.splitext(ep.video_file.name)[1] or '.mp4')
     )
 
 
