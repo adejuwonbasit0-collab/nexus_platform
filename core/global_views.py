@@ -186,10 +186,16 @@ def global_search(request):
 
 
 def trending_view(request):
-    """Trending content across all modules."""
+    """Trending content across all modules — platform + external charts."""
+    cache_key = 'trending_page_v2'
+    cached = cache.get(cache_key)
+    if cached:
+        return render(request, 'trending.html', cached)
+
     trending_movies = []
     trending_music = []
     trending_content = []
+    external_music = []   # charts from external sources
 
     try:
         from movies.models import Movie
@@ -208,11 +214,32 @@ def trending_view(request):
     trending_content = list(Content.objects.filter(status='approved')
                             .order_by('-views').select_related('creator')[:20])
 
-    return render(request, 'trending.html', {
-        'trending_movies': trending_movies,
-        'trending_music':  trending_music,
+    # ── External trending charts (iTunes Top Charts — free, no key needed) ──
+    try:
+        import urllib.request, json as _j
+        url = 'https://itunes.apple.com/us/rss/topsongs/limit=20/json'
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=6) as resp:
+            data = _j.loads(resp.read())
+        entries = data.get('feed', {}).get('entry', [])
+        for e in entries:
+            external_music.append({
+                'title':   e.get('im:name', {}).get('label', ''),
+                'artist':  e.get('im:artist', {}).get('label', ''),
+                'cover':   e.get('im:image', [{}])[-1].get('label', ''),
+                'link':    e.get('link', {}).get('attributes', {}).get('href', '#'),
+            })
+    except Exception:
+        pass
+
+    ctx = {
+        'trending_movies':  trending_movies,
+        'trending_music':   trending_music,
         'trending_content': trending_content,
-    })
+        'external_music':   external_music,
+    }
+    cache.set(cache_key, ctx, 300)   # cache 5 minutes
+    return render(request, 'trending.html', ctx)
 
 
 @login_required

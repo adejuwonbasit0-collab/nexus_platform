@@ -40,7 +40,8 @@ body{background:#060810;}
     <input class="form-input" id="hintTitle" placeholder="Song title hint…">
     <input class="form-input" id="hintArtist" placeholder="Artist name hint…">
   </div>
-  <button class="btn btn-primary" onclick="searchByHint()" style="width:100%;margin-bottom:8px;">🔍 Search by name</button>
+  <button class="btn btn-primary" onclick="searchByHint()" style="width:100%;margin-bottom:6px;">🔍 Search on Platform</button>
+  <button class="btn btn-outline" onclick="searchExternal()" style="width:100%;margin-bottom:8px;">🌍 Search Worldwide</button>
 
   <div class="result-card" id="resultCard">
     <div id="resultContent"></div>
@@ -174,5 +175,40 @@ function showResult(d) {
 }
 
 function setStatus(msg) { document.getElementById('discStatus').textContent = msg; }
+
+async function searchExternal() {
+  const title = document.getElementById('hintTitle').value.trim();
+  const artist = document.getElementById('hintArtist').value.trim();
+  if (!title && !artist) { setStatus('Enter a title or artist name first.'); return; }
+  setStatus('🔍 Searching iTunes worldwide…');
+  try {
+    const query = encodeURIComponent([title, artist].filter(Boolean).join(' '));
+    const r = await fetch(`https://itunes.apple.com/search?term=${query}&media=music&limit=8`);
+    const d = await r.json();
+    if (!d.results || !d.results.length) {
+      setStatus('No results found worldwide.');
+      return;
+    }
+    setStatus(`Found ${d.results.length} result(s) worldwide`);
+    const rc = document.getElementById('resultContent');
+    const card = document.getElementById('resultCard');
+    rc.innerHTML = '<div style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:12px;">🌍 Worldwide results (iTunes)</div>' +
+      '<div class="cand-list">' +
+      d.results.map(t => `
+        <a href="${t.trackViewUrl || '#'}" target="_blank" rel="noopener" class="cand-row" style="text-decoration:none;color:inherit;">
+          <div class="cand-cover" style="background:none;">
+            ${t.artworkUrl60 ? `<img src="${t.artworkUrl60}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;">` : '🎵'}
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.trackName || t.collectionName || '?'}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.4);">${t.artistName} · ${t.primaryGenreName || ''}</div>
+          </div>
+          <span style="font-size:10px;color:rgba(255,255,255,.3);flex-shrink:0;">iTunes →</span>
+        </a>`).join('') + '</div>';
+    card.classList.add('show');
+  } catch(e) {
+    setStatus('Search failed: ' + e.message);
+  }
+}
 </script>
 {% endblock %}

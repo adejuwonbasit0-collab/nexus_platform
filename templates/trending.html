@@ -68,6 +68,35 @@
   </div>
   {% endif %}
 
+  {% if external_music %}
+  <div style="margin-bottom:52px;">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:22px;">
+      <div>
+        <h2 style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:800;">🌍 Global Music Charts</h2>
+        <div style="font-size:12px;color:var(--tx2);margin-top:4px;">Top 20 songs worldwide · iTunes Charts</div>
+      </div>
+    </div>
+    <div style="background:rgba(255,255,255,.025);border:1px solid var(--bd);border-radius:16px;overflow:hidden;">
+      {% for track in external_music %}
+      <a href="{{ track.link }}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:14px;padding:11px 20px;border-bottom:1px solid var(--bd);transition:background .15s;text-decoration:none;color:inherit;" onmouseenter="this.style.background='rgba(255,255,255,.04)'" onmouseleave="this.style.background=''">
+        <span style="color:var(--tx3);font-size:13px;width:24px;text-align:right;flex-shrink:0;font-weight:700;">{{ forloop.counter }}</span>
+        {% if track.cover %}
+        <img src="{{ track.cover }}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0;" loading="lazy">
+        {% else %}
+        <div style="width:44px;height:44px;border-radius:8px;background:rgba(124,92,252,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;">🎵</div>
+        {% endif %}
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ track.title }}</div>
+          <div style="font-size:12px;color:var(--tx2);">{{ track.artist }}</div>
+        </div>
+        <span style="font-size:11px;color:var(--tx3);flex-shrink:0;">iTunes →</span>
+      </a>
+      {% endfor %}
+    </div>
+    <p style="font-size:11px;color:var(--tx3);margin-top:10px;text-align:right;">Source: iTunes Top Charts · Updates every 5 min</p>
+  </div>
+  {% endif %}
+
   {% if trending_content %}
   <div>
     <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:22px;">

@@ -451,7 +451,6 @@ def music_discover(request):
 
 
 @require_POST
-@require_POST
 def music_identify(request):
     """
     4-layer music identification:

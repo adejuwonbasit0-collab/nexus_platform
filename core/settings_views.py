@@ -58,13 +58,26 @@ def cms_hub(request):
 
         # THEME
         elif action == 'theme':
+            import re as _re
             obj = ThemeConfig.get()
-            for f in ['primary_color','secondary_color','accent_color','background_color',
-                      'surface_color','text_primary','text_secondary','heading_font','body_font',
-                      'heading_font_url','body_font_url','base_font_size','border_radius',
-                      'max_width','btn_radius','btn_primary_bg','btn_primary_text',
-                      'default_mode','custom_css']:
-                setattr(obj, f, request.POST.get(f, getattr(obj, f)))
+            color_fields = ['primary_color','secondary_color','accent_color','background_color',
+                            'surface_color','text_primary','text_secondary','btn_primary_bg','btn_primary_text']
+            text_fields  = ['heading_font','body_font','heading_font_url','body_font_url',
+                            'base_font_size','border_radius','max_width','btn_radius',
+                            'default_mode','custom_css']
+            for f in color_fields:
+                val = request.POST.get(f, '').strip()
+                # Also try the hex text sibling field (named {f}_hex)
+                hex_val = request.POST.get(f + '_hex', '').strip()
+                # Prefer hex_val if it's a valid hex color
+                if hex_val and _re.match(r'^#[0-9a-fA-F]{6}$', hex_val):
+                    val = hex_val
+                if val and _re.match(r'^#[0-9a-fA-F]{3,8}$', val):
+                    setattr(obj, f, val)
+            for f in text_fields:
+                val = request.POST.get(f, '').strip()
+                if val or f in ['custom_css','heading_font_url','body_font_url']:
+                    setattr(obj, f, val)
             obj.save(); cache.delete('cms_theme')
             messages.success(request, 'Theme saved — live immediately.')
             return redirect('/admin-panel/cms/?tab=theme')

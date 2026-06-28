@@ -2,70 +2,228 @@
 {% block admin_title %}Theme{% endblock %}
 {% block topbar_title %}🖌️ Theme Management{% endblock %}
 {% block content %}
-<form method="post">
+<style>
+.color-row{display:flex;gap:8px;align-items:center;}
+.color-row input[type="color"]{width:48px;height:38px;border-radius:8px;border:1px solid var(--border);background:none;cursor:pointer;padding:2px;}
+.color-row .finput{flex:1;font-family:monospace;font-size:13px;}
+.preview-box{width:100%;height:48px;border-radius:10px;margin-top:10px;border:1px solid var(--border);transition:background .3s;}
+</style>
+<form method="post" id="theme-form">
 {% csrf_token %}
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+  <!-- LEFT COLUMN -->
   <div>
     <div class="panel">
-      <div class="panel-header"><span class="panel-title">Color Palette</span></div>
+      <div class="panel-head"><span class="panel-title">🎨 Color Palette</span></div>
       <div class="panel-body">
-        {% for field, label in color_fields %}{% empty %}
-        {% for item in colors_list %}{% empty %}
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">Primary Color</label><div style="display:flex;gap:8px;align-items:center;"><input type="color" name="primary_color" value="{{ obj.primary_color }}" style="width:48px;height:36px;border-radius:6px;border:1px solid var(--border);background:none;cursor:pointer;"><input class="form-control" name="primary_color_hex" value="{{ obj.primary_color }}" style="flex:1;font-family:monospace;"></div></div>
-          <div class="form-group"><label class="form-label">Secondary Color</label><div style="display:flex;gap:8px;align-items:center;"><input type="color" name="secondary_color" value="{{ obj.secondary_color }}" style="width:48px;height:36px;border-radius:6px;border:1px solid var(--border);background:none;cursor:pointer;"><input class="form-control" name="secondary_color_hex" value="{{ obj.secondary_color }}" style="flex:1;font-family:monospace;"></div></div>
+
+        <div class="form-group">
+          <label class="form-label">Primary Color</label>
+          <div class="color-row">
+            <input type="color" value="{{ obj.primary_color }}" oninput="syncHex(this,'primary_color')" style="width:48px;height:38px;border-radius:8px;border:1px solid var(--border);background:none;cursor:pointer;">
+            <input class="finput" type="text" name="primary_color" id="primary_color" value="{{ obj.primary_color }}" oninput="syncPicker(this)" pattern="#[0-9a-fA-F]{6}" placeholder="#6c47ff">
+          </div>
         </div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">Accent Color</label><div style="display:flex;gap:8px;align-items:center;"><input type="color" name="accent_color" value="{{ obj.accent_color }}" style="width:48px;height:36px;border-radius:6px;border:1px solid var(--border);background:none;cursor:pointer;"><input class="form-control" value="{{ obj.accent_color }}" style="flex:1;font-family:monospace;"></div></div>
-          <div class="form-group"><label class="form-label">Background Color</label><div style="display:flex;gap:8px;align-items:center;"><input type="color" name="background_color" value="{{ obj.background_color }}" style="width:48px;height:36px;border-radius:6px;border:1px solid var(--border);background:none;cursor:pointer;"><input class="form-control" value="{{ obj.background_color }}" style="flex:1;font-family:monospace;"></div></div>
+
+        <div class="form-group">
+          <label class="form-label">Secondary Color</label>
+          <div class="color-row">
+            <input type="color" value="{{ obj.secondary_color }}" oninput="syncHex(this,'secondary_color')" style="width:48px;height:38px;border-radius:8px;border:1px solid var(--border);background:none;cursor:pointer;">
+            <input class="finput" type="text" name="secondary_color" id="secondary_color" value="{{ obj.secondary_color }}" oninput="syncPicker(this)" pattern="#[0-9a-fA-F]{6}" placeholder="#ff4778">
+          </div>
         </div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">Surface Color</label><div style="display:flex;gap:8px;align-items:center;"><input type="color" name="surface_color" value="{{ obj.surface_color }}" style="width:48px;height:36px;border-radius:6px;border:1px solid var(--border);background:none;cursor:pointer;"><input class="form-control" value="{{ obj.surface_color }}" style="flex:1;font-family:monospace;"></div></div>
-          <div class="form-group"><label class="form-label">Text Primary</label><div style="display:flex;gap:8px;align-items:center;"><input type="color" name="text_primary" value="{{ obj.text_primary }}" style="width:48px;height:36px;border-radius:6px;border:1px solid var(--border);background:none;cursor:pointer;"><input class="form-control" value="{{ obj.text_primary }}" style="flex:1;font-family:monospace;"></div></div>
+
+        <div class="form-group">
+          <label class="form-label">Accent Color</label>
+          <div class="color-row">
+            <input type="color" value="{{ obj.accent_color }}" oninput="syncHex(this,'accent_color')" style="width:48px;height:38px;border-radius:8px;border:1px solid var(--border);background:none;cursor:pointer;">
+            <input class="finput" type="text" name="accent_color" id="accent_color" value="{{ obj.accent_color }}" oninput="syncPicker(this)" pattern="#[0-9a-fA-F]{6}" placeholder="#00d4aa">
+          </div>
         </div>
-        {% endfor %}{% endfor %}
+
+        <div class="form-group">
+          <label class="form-label">Background Color</label>
+          <div class="color-row">
+            <input type="color" value="{{ obj.background_color }}" oninput="syncHex(this,'background_color')" style="width:48px;height:38px;border-radius:8px;border:1px solid var(--border);background:none;cursor:pointer;">
+            <input class="finput" type="text" name="background_color" id="background_color" value="{{ obj.background_color }}" oninput="syncPicker(this)" pattern="#[0-9a-fA-F]{6}" placeholder="#080810">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Surface Color <span class="form-hint">(cards/panels)</span></label>
+          <div class="color-row">
+            <input type="color" value="{{ obj.surface_color }}" oninput="syncHex(this,'surface_color')" style="width:48px;height:38px;border-radius:8px;border:1px solid var(--border);background:none;cursor:pointer;">
+            <input class="finput" type="text" name="surface_color" id="surface_color" value="{{ obj.surface_color }}" oninput="syncPicker(this)" pattern="#[0-9a-fA-F]{6}" placeholder="#13132a">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Primary Text Color</label>
+          <div class="color-row">
+            <input type="color" value="{{ obj.text_primary }}" oninput="syncHex(this,'text_primary')" style="width:48px;height:38px;border-radius:8px;border:1px solid var(--border);background:none;cursor:pointer;">
+            <input class="finput" type="text" name="text_primary" id="text_primary" value="{{ obj.text_primary }}" oninput="syncPicker(this)" pattern="#[0-9a-fA-F]{6}" placeholder="#e8e8f0">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Secondary Text Color</label>
+          <div class="color-row">
+            <input type="color" value="{{ obj.text_secondary }}" oninput="syncHex(this,'text_secondary')" style="width:48px;height:38px;border-radius:8px;border:1px solid var(--border);background:none;cursor:pointer;">
+            <input class="finput" type="text" name="text_secondary" id="text_secondary" value="{{ obj.text_secondary }}" oninput="syncPicker(this)" pattern="#[0-9a-fA-F]{6}" placeholder="#8888aa">
+          </div>
+        </div>
+
+        <!-- Live preview -->
+        <div style="margin-top:4px;">
+          <label class="form-label">Live Preview</label>
+          <div id="color-preview" style="border-radius:12px;padding:16px;background:var(--bg2);border:1px solid var(--border);margin-top:4px;">
+            <div style="font-size:13px;color:var(--text2);margin-bottom:8px;">Preview card</div>
+            <button id="prev-btn" type="button" style="padding:8px 18px;border:none;cursor:pointer;border-radius:8px;font-weight:600;font-size:13px;background:{{ obj.primary_color }};color:{{ obj.text_primary }};">Primary Button</button>
+          </div>
+        </div>
       </div>
     </div>
+
     <div class="panel">
-      <div class="panel-header"><span class="panel-title">Typography</span></div>
+      <div class="panel-head"><span class="panel-title">🔤 Typography</span></div>
       <div class="panel-body">
-        <div class="form-group"><label class="form-label">Heading Font</label><input class="form-control" name="heading_font" value="{{ obj.heading_font }}" placeholder="Space Grotesk"><div class="form-hint">Google Fonts name</div></div>
-        <div class="form-group"><label class="form-label">Body Font</label><input class="form-control" name="body_font" value="{{ obj.body_font }}" placeholder="DM Sans"></div>
-        <div class="form-group"><label class="form-label">Heading Font URL <span class="form-hint">(Google Fonts CSS URL)</span></label><input class="form-control" name="heading_font_url" value="{{ obj.heading_font_url }}" placeholder="https://fonts.googleapis.com/css2?..."></div>
-        <div class="form-group"><label class="form-label">Body Font URL</label><input class="form-control" name="body_font_url" value="{{ obj.body_font_url }}"></div>
-        <div class="form-group"><label class="form-label">Base Font Size</label><input class="form-control" name="base_font_size" value="{{ obj.base_font_size }}" placeholder="16px"></div>
+        <div class="form-group">
+          <label class="form-label">Heading Font <span class="form-hint">(Google Fonts name)</span></label>
+          <input class="finput" name="heading_font" value="{{ obj.heading_font }}" placeholder="Space Grotesk">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Body Font</label>
+          <input class="finput" name="body_font" value="{{ obj.body_font }}" placeholder="DM Sans">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Heading Font URL <span class="form-hint">(full Google Fonts CSS URL)</span></label>
+          <input class="finput" name="heading_font_url" value="{{ obj.heading_font_url }}" placeholder="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;800&display=swap">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Body Font URL</label>
+          <input class="finput" name="body_font_url" value="{{ obj.body_font_url }}" placeholder="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Base Font Size</label>
+          <input class="finput" name="base_font_size" value="{{ obj.base_font_size }}" placeholder="16px">
+        </div>
+        <div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:4px;">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:8px;">POPULAR GOOGLE FONTS PAIRS</div>
+          {% for pair in font_pairs %}
+          <button type="button" onclick="setFontPair('{{pair.0}}','{{pair.1}}','{{pair.2}}','{{pair.3}}')"
+            style="display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:6px;cursor:pointer;color:var(--text);font-size:12px;text-align:left;transition:background .15s;"
+            onmouseover="this.style.background='var(--glass2)'" onmouseout="this.style.background='none'">
+            <span style="font-weight:600;">{{pair.0}}</span>
+            <span style="color:var(--text2);">+ {{pair.1}}</span>
+          </button>
+          {% empty %}
+          {% for pair in "Space Grotesk|Plus Jakarta Sans,Syne|DM Sans,Clash Display|Satoshi,Cabinet Grotesk|Inter,Bricolage Grotesque|Manrope"|split:"," %}{% endfor %}
+          <button type="button" onclick="setFontPair('Space Grotesk','Plus Jakarta Sans','https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;800&display=swap','https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&display=swap')"
+            style="display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:6px;cursor:pointer;color:var(--text);font-size:12px;text-align:left;transition:background .15s;"
+            onmouseover="this.style.background='var(--glass2)'" onmouseout="this.style.background='none'">
+            <span style="font-weight:600;">Space Grotesk</span><span style="color:var(--text2);">+ Plus Jakarta Sans</span>
+          </button>
+          <button type="button" onclick="setFontPair('Syne','DM Sans','https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&display=swap','https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap')"
+            style="display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:6px;cursor:pointer;color:var(--text);font-size:12px;text-align:left;transition:background .15s;"
+            onmouseover="this.style.background='var(--glass2)'" onmouseout="this.style.background='none'">
+            <span style="font-weight:600;">Syne</span><span style="color:var(--text2);">+ DM Sans</span>
+          </button>
+          <button type="button" onclick="setFontPair('Clash Display','Satoshi','https://api.fontshare.com/v2/css?f[]=clash-display@600,700&display=swap','https://api.fontshare.com/v2/css?f[]=satoshi@400,500&display=swap')"
+            style="display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:6px;cursor:pointer;color:var(--text);font-size:12px;text-align:left;transition:background .15s;"
+            onmouseover="this.style.background='var(--glass2)'" onmouseout="this.style.background='none'">
+            <span style="font-weight:600;">Clash Display</span><span style="color:var(--text2);">+ Satoshi</span>
+          </button>
+          <button type="button" onclick="setFontPair('Bricolage Grotesque','Manrope','https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&display=swap','https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&display=swap')"
+            style="display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:6px;cursor:pointer;color:var(--text);font-size:12px;text-align:left;transition:background .15s;"
+            onmouseover="this.style.background='var(--glass2)'" onmouseout="this.style.background='none'">
+            <span style="font-weight:600;">Bricolage Grotesque</span><span style="color:var(--text2);">+ Manrope</span>
+          </button>
+          {% endfor %}
+        </div>
       </div>
     </div>
   </div>
+
+  <!-- RIGHT COLUMN -->
   <div>
     <div class="panel">
-      <div class="panel-header"><span class="panel-title">Layout & Buttons</span></div>
+      <div class="panel-head"><span class="panel-title">📐 Layout & Buttons</span></div>
       <div class="panel-body">
-        <div class="form-group"><label class="form-label">Border Radius</label><input class="form-control" name="border_radius" value="{{ obj.border_radius }}" placeholder="12px"></div>
-        <div class="form-group"><label class="form-label">Max Width</label><input class="form-control" name="max_width" value="{{ obj.max_width }}" placeholder="1380px"></div>
-        <div class="form-group"><label class="form-label">Button Radius</label><input class="form-control" name="btn_radius" value="{{ obj.btn_radius }}" placeholder="8px"></div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">Button Background</label><div style="display:flex;gap:8px;align-items:center;"><input type="color" name="btn_primary_bg" value="{{ obj.btn_primary_bg }}" style="width:48px;height:36px;border-radius:6px;border:1px solid var(--border);background:none;cursor:pointer;"><input class="form-control" value="{{ obj.btn_primary_bg }}" style="flex:1;font-family:monospace;"></div></div>
-          <div class="form-group"><label class="form-label">Button Text</label><div style="display:flex;gap:8px;align-items:center;"><input type="color" name="btn_primary_text" value="{{ obj.btn_primary_text }}" style="width:48px;height:36px;border-radius:6px;border:1px solid var(--border);background:none;cursor:pointer;"><input class="form-control" value="{{ obj.btn_primary_text }}" style="flex:1;font-family:monospace;"></div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Border Radius</label>
+            <input class="finput" name="border_radius" value="{{ obj.border_radius }}" placeholder="12px">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Max Width</label>
+            <input class="finput" name="max_width" value="{{ obj.max_width }}" placeholder="1380px">
+          </div>
         </div>
-        <div class="form-group"><label class="form-label">Default Color Mode</label>
-          <select class="form-control" name="default_mode">
-            <option value="dark" {% if obj.default_mode == 'dark' %}selected{% endif %}>Dark</option>
-            <option value="light" {% if obj.default_mode == 'light' %}selected{% endif %}>Light</option>
-            <option value="system" {% if obj.default_mode == 'system' %}selected{% endif %}>System</option>
+        <div class="form-group">
+          <label class="form-label">Button Radius</label>
+          <input class="finput" name="btn_radius" value="{{ obj.btn_radius }}" placeholder="8px">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Button Background</label>
+          <div class="color-row">
+            <input type="color" value="{{ obj.btn_primary_bg }}" oninput="syncHex(this,'btn_primary_bg')" style="width:48px;height:38px;border-radius:8px;border:1px solid var(--border);background:none;cursor:pointer;">
+            <input class="finput" type="text" name="btn_primary_bg" id="btn_primary_bg" value="{{ obj.btn_primary_bg }}" oninput="syncPicker(this)" placeholder="#6c47ff">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Button Text Color</label>
+          <div class="color-row">
+            <input type="color" value="{{ obj.btn_primary_text }}" oninput="syncHex(this,'btn_primary_text')" style="width:48px;height:38px;border-radius:8px;border:1px solid var(--border);background:none;cursor:pointer;">
+            <input class="finput" type="text" name="btn_primary_text" id="btn_primary_text" value="{{ obj.btn_primary_text }}" oninput="syncPicker(this)" placeholder="#ffffff">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Default Color Mode</label>
+          <select class="finput" name="default_mode">
+            <option value="dark" {% if obj.default_mode == "dark" %}selected{% endif %}>🌙 Dark</option>
+            <option value="light" {% if obj.default_mode == "light" %}selected{% endif %}>☀️ Light</option>
+            <option value="system" {% if obj.default_mode == "system" %}selected{% endif %}>🖥 System</option>
           </select>
         </div>
       </div>
     </div>
+
     <div class="panel">
-      <div class="panel-header"><span class="panel-title">Custom CSS</span></div>
+      <div class="panel-head"><span class="panel-title">💻 Custom CSS</span></div>
       <div class="panel-body">
-        <div class="form-group"><label class="form-label">Additional CSS <span class="form-hint">Injected into every page after theme variables</span></label><textarea class="form-control" name="custom_css" style="min-height:160px;font-family:monospace;font-size:12px;">{{ obj.custom_css }}</textarea></div>
+        <div class="form-group">
+          <label class="form-label">Additional CSS <span class="form-hint">Injected on every page after theme variables</span></label>
+          <textarea class="finput" name="custom_css" rows="10" style="font-family:monospace;font-size:12px;resize:vertical;min-height:140px;">{{ obj.custom_css }}</textarea>
+        </div>
       </div>
     </div>
-    <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">💾 Save Theme</button>
-    <p style="margin-top:8px;font-size:12px;color:var(--text2);text-align:center;">Changes apply immediately to all pages.</p>
+
+    <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-bottom:8px;">💾 Save Theme</button>
+    <p style="font-size:12px;color:var(--text2);text-align:center;">Changes go live immediately site-wide.</p>
   </div>
+
 </div>
 </form>
+
+<script>
+function syncHex(picker, id) {
+  const inp = document.getElementById(id);
+  if (inp) inp.value = picker.value;
+}
+function syncPicker(textInput) {
+  const val = textInput.value;
+  if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+    const picker = textInput.previousElementSibling;
+    if (picker && picker.type === 'color') picker.value = val;
+  }
+}
+function setFontPair(heading, body, hUrl, bUrl) {
+  document.querySelector('[name="heading_font"]').value = heading;
+  document.querySelector('[name="body_font"]').value = body;
+  document.querySelector('[name="heading_font_url"]').value = hUrl || '';
+  document.querySelector('[name="body_font_url"]').value = bUrl || '';
+  showToast && showToast('Font pair set: ' + heading + ' + ' + body);
+}
+</script>
 {% endblock %}
