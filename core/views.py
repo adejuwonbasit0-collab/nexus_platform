@@ -48,85 +48,141 @@ def _creator_required(view_func):
 
 @_admin_required
 def admin_dashboard(request):
-    now = timezone.now()
-    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    now       = timezone.now()
     week_ago  = now - timedelta(days=7)
     month_ago = now - timedelta(days=30)
 
-    # Core stats
+    # ── Core stats ─────────────────────────────────────────────────────────────
     stats = {
-        'total_users':    User.objects.count(),
-        'new_users_week': User.objects.filter(date_joined__gte=week_ago).count(),
-        'total_content':  Content.objects.count(),
-        'pending_content': Content.objects.filter(status='pending').count(),
+        'total_users':      User.objects.count(),
+        'new_users_week':   User.objects.filter(date_joined__gte=week_ago).count(),
+        'new_users_month':  User.objects.filter(date_joined__gte=month_ago).count(),
+        'total_content':    Content.objects.count(),
+        'pending_content':  Content.objects.filter(status='pending').count(),
         'approved_content': Content.objects.filter(status='approved').count(),
         'rejected_content': Content.objects.filter(status='rejected').count(),
+        'total_views':      Content.objects.aggregate(t=Sum('views'))['t'] or 0,
     }
 
-    # Revenue stats
+    # ── Revenue stats ──────────────────────────────────────────────────────────
     try:
         from monetization.models import Payment, Earning, WithdrawalRequest
-        stats['revenue_total']   = Payment.objects.filter(status='completed').aggregate(t=Sum('amount'))['t'] or 0
-        stats['revenue_month']   = Payment.objects.filter(status='completed', created_at__gte=month_ago).aggregate(t=Sum('amount'))['t'] or 0
+        stats['revenue_total']       = Payment.objects.filter(status='completed').aggregate(t=Sum('amount'))['t'] or 0
+        stats['revenue_month']       = Payment.objects.filter(status='completed', created_at__gte=month_ago).aggregate(t=Sum('amount'))['t'] or 0
+        stats['revenue_week']        = Payment.objects.filter(status='completed', created_at__gte=week_ago).aggregate(t=Sum('amount'))['t'] or 0
         stats['pending_withdrawals'] = WithdrawalRequest.objects.filter(status='pending').count()
-        stats['total_earnings']  = Earning.objects.aggregate(t=Sum('amount'))['t'] or 0
+        stats['total_earnings']      = Earning.objects.aggregate(t=Sum('amount'))['t'] or 0
+        stats['active_subs'] = 0
+        try:
+            from monetization.models import UserSubscription
+            stats['active_subs'] = UserSubscription.objects.filter(is_active=True).count()
+        except Exception:
+            pass
     except Exception:
-        stats.update({'revenue_total': 0, 'revenue_month': 0, 'pending_withdrawals': 0, 'total_earnings': 0})
+        stats.update({'revenue_total': 0, 'revenue_month': 0, 'revenue_week': 0,
+                      'pending_withdrawals': 0, 'total_earnings': 0, 'active_subs': 0})
 
-    # Recent content pending moderation
-    pending_content = Content.objects.filter(status='pending').select_related('creator').order_by('-created_at')[:10]
+    # ── 7-day chart data ───────────────────────────────────────────────────────
+    signup_chart = []
+    upload_chart = []
+    for i in range(6, -1, -1):
+        day_start = (now - timedelta(days=i)).replace(hour=0, minute=0, second=0, microsecond=0)
+        day_end   = day_start + timedelta(days=1)
+        signup_chart.append({
+            'label': day_start.strftime('%a'),
+            'value': User.objects.filter(date_joined__gte=day_start, date_joined__lt=day_end).count(),
+        })
+        upload_chart.append({
+            'label': day_start.strftime('%a'),
+            'value': Content.objects.filter(created_at__gte=day_start, created_at__lt=day_end).count(),
+        })
 
-    # Recent users
-    recent_users = User.objects.order_by('-date_joined')[:8]
-
-    # Module counts
+    # ── Module counts ──────────────────────────────────────────────────────────
     module_stats = {}
     try:
         from music.models import Track
         module_stats['tracks'] = Track.objects.count()
+        module_stats['tracks_week'] = Track.objects.filter(created_at__gte=week_ago).count()
     except Exception:
         module_stats['tracks'] = Content.objects.filter(content_type='music').count()
+        module_stats['tracks_week'] = 0
     try:
         from movies.models import Movie
         module_stats['movies'] = Movie.objects.count()
+        module_stats['movies_week'] = Movie.objects.filter(created_at__gte=week_ago).count()
     except Exception:
         module_stats['movies'] = Content.objects.filter(content_type='video').count()
+        module_stats['movies_week'] = 0
     try:
         from blog.models import Post
         module_stats['posts'] = Post.objects.count()
+        module_stats['posts_week'] = Post.objects.filter(created_at__gte=week_ago).count()
     except Exception:
         module_stats['posts'] = Content.objects.filter(content_type='blog').count()
+        module_stats['posts_week'] = 0
     try:
         from images.models import Image
         module_stats['images'] = Image.objects.count()
+        module_stats['images_week'] = Image.objects.filter(created_at__gte=week_ago).count()
     except Exception:
         module_stats['images'] = Content.objects.filter(content_type='image').count()
+        module_stats['images_week'] = 0
 
-    # Unread notifications (for the admin user)
-    unread_notifs = Notification.objects.filter(user=request.user, is_read=False).count()
+    # ── Pending moderation ─────────────────────────────────────────────────────
+    pending_content = Content.objects.filter(status='pending').select_related('creator').order_by('-created_at')[:10]
 
-    # System health quick check
+    # ── Recent users ───────────────────────────────────────────────────────────
+    recent_users = User.objects.order_by('-date_joined')[:8]
+
+    # ── Top content this week ──────────────────────────────────────────────────
+    top_content = Content.objects.filter(
+        status='approved', created_at__gte=week_ago
+    ).order_by('-views').select_related('creator')[:5]
+
+    # ── Top earners ────────────────────────────────────────────────────────────
+    top_creators = []
+    try:
+        from monetization.models import Earning
+        top_creators = list(
+            Earning.objects.values('creator__username', 'creator__pk')
+            .annotate(total=Sum('amount')).order_by('-total')[:5]
+        )
+    except Exception:
+        pass
+
+    # ── System health ──────────────────────────────────────────────────────────
     try:
         from observability.health import SystemHealthChecker
         health = SystemHealthChecker().get_metrics()
     except Exception:
         health = {'overall': 'unknown'}
 
-    # Open security alerts
+    # ── Security alerts ────────────────────────────────────────────────────────
+    open_alerts   = 0
+    recent_alerts = []
     try:
         from observability.models import SecurityAlert
-        open_alerts = SecurityAlert.objects.filter(is_resolved=False).count()
+        open_alerts   = SecurityAlert.objects.filter(is_resolved=False).count()
+        recent_alerts = list(SecurityAlert.objects.filter(is_resolved=False).order_by('-created_at')[:3])
     except Exception:
-        open_alerts = 0
+        pass
+
+    # ── Unread notifications ───────────────────────────────────────────────────
+    unread_notifs = Notification.objects.filter(user=request.user, is_read=False).count()
 
     return render(request, 'admin_panel/dashboard.html', {
-        'stats': stats,
-        'module_stats': module_stats,
+        'stats':           stats,
+        'module_stats':    module_stats,
         'pending_content': pending_content,
-        'recent_users': recent_users,
-        'unread_notifs': unread_notifs,
-        'health': health,
-        'open_alerts': open_alerts,
+        'recent_users':    recent_users,
+        'top_content':     top_content,
+        'top_creators':    top_creators,
+        'signup_chart':    signup_chart,
+        'upload_chart':    upload_chart,
+        'unread_notifs':   unread_notifs,
+        'health':          health,
+        'open_alerts':     open_alerts,
+        'recent_alerts':   recent_alerts,
     })
 
 
@@ -158,6 +214,39 @@ def admin_approve_content(request, pk):
     content = get_object_or_404(Content, pk=pk)
     content.status = 'approved'
     content.save(update_fields=['status'])
+
+    # Publish the matching Movie/Track/Image/Post created alongside this
+    # Content row when the creator uploaded it.
+    try:
+        from content.views import _find_type_match
+        match = _find_type_match(content.content_type, content.title, published_only=False)
+        if match:
+            if hasattr(match, 'is_published'):
+                match.is_published = True
+                match.save(update_fields=['is_published'])
+            elif hasattr(match, 'status'):  # blog Post uses status
+                match.status = 'published'
+                match.save(update_fields=['status'])
+        else:
+            # Also check Series (video) / Album (music) created by creators
+            if content.content_type == 'video':
+                from movies.models import Series
+                series = Series.objects.filter(title=content.title, uploaded_by=content.creator).first()
+                if series and not series.is_published:
+                    series.is_published = True
+                    series.save(update_fields=['is_published'])
+                    for season in series.seasons.all():
+                        season.episodes.update(is_published=True)
+            elif content.content_type == 'music':
+                from music.models import Album
+                album = Album.objects.filter(title=content.title, uploaded_by=content.creator).first()
+                if album and not album.is_published:
+                    album.is_published = True
+                    album.save(update_fields=['is_published'])
+                    album.tracks.update(is_published=True)
+    except Exception:
+        pass
+
     notify(content.creator, 'content_approved', '✅ Content Approved',
            f'Your upload "{content.title}" has been approved and is now live.',
            link=f'/content/{content.pk}/')
@@ -210,41 +299,70 @@ def admin_delete_content(request, pk):
 def admin_upload_content(request):
     from core.utils import validate_upload, validate_thumbnail
     if request.method == 'POST':
+        upload_mode  = request.POST.get('upload_mode', 'file')
         content_type = request.POST.get('content_type', '')
         title        = request.POST.get('title', '').strip()
         description  = request.POST.get('description', '').strip()
         tier         = request.POST.get('tier', 'free')
+        source_url   = request.POST.get('source_url', '').strip()
+        thumb_url    = request.POST.get('thumb_url', '').strip()
         file_obj     = request.FILES.get('file')
         thumb_obj    = request.FILES.get('thumbnail')
 
-        err = validate_upload(file_obj, content_type) or validate_thumbnail(thumb_obj)
-        if err:
-            messages.error(request, err)
-        elif not title:
+        if not title:
             messages.error(request, 'Title is required.')
+        elif upload_mode == 'url' and not source_url:
+            messages.error(request, 'URL is required when uploading by link.')
         else:
-            price = request.POST.get('price', '0') or '0'
-            c = Content(
-                creator=request.user,
-                title=title,
-                description=description,
-                content_type=content_type,
-                tier=tier,
-                status='approved',
-                price=float(price),
-            )
-            if file_obj:
-                c.file = file_obj
+            # Only validate file if not URL mode
+            err = None
+            if upload_mode == 'file' and content_type != 'blog':
+                err = validate_upload(file_obj, content_type)
             if thumb_obj:
-                c.thumbnail = thumb_obj
-            if content_type == 'blog':
-                c.body = request.POST.get('body', '')
-            c.save()
-            messages.success(request, f'"{c.title}" uploaded and published.')
-            return redirect('admin_content')
+                err = err or validate_thumbnail(thumb_obj)
+            if err:
+                messages.error(request, err)
+            else:
+                price = request.POST.get('price', '0') or '0'
+                c = Content(
+                    creator=request.user,
+                    title=title,
+                    description=description,
+                    content_type=content_type,
+                    tier=tier,
+                    status='approved',
+                    price=float(price),
+                )
+                if upload_mode == 'url':
+                    c.source_url = source_url
+                    if thumb_url:
+                        try:
+                            c.thumbnail_url = thumb_url
+                        except Exception:
+                            pass
+                else:
+                    if file_obj:
+                        c.file = file_obj
+                    if thumb_obj:
+                        c.thumbnail = thumb_obj
+                if content_type == 'blog':
+                    c.body = request.POST.get('body', '')
+                # Tags
+                tags_raw = request.POST.get('tags', '').strip()
+                c.save()
+                if tags_raw:
+                    try:
+                        from content.models import Tag
+                        for t in [x.strip() for x in tags_raw.split(',') if x.strip()]:
+                            tag, _ = Tag.objects.get_or_create(name=t)
+                            c.tags.add(tag)
+                    except Exception:
+                        pass
+                messages.success(request, f'"{c.title}" uploaded and published.')
+                return redirect('admin_content')
     return render(request, 'admin_panel/upload.html', {
         'content_types': Content.TYPE_CHOICES,
-        'tiers': Content.TIER_CHOICES,
+        'tiers':         Content.TIER_CHOICES,
     })
 
 
@@ -461,6 +579,7 @@ def admin_payment_settings(request):
 # ── Monetization Center ────────────────────────────────────────────────────────
 
 @_admin_required
+
 def admin_cms_menus(request):
     """Admin view for CMS menus."""
     from cms.models import Menu, MenuItem
@@ -477,7 +596,6 @@ def admin_cms_menus(request):
     return render(request, 'admin_panel/cms/menus.html', {'menus': menus})
 
 
-@_admin_required
 def admin_monetization(request):
     from monetization.models import Payment, Earning, WithdrawalRequest, Coupon, SubscriptionPlan
 
@@ -540,10 +658,12 @@ def admin_monetization(request):
                 slug = slug_base; ctr = 1
                 while SubscriptionPlan.objects.filter(slug=slug).exists():
                     slug = f'{slug_base}-{ctr}'; ctr += 1
+                # features: split newlines into list
                 raw_features = request.POST.get('features', '')
                 feat_list = [f.strip() for f in raw_features.splitlines() if f.strip()]
                 SubscriptionPlan.objects.create(
                     name=name, slug=slug, price=price,
+                    description=request.POST.get('description', '').strip(),
                     interval=request.POST.get('billing_cycle', 'monthly'),
                     features=feat_list,
                     is_active=request.POST.get('is_active') == 'on',
@@ -637,7 +757,11 @@ def admin_add_episode(request, series_pk):
             duration=int(request.POST.get('duration', 0) or 0),
         )
         f = request.FILES.get('file') or request.FILES.get('video_file')
-        if f: ep.video_file = f
+        source_url = request.POST.get('source_url', '').strip()
+        if f:
+            ep.video_file = f
+        elif source_url:
+            ep.video_url = source_url
         if 'thumbnail' in request.FILES: ep.thumbnail = request.FILES['thumbnail']
         ep.save()
         messages.success(request, f'Episode "{ep.title}" added to Season {season_num}.')
@@ -741,261 +865,224 @@ def notifications_count(request):
 
 @_creator_required
 def creator_dashboard(request):
-    from content.models import Content
-    content   = Content.objects.filter(creator=request.user).order_by('-created_at')[:10]
-    all_cont  = Content.objects.filter(creator=request.user).order_by('-created_at')
+    user    = request.user
+    content = Content.objects.filter(creator=user).order_by('-created_at')
+
     stats = {
-        'total_uploads': all_cont.count(),
-        'approved':      all_cont.filter(status='approved').count(),
-        'pending':       all_cont.filter(status='pending').count(),
-        'total_views':   sum(c.views or 0 for c in all_cont),
+        'total_uploads': content.count(),
+        'approved':      content.filter(status='approved').count(),
+        'pending':       content.filter(status='pending').count(),
+        'rejected':      content.filter(status='rejected').count(),
+        'total_views':   content.aggregate(t=Sum('views'))['t'] or 0,
     }
+
     wallet = None
     try:
-        wallet = request.user.wallet
+        wallet = user.wallet
     except Exception:
         pass
+
     recent_earnings = []
     try:
         from monetization.models import Earning
-        recent_earnings = Earning.objects.filter(creator=request.user).order_by('-created_at')[:10]
+        recent_earnings = Earning.objects.filter(creator=user).order_by('-created_at')[:10]
     except Exception:
         pass
 
-    # Data for upload forms
-    from music.models import Genre as MusicGenre, Artist, Album
-    from images.models import Category as ImageCategory, Tag as ImageTag
-    from blog.models import Category as BlogCategory, Tag as BlogTag
-    try:
-        from movies.models import Genre as MovieGenre
-        movie_genres = list(MovieGenre.objects.all())
-    except Exception:
-        movie_genres = []
-
     return render(request, 'creator/dashboard.html', {
-        'content': content,
-        'all_content': all_cont,
+        'content': content[:5],
+        'all_content': content,
         'stats': stats,
         'wallet': wallet,
         'recent_earnings': recent_earnings,
-        'music_genres':  list(MusicGenre.objects.all()),
-        'artists':       list(Artist.objects.all()),
-        'albums':        list(Album.objects.all()),
-        'image_cats':    list(ImageCategory.objects.all()),
-        'image_tags':    list(ImageTag.objects.all()),
-        'blog_cats':     list(BlogCategory.objects.all()),
-        'blog_tags':     list(BlogTag.objects.all()),
-        'movie_genres':  movie_genres,
-        'qualities':     [('SD','SD 480p'),('HD','HD 720p'),('FHD','Full HD 1080p'),('4K','4K Ultra HD')],
     })
 
 
 @_creator_required
 def creator_upload(request):
-    if request.method != 'POST':
-        return redirect('creator_dashboard')
+    from core.utils import validate_upload, validate_thumbnail, validate_source_url, get_or_create_artist_for_user
+    if request.method == 'POST':
+        content_type = request.POST.get('content_type', '')
+        title        = request.POST.get('title', '').strip()
+        description  = request.POST.get('description', '').strip()
+        tier         = request.POST.get('tier', 'free')
+        file_obj     = request.FILES.get('file')
+        source_url   = request.POST.get('source_url', '').strip()
+        thumb_obj    = request.FILES.get('thumbnail')
+        thumb_url    = request.POST.get('thumbnail_url', '').strip()
+        price        = request.POST.get('price', 0) or 0
 
-    content_type = request.POST.get('content_type', '')
-    title        = request.POST.get('title', '').strip()
-    tier         = request.POST.get('tier', 'free')
-
-    if not title:
-        messages.error(request, 'Title is required.')
-        return redirect('creator_dashboard')
-
-    # ── MUSIC TRACK ──────────────────────────────────────────────────────────
-    if content_type == 'music':
-        from music.models import Track, Artist, Genre as MusicGenre, Album
-        from django.utils.text import slugify
-        import uuid
-
-        audio = request.FILES.get('audio_file') or request.FILES.get('file')
-        if not audio:
-            messages.error(request, 'Audio file is required.')
-            return redirect('creator_dashboard')
-
-        artist_pk = request.POST.get('artist_pk')
-        artist_name = request.POST.get('artist_name_new', '').strip()
-
-        if artist_pk:
-            artist = Artist.objects.filter(pk=artist_pk).first()
-        elif artist_name:
-            artist, _ = Artist.objects.get_or_create(
-                name=artist_name,
-                defaults={'slug': slugify(artist_name) or str(uuid.uuid4())[:8]}
-            )
+        err = (validate_upload(file_obj, content_type) or validate_thumbnail(thumb_obj)
+               or validate_source_url(source_url) or validate_source_url(thumb_url))
+        has_source = bool(file_obj) or bool(source_url)
+        if err:
+            messages.error(request, err)
+        elif not title:
+            messages.error(request, 'Title is required.')
+        elif not has_source and content_type != 'blog':
+            messages.error(request, 'Provide a file upload or a link to the media.')
         else:
-            messages.error(request, 'Artist name is required.')
-            return redirect('creator_dashboard')
-        if not artist:
-            messages.error(request, 'Invalid artist.')
-            return redirect('creator_dashboard')
-
-        genre = MusicGenre.objects.filter(pk=request.POST.get('genre_pk')).first()
-        album = Album.objects.filter(pk=request.POST.get('album_pk')).first()
-
-        slug_base = slugify(title) or str(uuid.uuid4())[:8]
-        slug = slug_base
-        ctr = 1
-        while Track.objects.filter(slug=slug).exists():
-            slug = f'{slug_base}-{ctr}'; ctr += 1
-
-        track = Track(
-            title=title, artist=artist, genre=genre, album=album,
-            slug=slug, is_premium=(tier=='premium'),
-            lyrics=request.POST.get('lyrics', ''),
-            produced_by=request.POST.get('produced_by', ''),
-            written_by=request.POST.get('written_by', ''),
-            label=request.POST.get('label', ''),
-            is_published=False,
-        )
-        if audio:
-            track.audio_file = audio
-        cover = request.FILES.get('cover_image') or request.FILES.get('thumbnail')
-        if cover:
-            track.cover_image = cover
-        track.save()
-
-        from content.models import Content
-        Content.objects.get_or_create(
-            slug=track.slug,
-            defaults=dict(
-                creator=request.user, title=title,
-                content_type='music', tier=tier, status='pending',
-                thumbnail=cover, description=request.POST.get('lyrics', '')[:500],
+            c = Content.objects.create(
+                creator=request.user,
+                title=title, description=description,
+                content_type=content_type, tier=tier,
+                status='pending',
+                file=file_obj, thumbnail=thumb_obj,
+                source_url=source_url,
+                price=price,
             )
-        )
-        messages.success(request, f'🎵 "{title}" submitted for review.')
 
-    # ── VIDEO / MOVIE ─────────────────────────────────────────────────────────
-    elif content_type == 'video':
-        from movies.models import Movie
-        from django.utils.text import slugify
-        import uuid
+            # Also create the real type-specific record so once approved,
+            # it actually appears on /movies/, /music/, /images/, /blog/.
+            # A pasted link is stored as-is (no download) to save hosting
+            # space, and is used directly for both playback and download.
+            try:
+                is_premium = (tier == 'premium')
+                if content_type == 'video':
+                    from movies.models import Movie
+                    Movie.objects.create(
+                        title=title, description=description,
+                        thumbnail=thumb_obj or None,
+                        video_file=file_obj, video_url=source_url,
+                        is_premium=is_premium, is_published=False,
+                        uploaded_by=request.user,
+                    )
+                elif content_type == 'music':
+                    from music.models import Track
+                    artist = get_or_create_artist_for_user(request.user)
+                    Track.objects.create(
+                        title=title, artist=artist,
+                        audio_file=file_obj, audio_url=source_url,
+                        cover_image=thumb_obj or None,
+                        is_premium=is_premium, is_published=False,
+                        uploaded_by=request.user,
+                    )
+                elif content_type == 'image':
+                    from images.models import Image
+                    Image.objects.create(
+                        title=title, description=description,
+                        image_file=file_obj, image_url=source_url,
+                        thumbnail=thumb_obj or None,
+                        is_premium=is_premium, is_published=False,
+                        uploaded_by=request.user,
+                    )
+                elif content_type == 'blog':
+                    from blog.models import Post
+                    Post.objects.create(
+                        title=title, author=request.user,
+                        content=request.POST.get('body', description),
+                        excerpt=description[:500],
+                        featured_img=thumb_obj or None,
+                        featured_img_url=thumb_url or source_url,
+                        status='draft',
+                    )
+            except Exception as e:
+                messages.warning(request, f'Saved for review, but the live record had an issue: {e}')
 
-        video = request.FILES.get('video_file') or request.FILES.get('file')
-        if not video:
-            messages.error(request, 'Video file is required.')
-            return redirect('creator_dashboard')
-
-        slug_base = slugify(title) or str(uuid.uuid4())[:8]
-        slug = slug_base; ctr = 1
-        while Movie.objects.filter(slug=slug).exists():
-            slug = f'{slug_base}-{ctr}'; ctr += 1
-
-        movie = Movie(
-            title=title, slug=slug,
-            description=request.POST.get('description', ''),
-            release_year=request.POST.get('release_year', '') or None,
-            quality=request.POST.get('quality', 'HD'),
-            trailer_url=request.POST.get('trailer_url', ''),
-            is_premium=(tier=='premium'),
-            is_published=False,
-            uploaded_by=request.user,
-        )
-        if video:      movie.video_file = video
-        thumb = request.FILES.get('thumbnail')
-        if thumb:      movie.thumbnail = thumb
-        movie.save()
-
-        from content.models import Content
-        Content.objects.get_or_create(
-            slug=movie.slug,
-            defaults=dict(
-                creator=request.user, title=title,
-                content_type='video', tier=tier, status='pending',
-                thumbnail=thumb,
-            )
-        )
-        messages.success(request, f'🎬 "{title}" submitted for review.')
-
-    # ── IMAGE ─────────────────────────────────────────────────────────────────
-    elif content_type == 'image':
-        from images.models import Image as Img, Category as ImgCat, Tag as ImgTag
-        from django.utils.text import slugify
-        import uuid
-
-        img_file = request.FILES.get('image_file') or request.FILES.get('file')
-        if not img_file:
-            messages.error(request, 'Image file is required.')
+            try:
+                from automation.engine import WorkflowEngine
+                WorkflowEngine.fire('content.uploaded', {
+                    'content_id': c.pk, 'content_title': c.title,
+                    'user_id': request.user.pk, 'user_email': request.user.email,
+                })
+            except Exception:
+                pass
+            messages.success(request, f'"{c.title}" submitted for review.')
             return redirect('creator_dashboard')
 
-        slug_base = slugify(title) or str(uuid.uuid4())[:8]
-        slug = slug_base; ctr = 1
-        while Img.objects.filter(slug=slug).exists():
-            slug = f'{slug_base}-{ctr}'; ctr += 1
+    return render(request, 'creator/upload.html', {
+        'content_types': [('image','Image'),('video','Video'),('music','Music'),('blog','Blog')],
+        'tiers': [('free','Free'),('premium','Premium')],
+    })
 
-        cat = ImgCat.objects.filter(pk=request.POST.get('category_pk')).first()
 
-        img = Img(
-            title=title, slug=slug,
-            description=request.POST.get('description', ''),
-            category=cat,
-            resolution=request.POST.get('resolution', 'hd'),
-            is_premium=(tier=='premium'),
-            is_published=False,
-            uploaded_by=request.user,
-        )
-        if img_file: img.image_file = img_file
-        img.save()
-
-        tag_ids = request.POST.getlist('tag_ids')
-        if tag_ids:
-            img.tags.set(ImgTag.objects.filter(pk__in=tag_ids))
-
-        from content.models import Content
-        Content.objects.get_or_create(
-            slug=img.slug,
-            defaults=dict(
-                creator=request.user, title=title,
-                content_type='image', tier=tier, status='pending',
-            )
-        )
-        messages.success(request, f'🖼 "{title}" submitted for review.')
-
-    # ── BLOG POST ─────────────────────────────────────────────────────────────
-    elif content_type == 'blog':
-        from blog.models import Post, Category as BlogCat, Tag as BlogTag
-        from django.utils.text import slugify
-        import uuid
-
-        slug_base = slugify(title) or str(uuid.uuid4())[:8]
-        slug = slug_base; ctr = 1
-        while Post.objects.filter(slug=slug).exists():
-            slug = f'{slug_base}-{ctr}'; ctr += 1
-
-        cat = BlogCat.objects.filter(pk=request.POST.get('category_pk')).first()
-
-        post = Post(
-            title=title, slug=slug,
-            author=request.user,
-            content=request.POST.get('content', ''),
-            excerpt=request.POST.get('excerpt', ''),
-            category=cat,
-            status='draft',
-        )
-        img = request.FILES.get('featured_img') or request.FILES.get('thumbnail')
-        if img: post.featured_img = img
-        post.save()
-
-        tag_ids = request.POST.getlist('tag_ids')
-        if tag_ids:
-            post.tags.set(BlogTag.objects.filter(pk__in=tag_ids))
-
-        from content.models import Content
-        Content.objects.get_or_create(
-            slug=post.slug,
-            defaults=dict(
-                creator=request.user, title=title,
-                content_type='blog', tier=tier, status='pending',
-            )
-        )
-        messages.success(request, f'📝 "{title}" saved as draft.')
-
-    else:
-        messages.error(request, 'Unknown content type.')
-
+@_creator_required
+@require_POST
+def creator_delete_content(request, pk):
+    content = get_object_or_404(Content, pk=pk, creator=request.user)
+    title = content.title
+    content.delete()
+    messages.success(request, f'"{title}" deleted.')
     return redirect('creator_dashboard')
+
+
+@_creator_required
+def creator_edit_content(request, pk):
+    from core.utils import validate_source_url
+    content = get_object_or_404(Content, pk=pk, creator=request.user)
+    if request.method == 'POST':
+        old_title = content.title
+        content.title = request.POST.get('title', content.title).strip() or content.title
+        content.description = request.POST.get('description', content.description)
+        content.tier = request.POST.get('tier', content.tier)
+        source_url = request.POST.get('source_url', '').strip()
+        thumb_url  = request.POST.get('thumbnail_url', '').strip()
+
+        err = validate_source_url(source_url) or validate_source_url(thumb_url)
+        if err:
+            messages.error(request, err)
+            return render(request, 'creator/edit_content.html', {
+                'content': content,
+                'tiers': [('free', 'Free'), ('premium', 'Premium')],
+            })
+
+        if request.FILES.get('file'):
+            content.file = request.FILES['file']
+            content.source_url = ''
+        elif source_url:
+            content.source_url = source_url
+            content.file = None
+        if request.FILES.get('thumbnail'):
+            content.thumbnail = request.FILES['thumbnail']
+        # Re-submit for approval on edit
+        content.status = 'pending'
+        content.save()
+
+        # Propagate changes to the matching live record so an edit (new
+        # title, swapped file/link, tier change) actually takes effect.
+        try:
+            from content.views import _find_type_match
+            match = _find_type_match(content.content_type, old_title, published_only=False)
+            if match:
+                match.title = content.title
+                if hasattr(match, 'description'):
+                    match.description = content.description
+                if hasattr(match, 'is_premium'):
+                    match.is_premium = (content.tier == 'premium')
+                file_obj = request.FILES.get('file')
+                thumb_obj = request.FILES.get('thumbnail')
+                if content.content_type == 'video':
+                    if file_obj: match.video_file = file_obj
+                    elif source_url: match.video_url = source_url; match.video_file = None
+                    if thumb_obj: match.thumbnail = thumb_obj
+                elif content.content_type == 'music':
+                    if file_obj: match.audio_file = file_obj
+                    elif source_url: match.audio_url = source_url; match.audio_file = None
+                    if thumb_obj: match.cover_image = thumb_obj
+                elif content.content_type == 'image':
+                    if file_obj: match.image_file = file_obj
+                    elif source_url: match.image_url = source_url; match.image_file = None
+                    if thumb_obj: match.thumbnail = thumb_obj
+                elif content.content_type == 'blog':
+                    if thumb_obj: match.featured_img = thumb_obj
+                    elif thumb_url: match.featured_img_url = thumb_url
+                    body = request.POST.get('body')
+                    if body: match.content = body
+                # Edits go back to pending review, matching the Content row.
+                if hasattr(match, 'is_published'):
+                    match.is_published = False
+                elif hasattr(match, 'status'):
+                    match.status = 'draft'
+                match.save()
+        except Exception as e:
+            messages.warning(request, f'Content updated, but the live record had an issue: {e}')
+
+        messages.success(request, f'"{content.title}" updated and re-submitted for review.')
+        return redirect('creator_dashboard')
+    return render(request, 'creator/edit_content.html', {
+        'content': content,
+        'tiers': [('free', 'Free'), ('premium', 'Premium')],
+    })
 
 
 @_creator_required
@@ -1050,6 +1137,181 @@ def creator_withdraw(request):
             messages.error(request, str(e))
 
     return render(request, 'creator/withdraw.html', {'wallet': wallet})
+
+
+# ── Creator: Series & Episodes ──────────────────────────────────────────────
+
+@_creator_required
+def creator_series_list(request):
+    from movies.models import Series
+    series = Series.objects.filter(uploaded_by=request.user).prefetch_related('seasons__episodes').order_by('-created_at')
+    return render(request, 'creator/series_list.html', {'series': series})
+
+
+@_creator_required
+def creator_create_series(request):
+    from movies.models import Series, Genre
+    if request.method == 'POST':
+        from django.utils.text import slugify
+        title = request.POST.get('title', '').strip()
+        if not title:
+            messages.error(request, 'Title is required.')
+            return redirect('creator_create_series')
+        base_slug = slugify(title)
+        slug, n = base_slug, 1
+        while Series.objects.filter(slug=slug).exists():
+            slug = f'{base_slug}-{n}'; n += 1
+        s = Series(
+            title=title, slug=slug,
+            description=request.POST.get('description', ''),
+            is_published=False,  # goes live once admin approves
+            is_premium=request.POST.get('tier') == 'premium',
+            release_year=int(request.POST.get('release_year', 2024) or 2024),
+            uploaded_by=request.user,
+        )
+        if 'thumbnail' in request.FILES:
+            s.thumbnail = request.FILES['thumbnail']
+        s.save()
+        genre_pks = request.POST.getlist('genres')
+        if genre_pks:
+            s.genres.set(Genre.objects.filter(pk__in=genre_pks))
+        try:
+            Content.objects.get_or_create(
+                title=s.title, content_type='video', creator=request.user,
+                defaults={'description': s.description, 'status': 'pending',
+                          'tier': 'premium' if s.is_premium else 'free'}
+            )
+        except Exception:
+            pass
+        messages.success(request, f'Series "{s.title}" created — now add episodes. It will go live once approved.')
+        return redirect('creator_series_episodes', series_pk=s.pk)
+    genres = Genre.objects.all()
+    return render(request, 'creator/series_form.html', {'genres': genres})
+
+
+@_creator_required
+def creator_series_episodes(request, series_pk):
+    from movies.models import Series, Season, Episode
+    series = get_object_or_404(Series, pk=series_pk, uploaded_by=request.user)
+    if request.method == 'POST':
+        season_num = int(request.POST.get('season', 1))
+        season, _  = Season.objects.get_or_create(series=series, number=season_num)
+        ep = Episode(
+            season=season,
+            number=int(request.POST.get('episode_number', 1)),
+            title=request.POST.get('title', ''),
+            description=request.POST.get('description', ''),
+            is_published=False,  # follows series approval
+            duration=int(request.POST.get('duration', 0) or 0),
+        )
+        f = request.FILES.get('file') or request.FILES.get('video_file')
+        source_url = request.POST.get('source_url', '').strip()
+        if not f and not source_url:
+            messages.error(request, 'Provide a video file or a link to it.')
+            return redirect('creator_series_episodes', series_pk=series_pk)
+        if f:
+            ep.video_file = f
+        elif source_url:
+            ep.video_url = source_url
+        if 'thumbnail' in request.FILES: ep.thumbnail = request.FILES['thumbnail']
+        ep.save()
+        messages.success(request, f'Episode "{ep.title}" added to Season {season_num}.')
+        if request.POST.get('add_another'):
+            return redirect('creator_series_episodes', series_pk=series_pk)
+        return redirect('creator_series_list')
+    seasons = series.seasons.prefetch_related('episodes').order_by('number')
+    last_season = seasons.last()
+    next_ep = (last_season.episodes.count() + 1) if last_season else 1
+    return render(request, 'creator/episode_form.html', {
+        'series': series, 'seasons': seasons, 'next_episode_number': next_ep,
+    })
+
+
+# ── Creator: Albums ──────────────────────────────────────────────────────────
+
+@_creator_required
+def creator_albums_list(request):
+    from music.models import Album
+    from core.utils import get_or_create_artist_for_user
+    artist = get_or_create_artist_for_user(request.user)
+    albums = Album.objects.filter(uploaded_by=request.user).prefetch_related('tracks').order_by('-created_at')
+    return render(request, 'creator/albums_list.html', {'albums': albums, 'artist': artist})
+
+
+@_creator_required
+def creator_create_album(request):
+    from music.models import Album, Genre
+    from core.utils import get_or_create_artist_for_user
+    artist = get_or_create_artist_for_user(request.user)
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        if not title:
+            messages.error(request, 'Title is required.')
+            return redirect('creator_create_album')
+        album = Album(
+            title=title, artist=artist,
+            description=request.POST.get('description', ''),
+            album_type=request.POST.get('album_type', 'album'),
+            release_year=int(request.POST.get('release_year', 2024) or 2024),
+            is_published=False,  # goes live once admin approves
+            uploaded_by=request.user,
+        )
+        genre_pk = request.POST.get('genre')
+        if genre_pk:
+            album.genre_id = genre_pk
+        if 'cover_image' in request.FILES:
+            album.cover_image = request.FILES['cover_image']
+        album.save()
+        try:
+            Content.objects.get_or_create(
+                title=album.title, content_type='music', creator=request.user,
+                defaults={'description': album.description, 'status': 'pending'}
+            )
+        except Exception:
+            pass
+        messages.success(request, f'Album "{album.title}" created — now add tracks. It will go live once approved.')
+        return redirect('creator_album_tracks', album_pk=album.pk)
+    genres = Genre.objects.all()
+    return render(request, 'creator/album_form.html', {'genres': genres, 'artist': artist})
+
+
+@_creator_required
+def creator_album_tracks(request, album_pk):
+    from music.models import Album, Track
+    album = get_object_or_404(Album, pk=album_pk, uploaded_by=request.user)
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        if not title:
+            messages.error(request, 'Track title is required.')
+            return redirect('creator_album_tracks', album_pk=album_pk)
+        t = Track(
+            title=title, artist=album.artist, album=album,
+            genre=album.genre,
+            is_premium=request.POST.get('tier') == 'premium',
+            is_published=False,
+            uploaded_by=request.user,
+            duration=int(request.POST.get('duration', 0) or 0),
+        )
+        f = request.FILES.get('file') or request.FILES.get('audio_file')
+        source_url = request.POST.get('source_url', '').strip()
+        if not f and not source_url:
+            messages.error(request, 'Provide an audio file or a link to it.')
+            return redirect('creator_album_tracks', album_pk=album_pk)
+        if f:
+            t.audio_file = f
+        elif source_url:
+            t.audio_url = source_url
+        if 'cover_image' in request.FILES:
+            t.cover_image = request.FILES['cover_image']
+        else:
+            t.cover_image = album.cover_image
+        t.save()
+        messages.success(request, f'Track "{t.title}" added to "{album.title}".')
+        if request.POST.get('add_another'):
+            return redirect('creator_album_tracks', album_pk=album_pk)
+        return redirect('creator_albums_list')
+    tracks = album.tracks.order_by('-created_at')
+    return render(request, 'creator/album_track_form.html', {'album': album, 'tracks': tracks})
 
 
 # ── Per-Module Content Admin Views ────────────────────────────────────────────
@@ -1188,7 +1450,11 @@ def admin_movies(request):
                     is_published=request.POST.get('is_published')=='on',
                 )
                 f = request.FILES.get('file') or request.FILES.get('video_file')
-                if f: ep.video_file = f
+                src = request.POST.get('source_url', '').strip()
+                if f:
+                    ep.video_file = f
+                elif src:
+                    ep.video_url = src
                 if 'thumbnail' in request.FILES: ep.thumbnail = request.FILES['thumbnail']
                 ep.save()
                 messages.success(request, f'Episode "{ep.title}" added.')
@@ -1727,9 +1993,7 @@ def admin_images_mgmt(request):
         'q': q,
         'image_cats': ImageCategory.objects.all().order_by('name'),
     })
-
-
-# =============================================================================
+    # =============================================================================
 # MISSING CREATOR VIEWS – Fix for AttributeError
 # =============================================================================
 
@@ -1780,280 +2044,4 @@ def creator_upload_image(request):
 @_creator_required
 def creator_manage_content(request):
     """List creator's content (redirect to dashboard where content is shown)."""
-    return redirect('creator_dashboard')
-
-
-@_creator_required
-def creator_edit_content(request, pk):
-    """Edit a specific content item – not implemented yet."""
-    messages.warning(request, 'Editing not yet implemented. Use dashboard.')
-    return redirect('creator_dashboard')
-
-
-@_creator_required
-def creator_delete_content(request, pk):
-    """Delete a content item belonging to the creator."""
-    from content.models import Content
-    content = get_object_or_404(Content, pk=pk, creator=request.user)
-    title = content.title
-    content.delete()
-    messages.success(request, f'"{title}" deleted.')
-    return redirect('creator_dashboard')
-
-    # =============================================================================
-# MISSING CREATOR SERIES VIEWS – add these to avoid AttributeError
-# =============================================================================
-
-@_creator_required
-def creator_series_list(request):
-    """List series created by the user (placeholder)."""
-    # You can implement a full list view, or redirect to dashboard
-    return redirect('creator_dashboard')
-
-
-@_creator_required
-def creator_series_create(request):
-    """Create a new series (placeholder)."""
-    return redirect('creator_dashboard')
-
-
-@_creator_required
-def creator_series_edit(request, pk):
-    """Edit a series (placeholder)."""
-    return redirect('creator_dashboard')
-
-
-@_creator_required
-def creator_series_delete(request, pk):
-    """Delete a series (placeholder)."""
-    return redirect('creator_dashboard')
-
-
-# Add any other missing creator series views if needed, e.g.:
-# def creator_series_detail(request, pk):
-#     return redirect('creator_dashboard')
-
-
-# =============================================================================
-# ADDITIONAL MISSING CREATOR VIEWS – Series, Episodes, etc.
-# =============================================================================
-
-@_creator_required
-def creator_series_list(request):
-    """List series created by the user."""
-    return redirect('creator_dashboard')
-
-
-@_creator_required
-def creator_create_series(request):
-    """Create a new series."""
-    return redirect('creator_dashboard')
-
-
-@_creator_required
-def creator_series_edit(request, pk):
-    """Edit a series."""
-    return redirect('creator_dashboard')
-
-
-@_creator_required
-def creator_series_delete(request, pk):
-    """Delete a series."""
-    return redirect('creator_dashboard')
-
-
-@_creator_required
-def creator_series_detail(request, pk):
-    """View a series detail."""
-    return redirect('creator_dashboard')
-
-
-# If there are episode-related views, add them too:
-@_creator_required
-def creator_episode_create(request, series_pk):
-    """Create an episode for a series."""
-    return redirect('creator_dashboard')
-
-
-@_creator_required
-def creator_episode_edit(request, series_pk, episode_pk):
-    """Edit an episode."""
-    return redirect('creator_dashboard')
-
-
-@_creator_required
-def creator_episode_delete(request, series_pk, episode_pk):
-    """Delete an episode."""
-    return redirect('creator_dashboard')
-
-    # =============================================================================
-# ALL MISSING CREATOR SERIES/EPISODE VIEWS
-# =============================================================================
-
-@_creator_required
-def creator_series_episodes(request, series_pk):
-    """List episodes of a series."""
-    return redirect('creator_dashboard')
-
-
-@_creator_required
-def creator_episode_create(request, series_pk):
-    """Create an episode for a series."""
-    return redirect('creator_dashboard')
-
-
-@_creator_required
-def creator_episode_edit(request, series_pk, episode_pk):
-    """Edit an episode."""
-    return redirect('creator_dashboard')
-
-
-@_creator_required
-def creator_episode_delete(request, series_pk, episode_pk):
-    """Delete an episode."""
-    return redirect('creator_dashboard')
-
-
-@_creator_required
-def creator_episode_detail(request, series_pk, episode_pk):
-    """View an episode detail."""
-    return redirect('creator_dashboard')
-
-
-# If your creator_urls.py also expects these:
-@_creator_required
-def creator_series_publish(request, series_pk):
-    """Publish a series."""
-    return redirect('creator_dashboard')
-
-
-@_creator_required
-def creator_series_unpublish(request, series_pk):
-    """Unpublish a series."""
-    return redirect('creator_dashboard')
-
-# =============================================================================
-# GENERIC CATCH‑ALL STUBS FOR MISSING CREATOR VIEWS
-# (Add these to stop AttributeErrors – replace with real logic later)
-# =============================================================================
-
-@_creator_required
-def creator_albums_list(request):
-    return redirect('creator_dashboard')
-
-@_creator_required
-def creator_albums_create(request):
-    return redirect('creator_dashboard')
-
-@_creator_required
-def creator_albums_edit(request, pk):
-    return redirect('creator_dashboard')
-
-@_creator_required
-def creator_albums_delete(request, pk):
-    return redirect('creator_dashboard')
-
-@_creator_required
-def creator_albums_detail(request, pk):
-    return redirect('creator_dashboard')
-
-@_creator_required
-def creator_tracks_list(request):
-    return redirect('creator_dashboard')
-
-@_creator_required
-def creator_tracks_create(request):
-    return redirect('creator_dashboard')
-
-@_creator_required
-def creator_tracks_edit(request, pk):
-    return redirect('creator_dashboard')
-
-@_creator_required
-def creator_tracks_delete(request, pk):
-    return redirect('creator_dashboard')
-
-@_creator_required
-def creator_movies_list(request):
-    return redirect('creator_dashboard')
-
-@_creator_required
-def creator_movies_create(request):
-    return redirect('creator_dashboard')
-
-@_creator_required
-def creator_movies_edit(request, pk):
-    return redirect('creator_dashboard')
-
-@_creator_required
-def creator_movies_delete(request, pk):
-    return redirect('creator_dashboard')
-
-@_creator_required
-def creator_images_list(request):
-    return redirect('creator_dashboard')
-
-@_creator_required
-def creator_images_create(request):
-    return redirect('creator_dashboard')
-
-@_creator_required
-def creator_images_edit(request, pk):
-    return redirect('creator_dashboard')
-
-@_creator_required
-def creator_images_delete(request, pk):
-    return redirect('creator_dashboard')
-
-@_creator_required
-def creator_blog_list(request):
-    return redirect('creator_dashboard')
-
-@_creator_required
-def creator_blog_create(request):
-    return redirect('creator_dashboard')
-
-@_creator_required
-def creator_blog_edit(request, pk):
-    return redirect('creator_dashboard')
-
-@_creator_required
-def creator_blog_delete(request, pk):
-    return redirect('creator_dashboard')
-
-# If you have any other patterns (e.g., creator_playlist_*), add them similarly.
-
-# =============================================================================
-# MISSING CREATOR VIEWS – Final comprehensive set
-# =============================================================================
-
-@_creator_required
-def creator_albums_list(request):
-    """List albums for the creator."""
-    return redirect('creator_dashboard')
-
-@_creator_required
-def creator_create_album(request):
-    """Create a new album."""
-    return redirect('creator_dashboard')
-
-@_creator_required
-def creator_create_series(request):
-    """Create a new series."""
-    return redirect('creator_dashboard')
-
-@_creator_required
-def creator_series_list(request):
-    """List series for the creator."""
-    return redirect('creator_dashboard')
-
-@_creator_required
-def creator_album_tracks(request, album_pk):
-    """List tracks in an album."""
-    return redirect('creator_dashboard')
-
-# Ensure creator_series_episodes already exists; if not, add it:
-@_creator_required
-def creator_series_episodes(request, series_pk):
-    """List episodes of a series."""
     return redirect('creator_dashboard')

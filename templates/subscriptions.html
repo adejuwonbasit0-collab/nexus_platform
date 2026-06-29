@@ -47,6 +47,11 @@
 .plan-feature .ck{color:#22c55e;flex-shrink:0;font-size:16px;margin-top:1px}
 .plan-feature .nx{color:var(--tx3);flex-shrink:0;font-size:16px;margin-top:1px}
 .plan-feature.active{color:var(--tx)}
+
+@media(max-width:700px){
+  div[style*="grid-template-columns:1fr 1fr"]:not(.no-collapse),
+  div[style*="grid-template-columns:repeat(3"]{grid-template-columns:1fr!important}
+}
 </style>
 {% endblock %}
 {% block content %}

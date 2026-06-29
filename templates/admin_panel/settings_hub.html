@@ -1,6 +1,16 @@
 {% extends 'admin_panel/base_admin.html' %}
 {% block admin_title %}Settings{% endblock %}
 {% block topbar_title %}Settings{% endblock %}
+{% block head %}<style>
+@media(max-width:900px){
+  div[style*="grid-template-columns:1fr 360px"]{grid-template-columns:1fr!important}
+  div[style*="grid-template-columns:1fr 1fr"]:not(.no-collapse){grid-template-columns:1fr!important}
+  .tab-bar{flex-wrap:wrap}
+}
+@media(max-width:600px){
+  div[style*="grid-template-columns:1fr 1fr 1fr"]{grid-template-columns:1fr!important}
+  input,select,textarea{font-size:16px!important}
+}</style>{% endblock %}
 {% block content %}
 
 <div class="tab-bar">

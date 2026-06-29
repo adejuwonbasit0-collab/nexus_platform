@@ -1,6 +1,13 @@
 {% extends 'admin_panel/base_admin.html' %}
 {% block admin_title %}System Health{% endblock %}
 {% block topbar_title %}System Health{% endblock %}
+{% block head %}<style>
+@media(max-width:700px){
+  div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
+}
+@media(max-width:500px){
+  div[style*="grid-template-columns:repeat(auto-fit"]{grid-template-columns:1fr 1fr!important}
+}</style>{% endblock %}
 {% block content %}
 
 <div class="tab-bar">

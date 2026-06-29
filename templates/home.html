@@ -1,7 +1,14 @@
 {% extends 'base.html' %}
-{% load custom_filters %}
 {% block title %}Home{% endblock %}
 {% block head %}
+<style>
+/* Hide base nav on home — sidebar replaces it */
+.nav, nav.site-nav, #site-nav, header.site-header { display:none !important; }
+/* Remove base main padding that assumes nav exists */
+main { padding-top:0 !important; margin-top:0 !important; }
+/* Remove body padding added by base */
+body { padding-top:0 !important; }
+</style>
 <style>
 /* ═══════════════════════════════════════════════════════════
    NEXUS HOME — Pulse-style dark UI
@@ -332,7 +339,7 @@ body { background:#07060f; color:#e8e8f0; }
 </style>
 {% endblock %}
 
-{% block full_page %}
+{% block content %}
 <div style="display:flex;min-height:100vh;background:#07060f;">
 
   <!-- ═══ SIDEBAR ═══════════════════════════════════════════════ -->
@@ -429,7 +436,7 @@ body { background:#07060f; color:#e8e8f0; }
       <div id="ns-hero">
         <div class="ns-greeting">
           {% if user.is_authenticated %}
-          Good {% now "G" as hour %}{% if hour|add:"0" < 12 %}morning{% elif hour|add:"0" < 18 %}afternoon{% else %}evening{% endif %},
+          <span id="ns-time-greet">Good day</span>,
           <span class="accent">{{ user.username }}</span>.
           {% else %}
           Music that <span class="accent">moves you.</span>
@@ -635,12 +642,11 @@ body { background:#07060f; color:#e8e8f0; }
         </div>
         <div class="ns-genre-grid">
           {% for g in genres %}
-          {% with colors="linear-gradient(135deg,#7c5cfc,#3a2fa0)|linear-gradient(135deg,#ff4d6d,#b02a45)|linear-gradient(135deg,#00d4aa,#0891b2)|linear-gradient(135deg,#f59e0b,#d97706)|linear-gradient(135deg,#ec4899,#9333ea)|linear-gradient(135deg,#22c55e,#166534)" %}
-          <a href="/music/genre/{{ g.slug }}/" class="ns-genre-tile" style="background:{{ colors|split:'|'|random }};">
+          <a href="/music/genre/{{ g.slug }}/" class="ns-genre-tile"
+            style="background:{% cycle 'linear-gradient(135deg,#7c5cfc,#3a2fa0)' 'linear-gradient(135deg,#ff4d6d,#b02a45)' 'linear-gradient(135deg,#00d4aa,#0891b2)' 'linear-gradient(135deg,#f59e0b,#d97706)' 'linear-gradient(135deg,#ec4899,#9333ea)' 'linear-gradient(135deg,#22c55e,#166534)' %};">
             <span class="ns-genre-emoji">{% if g.name == 'Hip Hop' %}🎤{% elif g.name == 'Pop' %}🌟{% elif g.name == 'R&B' %}🎶{% elif g.name == 'Afrobeats' %}🥁{% elif g.name == 'Gospel' %}🙏{% elif g.name == 'Jazz' %}🎷{% elif g.name == 'Rock' %}🎸{% else %}🎵{% endif %}</span>
             <span style="position:relative;z-index:1;">{{ g.name }}</span>
           </a>
-          {% endwith %}
           {% endfor %}
         </div>
       </div>
@@ -690,6 +696,27 @@ body { background:#07060f; color:#e8e8f0; }
 </div>
 
 <script>
+// ── playTrack: bridge to base.html mini-player ──────────────
+function playTrack(url, title, artist, cover, detail, pk) {
+  if (!url) {
+    if (typeof showToast === 'function') showToast('Track not available for streaming');
+    return;
+  }
+  // Add to queue and play
+  setPlayerQueue([{url, title, artist, cover, detail, pk}]);
+  if (typeof playMiniTrack === 'function') {
+    playMiniTrack(url, title, artist, cover, detail, pk);
+  }
+}
+
+// ── Time-based greeting ────────────────────────────────────
+(function(){
+  const el = document.getElementById('ns-time-greet');
+  if (!el) return;
+  const h = new Date().getHours();
+  el.textContent = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+})();
+
 // ── Sidebar toggle (mobile) ──────────────────────────────────
 function nsSidebarToggle(){
   const sb = document.getElementById('ns-sidebar');

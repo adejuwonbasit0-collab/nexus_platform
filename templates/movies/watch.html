@@ -96,6 +96,19 @@ if (video) {
 }
 </script>
 {% endblock %}
+{% block head %}
+<style>
+@media(max-width:860px){
+  div[style*="grid-template-columns:1fr 320px"],
+  div[style*="grid-template-columns:1fr 300px"],
+  .ep-layout{grid-template-columns:1fr!important}
+}
+@media(max-width:480px){
+  video{border-radius:0!important}
+  .sub-overlay{bottom:40px!important;padding:0 10px!important}
+  #sub-text{font-size:13px!important}
+}</style>
+{% endblock %}
 {% block content %}
 <div style="background:#000;min-height:100vh;color:#fff;">
   <div style="max-width:1100px;margin:0 auto;">

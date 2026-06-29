@@ -1,6 +1,11 @@
 {% extends 'admin_panel/base_admin.html' %}
 {% block admin_title %}Automation{% endblock %}
 {% block topbar_title %}Automation Center{% endblock %}
+{% block head %}<style>
+@media(max-width:700px){
+  div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
+  div[style*="grid-template-columns:repeat(auto-fit"]{grid-template-columns:1fr!important}
+}</style>{% endblock %}
 {% block content %}
 
 <div class="stats-row" style="margin-bottom:16px;">

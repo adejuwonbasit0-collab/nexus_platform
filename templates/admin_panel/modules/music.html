@@ -588,6 +588,23 @@ document.addEventListener('click', () => {
 .fg label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);margin-bottom:5px}
 .fcheck{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text2)}
 .fcheck input{cursor:pointer;width:14px;height:14px;accent-color:var(--accent)}
+
+@media(max-width:900px){
+  .tab-bar{flex-wrap:wrap;gap:4px}
+  .tab-btn{font-size:11px;padding:6px 10px}
+}
+@media(max-width:700px){
+  .dt thead th:nth-child(4),
+  .dt thead th:nth-child(5),
+  .dt td:nth-child(4),
+  .dt td:nth-child(5){display:none}
+}
+@media(max-width:500px){
+  .dt thead th:nth-child(3),
+  .dt td:nth-child(3){display:none}
+  div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
+  div[style*="grid-template-columns:1fr 1fr 1fr"]{grid-template-columns:1fr 1fr!important}
+}
 </style>
 
 {% endblock %}

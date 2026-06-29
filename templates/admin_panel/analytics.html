@@ -15,6 +15,15 @@
 .acard-sub{font-size:12px;color:var(--text2);margin-top:4px;}
 .chart-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px;}
 .chart-title{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+
+@media(max-width:900px){
+  .analytics-chart-row{grid-template-columns:1fr!important}
+  div[style*="grid-template-columns:300px 1fr"]{grid-template-columns:1fr!important}
+  div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
+}
+@media(max-width:600px){
+  .analytics-grid{grid-template-columns:1fr 1fr!important}
+}
 </style>
 {% endblock %}
 {% block content %}

@@ -1,6 +1,13 @@
 {% extends 'admin_panel/base_admin.html' %}
 {% block admin_title %}SEO{% endblock %}
 {% block topbar_title %}🔍 SEO Management{% endblock %}
+{% block head %}<style>
+@media(max-width:700px){
+  div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
+}
+@media(max-width:480px){
+  input,textarea{font-size:16px!important}
+}</style>{% endblock %}
 {% block content %}
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
   <div>

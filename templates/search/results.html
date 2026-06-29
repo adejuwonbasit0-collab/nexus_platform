@@ -1,6 +1,14 @@
 {% extends 'base.html' %}
 {% load nexus_extras %}
 {% block title %}{% if q %}Search: {{ q }}{% else %}Search{% endif %} — NEXUS{% endblock %}
+{% block head %}
+<style>
+@media(max-width:700px){
+  .search-result-card{flex-direction:column!important}
+  .search-result-thumb{width:100%!important;height:160px!important;border-radius:10px 10px 0 0!important}
+  div[style*="grid-template-columns:1fr 300px"]{grid-template-columns:1fr!important}
+}</style>
+{% endblock %}
 {% block content %}
 
 <div style="background:linear-gradient(160deg,rgba(124,92,252,.08) 0%,transparent 60%);border-bottom:1px solid var(--bd);padding:44px 0 36px;">

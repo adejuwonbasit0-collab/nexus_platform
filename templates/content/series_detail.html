@@ -11,6 +11,11 @@
   .cs-ep-row .cs-ep-thumb{width:90px!important;height:51px!important;}
   .cs-ep-row .cs-ep-views{display:none;}
 }
+
+@media(max-width:700px){
+  div[style*="grid-template-columns:1fr 300px"],
+  div[style*="grid-template-columns:1fr 280px"]{grid-template-columns:1fr!important}
+}
 </style>
 {% endblock %}
 {% block content %}

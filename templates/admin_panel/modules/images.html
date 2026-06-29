@@ -181,6 +181,14 @@ function imgToggle(action, pk, btnId, labelOn, labelOff, classOn, classOff) {
 .fg label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);margin-bottom:5px}
 .fcheck{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text2)}
 .fcheck input{cursor:pointer;width:14px;height:14px;accent-color:var(--accent)}
+
+@media(max-width:700px){
+  div[style*="grid-template-columns:repeat(auto-fill,minmax(150px"]{grid-template-columns:repeat(3,1fr)!important}
+  div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
+}
+@media(max-width:400px){
+  div[style*="grid-template-columns:repeat(auto-fill,minmax(150px"]{grid-template-columns:repeat(2,1fr)!important}
+}
 </style>
 
 {# Edit Image Modal #}

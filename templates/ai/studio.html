@@ -5,6 +5,16 @@
 .gen-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:16px; }
 .gen-img { width:100%; aspect-ratio:1; object-fit:cover; border-radius:var(--r); cursor:pointer; transition:transform 0.2s; }
 .gen-img:hover { transform:scale(1.02); }
+
+@media(max-width:860px){
+  div[style*="grid-template-columns:1fr 380px"],
+  div[style*="grid-template-columns:1fr 340px"],
+  .ai-layout{grid-template-columns:1fr!important}
+  .ai-sidebar{position:static!important;top:auto!important}
+}
+@media(max-width:480px){
+  textarea{font-size:16px!important;min-height:120px!important}
+}
 </style>
 {% endblock %}
 {% block content %}

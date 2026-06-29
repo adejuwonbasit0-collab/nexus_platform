@@ -1,6 +1,16 @@
 {% extends 'admin_panel/base_admin.html' %}
 {% block admin_title %}Blog{% endblock %}
 {% block topbar_title %}📝 Blog Management{% endblock %}
+{% block head %}<style>
+@media(max-width:700px){
+  .dt thead th:nth-child(4),
+  .dt td:nth-child(4),
+  .dt thead th:nth-child(5),
+  .dt td:nth-child(5){display:none}
+}
+@media(max-width:500px){
+  div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
+}</style>{% endblock %}
 {% block content %}
 
 <div class="tab-bar">

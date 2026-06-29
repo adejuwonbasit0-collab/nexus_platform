@@ -1,6 +1,10 @@
 {% extends 'admin_panel/base_admin.html' %}
 {% block admin_title %}Branding{% endblock %}
 {% block topbar_title %}🎨 Branding Management{% endblock %}
+{% block head %}<style>
+@media(max-width:700px){
+  div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
+}</style>{% endblock %}
 {% block content %}
 <form method="post" enctype="multipart/form-data">
 {% csrf_token %}

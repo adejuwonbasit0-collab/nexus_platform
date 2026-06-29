@@ -1,6 +1,11 @@
 {% extends 'admin_panel/base_admin.html' %}
 {% block admin_title %}Categories{% endblock %}
 {% block topbar_title %}🏷️ Category Manager{% endblock %}
+{% block head %}<style>
+@media(max-width:600px){
+  div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
+  div[style*="grid-template-columns:1fr auto"]{flex-direction:column!important;gap:8px!important}
+}</style>{% endblock %}
 {% block content %}
 <div class="panel" style="margin-bottom:20px;">
   <div class="panel-header"><span class="panel-title">Add Category</span></div>

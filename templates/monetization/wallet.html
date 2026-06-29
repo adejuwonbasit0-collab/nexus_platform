@@ -1,5 +1,17 @@
 {% extends 'base.html' %}
 {% block title %}My Wallet — NEXUS{% endblock %}
+{% block head %}
+<style>
+@media(max-width:700px){
+  div[style*="grid-template-columns:1fr 1fr"],
+  div[style*="grid-template-columns:repeat(2"],
+  div[style*="grid-template-columns:repeat(3"]{grid-template-columns:1fr!important}
+  .wallet-stats{grid-template-columns:1fr 1fr!important}
+}
+@media(max-width:400px){
+  .wallet-stats{grid-template-columns:1fr!important}
+}</style>
+{% endblock %}
 {% block content %}
 <div class="container" style="max-width:820px;padding-top:40px;padding-bottom:60px;">
   <h1 style="font-size:24px;margin-bottom:24px;">💰 My Wallet</h1>

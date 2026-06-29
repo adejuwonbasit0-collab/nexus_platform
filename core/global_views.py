@@ -12,81 +12,75 @@ from accounts.models import User
 
 
 def platform_home(request):
-    """Home page — Pulse-style dark UI with sidebar layout."""
-    # CMS homepage sections
+    """Home — Pulse-style sidebar UI with music charts, movies, genres."""
     try:
         from cms.models import HomepageSection
         cms_sections = list(HomepageSection.objects.filter(is_visible=True).order_by('order'))
     except Exception:
         cms_sections = []
 
-    # ── Music data ──────────────────────────────────────────────────────────
+    # ── Music ──────────────────────────────────────────────────────────────────
     song_of_day   = None
     recent_tracks = []
     chart_tracks  = []
     top_artists   = []
     new_albums    = []
     genres        = []
-
     try:
-        from music.models import Track, Artist, Album, Genre as MusicGenre
-
-        # Song of the day (most played recent track)
-        song_of_day = Track.objects.filter(
-            is_published=True
-        ).select_related('artist', 'album').order_by('-plays_count').first()
-
-        # Recent tracks (for "Made For You" row)
-        recent_tracks = list(Track.objects.filter(is_published=True)
-                             .select_related('artist', 'album')
-                             .order_by('-created_at')[:16])
-
-        # Chart top 10
-        chart_tracks = list(Track.objects.filter(is_published=True)
-                            .select_related('artist', 'album')
-                            .order_by('-plays_count')[:10])
-
-        # Top artists
-        top_artists = list(Artist.objects.order_by('-monthly_listeners')[:12])
-        if not top_artists:
-            top_artists = list(Artist.objects.order_by('name')[:12])
-
-        # New albums
-        new_albums = list(Album.objects.filter(is_published=True)
-                          .select_related('artist')
-                          .order_by('-created_at')[:10])
-
-        # Music genres
+        from music.models import Track, Artist, Album
+        song_of_day   = Track.objects.filter(is_published=True).select_related('artist','album').order_by('-plays_count').first()
+        recent_tracks = list(Track.objects.filter(is_published=True).select_related('artist','album').order_by('-created_at')[:16])
+        chart_tracks  = list(Track.objects.filter(is_published=True).select_related('artist','album').order_by('-plays_count')[:10])
+        top_artists   = list(Artist.objects.order_by('-monthly_listeners')[:12]) or list(Artist.objects.order_by('name')[:12])
+        new_albums    = list(Album.objects.filter(is_published=True).select_related('artist').order_by('-created_at')[:10])
         try:
+            from music.models import Genre as MusicGenre
             genres = list(MusicGenre.objects.order_by('name')[:6])
         except Exception:
             pass
     except Exception:
         pass
 
-    # ── Movies ──────────────────────────────────────────────────────────────
+    # ── Movies ─────────────────────────────────────────────────────────────────
     trending_movies = []
+    series_list = []
     try:
-        from movies.models import Movie
-        trending_movies = list(Movie.objects.filter(is_published=True)
-                               .order_by('-created_at')[:10])
+        from movies.models import Movie, Series
+        trending_movies = list(Movie.objects.filter(is_published=True).order_by('-created_at')[:10])
+        series_list     = list(Series.objects.filter(is_published=True).order_by('-created_at')[:8])
     except Exception:
         pass
 
-    # ── Content grid ────────────────────────────────────────────────────────
-    cache_key = 'homepage_content_v4'
+    # ── Images ─────────────────────────────────────────────────────────────────
+    images_list = []
+    try:
+        from images.models import Image
+        images_list = list(Image.objects.filter(is_published=True).order_by('-created_at')[:8])
+    except Exception:
+        pass
+
+    # ── Blog ───────────────────────────────────────────────────────────────────
+    blog_list = []
+    try:
+        from blog.models import Post
+        blog_list = list(Post.objects.filter(status='published', is_ai_generated=False)
+                         .select_related('author').order_by('-created_at')[:6])
+    except Exception:
+        pass
+
+    # ── Content (featured / recent) ────────────────────────────────────────────
+    cache_key = 'homepage_content_v5'
     content_data = cache.get(cache_key)
     if content_data is None:
-        base_qs = Content.objects.filter(
-            status='approved', is_ai_generated=False
-        ).select_related('creator')
+        base_qs = Content.objects.filter(status='approved', is_ai_generated=False).select_related('creator')
         content_data = {
             'featured': list(base_qs.filter(featured=True).order_by('-created_at')[:12]),
             'recent':   list(base_qs.order_by('-created_at')[:16]),
+            'trending': list(base_qs.order_by('-views')[:12]),
         }
         cache.set(cache_key, content_data, 300)
 
-    # ── Categories ──────────────────────────────────────────────────────────
+    # ── Categories ─────────────────────────────────────────────────────────────
     categories = []
     try:
         from content.models import Category
@@ -94,15 +88,10 @@ def platform_home(request):
     except Exception:
         pass
 
-    # ── Platform stats ───────────────────────────────────────────────────────
-    platform_stats = cache.get('platform_stats_v4')
+    # ── Platform stats ─────────────────────────────────────────────────────────
+    platform_stats = cache.get('platform_stats_v5')
     if platform_stats is None:
-        platform_stats = {
-            'tracks':  0,
-            'artists': 0,
-            'movies':  0,
-            'users':   User.objects.count(),
-        }
+        platform_stats = {'tracks': 0, 'artists': 0, 'movies': 0, 'users': User.objects.count()}
         try:
             from music.models import Track as _T, Artist as _A
             platform_stats['tracks']  = _T.objects.filter(is_published=True).count()
@@ -114,20 +103,25 @@ def platform_home(request):
             platform_stats['movies'] = _M.objects.filter(is_published=True).count()
         except Exception:
             pass
-        cache.set('platform_stats_v4', platform_stats, 600)
+        cache.set('platform_stats_v5', platform_stats, 600)
 
     return render(request, 'home.html', {
-        'cms_sections':   cms_sections,
-        'song_of_day':    song_of_day,
-        'recent_tracks':  recent_tracks,
-        'chart_tracks':   chart_tracks,
-        'top_artists':    top_artists,
-        'new_albums':     new_albums,
-        'genres':         genres,
-        'trending_movies':trending_movies,
-        'featured':       content_data['featured'],
-        'categories':     categories,
-        'stats':          platform_stats,
+        'cms_sections':    cms_sections,
+        'song_of_day':     song_of_day,
+        'recent_tracks':   recent_tracks,
+        'chart_tracks':    chart_tracks,
+        'top_artists':     top_artists,
+        'new_albums':      new_albums,
+        'genres':          genres,
+        'trending_movies': trending_movies,
+        'series_list':     series_list,
+        'images_list':     images_list,
+        'blog_list':       blog_list,
+        'featured':        content_data['featured'],
+        'recent':          content_data['recent'],
+        'trending':        content_data['trending'],
+        'categories':      categories,
+        'stats':           platform_stats,
     })
 
 

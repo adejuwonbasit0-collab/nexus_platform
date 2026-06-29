@@ -1,5 +1,15 @@
 {% extends 'base.html' %}
 {% block title %}My Playlists{% endblock %}
+{% block head %}
+<style>
+@media(max-width:700px){
+  div[style*="grid-template-columns:repeat(auto-fill,minmax(200px"]{grid-template-columns:repeat(2,1fr)!important}
+  div[style*="grid-template-columns:repeat(auto-fill,minmax(180px"]{grid-template-columns:repeat(2,1fr)!important}
+}
+@media(max-width:400px){
+  div[style*="grid-template-columns:repeat(auto-fill,minmax(200px"]{grid-template-columns:1fr 1fr!important}
+}</style>
+{% endblock %}
 {% block content %}
 <div class="wrap" style="max-width:900px;padding-top:36px;padding-bottom:80px;">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:24px;">

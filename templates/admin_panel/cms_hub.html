@@ -2,6 +2,18 @@
 {% load nexus_extras %}
 {% block admin_title %}CMS Center{% endblock %}
 {% block topbar_title %}CMS Center{% endblock %}
+{% block head %}<style>
+@media(max-width:900px){
+  .tab-bar{flex-wrap:wrap;gap:4px}
+  .tab-btn{font-size:11px;padding:6px 10px}
+  div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
+  div[style*="grid-template-columns:1fr 300px"],
+  div[style*="grid-template-columns:1fr 280px"]{grid-template-columns:1fr!important}
+}
+@media(max-width:600px){
+  div[style*="grid-template-columns:1fr 1fr 1fr"]{grid-template-columns:1fr!important}
+  input,select,textarea{font-size:16px!important}
+}</style>{% endblock %}
 {% block content %}
 
 <div class="tab-bar">
