@@ -21,7 +21,7 @@
   <div class="panel-head">
     <span class="panel-title">Users <span style="color:var(--tx2);font-size:13px;font-weight:400;">({{ page.paginator.count }})</span></span>
   </div>
-  <div class="table-wrap borderless"><table class="dt">
+  <div class="table-wrap borderless"><div style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table class="dt">
     <thead><tr><th>User</th><th>Email</th><th>Role</th><th>Status</th><th>Premium</th><th>Joined</th><th></th></tr></thead>
     <tbody>
     {% for u in page.object_list %}
@@ -45,7 +45,7 @@
     <tr><td colspan="7"><div class="empty" style="padding:40px;"><div class="empty-icon">👥</div><h3>No users found</h3></div></td></tr>
     {% endfor %}
     </tbody>
-  </table></div>
+  </table></div></div>
   {% if page.paginator.num_pages > 1 %}
   <div class="panel-body" style="padding-top:0;">
     <div class="pager">

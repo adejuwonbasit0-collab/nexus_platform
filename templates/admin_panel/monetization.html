@@ -1,6 +1,12 @@
 {% extends 'admin_panel/base_admin.html' %}
 {% block admin_title %}Finance{% endblock %}
 {% block topbar_title %}Finance Center{% endblock %}
+
+{% block extra_head %}
+<style>
+@media(max-width:700px){.mon-grid{grid-template-columns:1fr!important}}
+</style>
+{% endblock %}
 {% block content %}
 
 <div class="stat-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;">

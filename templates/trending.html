@@ -1,169 +1,204 @@
 {% extends 'base.html' %}
 {% block title %}Trending — NEXUS{% endblock %}
+{% block head %}
+<style>
+.trend-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
+.trend-card{background:rgba(255,255,255,.03);border:1px solid var(--bd);border-radius:14px;overflow:hidden;transition:transform .22s,box-shadow .22s,border-color .22s;text-decoration:none;color:inherit;display:flex;flex-direction:column}
+.trend-card:hover{transform:translateY(-5px);border-color:rgba(124,92,252,.25);box-shadow:0 16px 44px rgba(0,0,0,.5)}
+.trend-thumb{width:100%;aspect-ratio:16/9;object-fit:cover;background:rgba(124,92,252,.08);display:flex;align-items:center;justify-content:center;font-size:40px;color:rgba(255,255,255,.2)}
+.trend-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.trend-body{padding:14px 16px;flex:1;display:flex;flex-direction:column}
+.trend-source{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ac);margin-bottom:6px}
+.trend-title{font-size:14px;font-weight:700;line-height:1.4;margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.trend-meta{font-size:11px;color:var(--tx2);margin-top:auto}
+.ext-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;background:rgba(255,255,255,.06);border:1px solid var(--bd);border-radius:20px;padding:2px 8px;color:var(--tx2);margin-top:6px}
+.music-row{display:flex;align-items:center;gap:14px;padding:12px 20px;border-bottom:1px solid var(--bd);transition:background .15s;text-decoration:none;color:inherit}
+.music-row:hover{background:rgba(255,255,255,.04)}
+.music-row:last-child{border-bottom:none}
+@media(max-width:600px){
+  .trend-grid{grid-template-columns:1fr 1fr;gap:12px}
+  .trend-title{font-size:13px}
+}
+@media(max-width:380px){
+  .trend-grid{grid-template-columns:1fr;gap:10px}
+}
+</style>
+{% endblock %}
 {% block content %}
 
 <div class="page-hero">
   <div class="container" style="position:relative;z-index:1;text-align:center;">
-    <div style="font-size:52px;margin-bottom:14px;">🔥</div>
-    <h1 style="font-family:'Space Grotesk',sans-serif;font-size:clamp(32px,5vw,52px);font-weight:800;margin-bottom:12px;">Trending Now</h1>
-    <p style="color:var(--tx2);font-size:16px;max-width:480px;margin:0 auto;">The hottest content across movies, music, and more — right now.</p>
+    <div style="font-size:48px;margin-bottom:12px;">🔥</div>
+    <h1 style="font-family:'Space Grotesk',sans-serif;font-size:clamp(28px,5vw,48px);font-weight:800;margin-bottom:10px;">Trending Now</h1>
+    <p style="color:var(--tx2);font-size:15px;max-width:480px;margin:0 auto;">The hottest content across movies, music, news, and more — right now.</p>
   </div>
 </div>
 
-<div class="container" style="padding-top:52px;padding-bottom:80px;">
+<div class="container" style="padding-top:48px;padding-bottom:80px;">
 
+  <!-- ── TRENDING MOVIES ──────────────────────────────────────── -->
   {% if trending_movies %}
   <div style="margin-bottom:52px;">
-    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:22px;">
-      <h2 style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:800;">🎬 Trending Movies</h2>
-      <a href="/movies/" style="font-size:13px;color:var(--ac);">See all →</a>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:18px;">
+    <div class="stitle"><h2>🎬 <span>Trending</span> Movies</h2><a href="/movies/">See all →</a></div>
+    <div class="trend-grid">
       {% for m in trending_movies %}
-      <div style="background:rgba(255,255,255,.03);border:1px solid var(--bd);border-radius:14px;overflow:hidden;transition:transform .22s,box-shadow .22s,border-color .22s;box-shadow:0 4px 16px rgba(0,0,0,.3);" onmouseenter="this.style.transform='translateY(-5px)';this.style.boxShadow='0 16px 40px rgba(0,0,0,.5)';this.style.borderColor='rgba(124,92,252,.25)'" onmouseleave="this.style.transform='';this.style.boxShadow='0 4px 16px rgba(0,0,0,.3)';this.style.borderColor='var(--bd)'">
-        <a href="/movies/film/{{ m.slug }}/">
-          {% if m.thumbnail %}<img src="{{ m.thumbnail.url }}" alt="{{ m.title }}" style="width:100%;aspect-ratio:2/3;object-fit:cover;display:block;">
-          {% else %}<div style="width:100%;aspect-ratio:2/3;background:linear-gradient(160deg,rgba(124,92,252,.18),rgba(255,77,109,.1));display:flex;align-items:center;justify-content:center;font-size:48px;">🎬</div>{% endif %}
-        </a>
-        <div style="padding:12px 14px;">
-          <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;"><a href="/movies/film/{{ m.slug }}/" style="color:var(--tx);">{{ m.title }}</a></div>
-          <div style="font-size:11px;color:var(--tx2);">{{ m.release_year }}{% if m.quality %} · {{ m.quality }}{% endif %}</div>
-          <div style="display:flex;align-items:center;gap:4px;margin-top:6px;font-size:11px;color:var(--tx3);">
-            <span>👁 {{ m.views_count|default:0 }}</span>
-          </div>
+      <a href="/movies/film/{{ m.slug }}/" class="trend-card">
+        <div class="trend-thumb">
+          {% if m.thumbnail %}<img src="{{ m.thumbnail.url }}" alt="{{ m.title }}" loading="lazy">
+          {% else %}<span>🎬</span>{% endif %}
         </div>
-      </div>
+        <div class="trend-body">
+          <div class="trend-source">Platform</div>
+          <div class="trend-title">{{ m.title }}</div>
+          <div class="trend-meta">{{ m.release_year }}{% if m.quality %} · {{ m.quality }}{% endif %} · 👁 {{ m.views_count|default:0 }}</div>
+        </div>
+      </a>
       {% endfor %}
     </div>
   </div>
   {% endif %}
 
+  <!-- ── TRENDING MUSIC (Platform) ───────────────────────────── -->
   {% if trending_music %}
   <div style="margin-bottom:52px;">
-    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:22px;">
-      <h2 style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:800;">🎵 Trending Music</h2>
-      <a href="/music/" style="font-size:13px;color:var(--ac);">See all →</a>
-    </div>
-    <div style="background:rgba(255,255,255,.025);border:1px solid var(--bd);border-radius:16px;overflow:hidden;backdrop-filter:blur(12px);">
+    <div class="stitle"><h2>🎵 <span>Trending</span> Music</h2><a href="/music/">See all →</a></div>
+    <div style="background:rgba(255,255,255,.025);border:1px solid var(--bd);border-radius:16px;overflow:hidden;">
       {% for track in trending_music %}
-      <div style="display:flex;align-items:center;gap:14px;padding:13px 20px;border-bottom:1px solid var(--bd);transition:background .15s;" onmouseenter="this.style.background='rgba(255,255,255,.04)'" onmouseleave="this.style.background=''">
+      <a href="/music/track/{{ track.slug }}/" class="music-row">
         <span style="color:var(--tx3);font-size:13px;width:22px;text-align:right;flex-shrink:0;font-weight:700;">{{ forloop.counter }}</span>
         <div style="width:46px;height:46px;border-radius:9px;overflow:hidden;flex-shrink:0;background:rgba(124,92,252,.1);display:flex;align-items:center;justify-content:center;">
-          {% if track.cover_image %}<img src="{{ track.cover_image.url }}" style="width:100%;height:100%;object-fit:cover;">{% else %}<span style="font-size:20px;">🎵</span>{% endif %}
+          {% if track.cover_image %}<img src="{{ track.cover_image.url }}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">{% else %}<span style="font-size:20px;">🎵</span>{% endif %}
         </div>
         <div style="flex:1;min-width:0;">
-          <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><a href="/music/track/{{ track.slug }}/" style="color:var(--tx);">{{ track.title }}</a></div>
+          <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ track.title }}</div>
           <div style="font-size:12px;color:var(--tx2);">{{ track.artist.name }}</div>
         </div>
-        <div style="display:flex;align-items:center;gap:12px;font-size:12px;color:var(--tx3);flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:10px;font-size:12px;color:var(--tx3);flex-shrink:0;">
           <span>🔥 {{ track.plays_count|default:0 }}</span>
           {% if track.is_premium %}<span style="background:rgba(124,92,252,.15);color:var(--ac);border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700;">PRO</span>{% endif %}
-          <button class="engage-btn" style="padding:5px 10px;font-size:11px;" onclick="shareContent('{{ track.title|escapejs }}','/music/track/{{ track.slug }}/')">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-          </button>
         </div>
-      </div>
+      </a>
       {% endfor %}
     </div>
   </div>
   {% endif %}
 
+  <!-- ── GLOBAL MUSIC CHARTS (iTunes) ────────────────────────── -->
   {% if external_music %}
   <div style="margin-bottom:52px;">
-    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:22px;">
+    <div class="stitle">
       <div>
-        <h2 style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:800;">🌍 Global Music Charts</h2>
-        <div style="font-size:12px;color:var(--tx2);margin-top:4px;">Top 20 songs worldwide · iTunes Charts</div>
+        <h2>🌍 <span>Global</span> Music Charts</h2>
+        <div style="font-size:12px;color:var(--tx2);margin-top:3px;">Top 20 worldwide · iTunes · updates every 5 min</div>
       </div>
     </div>
     <div style="background:rgba(255,255,255,.025);border:1px solid var(--bd);border-radius:16px;overflow:hidden;">
       {% for track in external_music %}
-      <a href="{{ track.link }}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:14px;padding:11px 20px;border-bottom:1px solid var(--bd);transition:background .15s;text-decoration:none;color:inherit;" onmouseenter="this.style.background='rgba(255,255,255,.04)'" onmouseleave="this.style.background=''">
-        <span style="color:var(--tx3);font-size:13px;width:24px;text-align:right;flex-shrink:0;font-weight:700;">{{ forloop.counter }}</span>
+      <a href="{{ track.link }}" target="_blank" rel="noopener noreferrer" class="music-row">
+        <span style="color:var(--tx3);font-size:13px;width:22px;text-align:right;flex-shrink:0;font-weight:700;">{{ forloop.counter }}</span>
         {% if track.cover %}
-        <img src="{{ track.cover }}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0;" loading="lazy">
+        <img src="{{ track.cover }}" style="width:46px;height:46px;border-radius:9px;object-fit:cover;flex-shrink:0;" loading="lazy">
         {% else %}
-        <div style="width:44px;height:44px;border-radius:8px;background:rgba(124,92,252,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;">🎵</div>
+        <div style="width:46px;height:46px;border-radius:9px;background:rgba(124,92,252,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px;">🎵</div>
         {% endif %}
         <div style="flex:1;min-width:0;">
           <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ track.title }}</div>
           <div style="font-size:12px;color:var(--tx2);">{{ track.artist }}</div>
         </div>
-        <span style="font-size:11px;color:var(--tx3);flex-shrink:0;">iTunes →</span>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+          <span style="font-size:10px;color:var(--tx3);">iTunes ↗</span>
+        </div>
       </a>
       {% endfor %}
     </div>
-    <p style="font-size:11px;color:var(--tx3);margin-top:10px;text-align:right;">Source: iTunes Top Charts · Updates every 5 min</p>
   </div>
   {% endif %}
 
-  {% if trending_content %}
-  <div>
-    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:22px;">
-      <h2 style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:800;">📈 Trending Content</h2>
-      <a href="/content/browse/" style="font-size:13px;color:var(--ac);">Browse all →</a>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px;">
-      {% for c in trending_content %}
-      <div style="background:rgba(255,255,255,.03);border:1px solid var(--bd);border-radius:14px;overflow:hidden;transition:transform .22s,box-shadow .22s,border-color .22s;box-shadow:0 4px 16px rgba(0,0,0,.3);" onmouseenter="this.style.transform='translateY(-5px)';this.style.boxShadow='0 16px 40px rgba(0,0,0,.5)';this.style.borderColor='rgba(124,92,252,.25)'" onmouseleave="this.style.transform='';this.style.boxShadow='0 4px 16px rgba(0,0,0,.3)';this.style.borderColor='var(--bd)'">
-        <div style="position:relative;overflow:hidden;">
-          {% if c.thumbnail %}<img src="{{ c.thumbnail.url }}" alt="{{ c.title }}" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;transition:transform .35s;" onmouseenter="this.style.transform='scale(1.05)'" onmouseleave="this.style.transform=''">
-          {% else %}<div style="width:100%;aspect-ratio:16/9;background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(255,77,109,.08));display:flex;align-items:center;justify-content:center;font-size:40px;">
-            {% if c.content_type == 'video' %}🎬{% elif c.content_type == 'music' %}🎵{% elif c.content_type == 'image' %}🖼{% else %}📝{% endif %}
-          </div>{% endif %}
-        </div>
-        <div style="padding:13px 15px;">
-          <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px;"><a href="/content/{{ c.pk }}/" style="color:var(--tx);">{{ c.title }}</a></div>
-          <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--tx2);">
-            <span>{{ c.creator.username }}</span>
-            <span>👁 {{ c.views }}</span>
-          </div>
-          <div style="display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--bd);">
-            <button class="engage-btn" style="flex:1;justify-content:center;padding:5px 8px;font-size:11px;" onclick="toggleLike({{ c.pk }}, this)">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-              <span class="lc">{{ c.likes_count }}</span>
-            </button>
-            <button class="engage-btn" style="flex:1;justify-content:center;padding:5px 8px;font-size:11px;" onclick="shareContent('{{ c.title|escapejs }}','/content/{{ c.pk }}/')">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-              Share
-            </button>
-          </div>
-        </div>
+  <!-- ── TRENDING BLOG POSTS (External) ──────────────────────── -->
+  {% if trending_blogs %}
+  <div style="margin-bottom:52px;">
+    <div class="stitle">
+      <div>
+        <h2>📰 <span>Trending</span> Articles</h2>
+        <div style="font-size:12px;color:var(--tx2);margin-top:3px;">Live news & articles from across the web — click to read on their site</div>
       </div>
+    </div>
+    <div class="trend-grid">
+      {% for article in trending_blogs %}
+      <a href="{{ article.link }}" target="_blank" rel="noopener noreferrer" class="trend-card">
+        <div class="trend-thumb" style="aspect-ratio:16/9;position:relative;overflow:hidden;">
+          {% if article.image %}
+          <img src="{{ article.image }}" alt="{{ article.title }}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:40px;background:rgba(124,92,252,.06);">📰</div>
+          {% else %}
+          <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:40px;background:rgba(124,92,252,.06);">📰</div>
+          {% endif %}
+        </div>
+        <div class="trend-body">
+          <div class="trend-source">{{ article.source }}</div>
+          <div class="trend-title">{{ article.title }}</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto;">
+            <div class="trend-meta">{{ article.date }}</div>
+            <span class="ext-badge">↗ Read on site</span>
+          </div>
+        </div>
+      </a>
       {% endfor %}
     </div>
   </div>
   {% endif %}
 
-  {% if not trending_movies and not trending_music and not trending_content %}
-  <div class="empty" style="padding:80px 24px;">
-    <div class="empty-icon">🔥</div>
-    <h3>Nothing trending yet</h3>
-    <p>Check back soon as content gets discovered and shared.</p>
-    <a href="/" class="btn btn-primary" style="margin-top:20px;">← Back to Home</a>
+  <!-- ── TECH TRENDS ──────────────────────────────────────────── -->
+  {% if trending_tech %}
+  <div style="margin-bottom:52px;">
+    <div class="stitle">
+      <div>
+        <h2>💻 <span>Tech</span> Trends</h2>
+        <div style="font-size:12px;color:var(--tx2);margin-top:3px;">What's hot in technology today</div>
+      </div>
+    </div>
+    <div class="trend-grid">
+      {% for article in trending_tech %}
+      <a href="{{ article.link }}" target="_blank" rel="noopener noreferrer" class="trend-card">
+        <div class="trend-thumb" style="aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;font-size:40px;background:rgba(0,212,170,.06);">
+          {% if article.image %}<img src="{{ article.image }}" alt="" loading="lazy" onerror="this.parentNode.innerHTML='💻'">
+          {% else %}💻{% endif %}
+        </div>
+        <div class="trend-body">
+          <div class="trend-source" style="color:var(--ac3);">{{ article.source }}</div>
+          <div class="trend-title">{{ article.title }}</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto;">
+            <div class="trend-meta">{{ article.date }}</div>
+            <span class="ext-badge">↗ Read on site</span>
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── PLATFORM CONTENT ─────────────────────────────────────── -->
+  {% if trending_content %}
+  <div style="margin-bottom:52px;">
+    <div class="stitle"><h2>📈 <span>Popular</span> Content</h2><a href="/content/browse/">Browse all →</a></div>
+    <div class="trend-grid">
+      {% for c in trending_content %}
+      <a href="/content/{{ c.pk }}/" class="trend-card">
+        <div class="trend-thumb">
+          {% if c.thumbnail %}<img src="{{ c.thumbnail.url }}" alt="{{ c.title }}" loading="lazy">
+          {% else %}<span style="font-size:36px;">{% if c.content_type == 'video' %}🎬{% elif c.content_type == 'music' %}🎵{% elif c.content_type == 'image' %}🖼{% else %}📝{% endif %}</span>{% endif %}
+        </div>
+        <div class="trend-body">
+          <div class="trend-source">Platform · {{ c.content_type }}</div>
+          <div class="trend-title">{{ c.title }}</div>
+          <div class="trend-meta">👁 {{ c.views|default:0 }} · {{ c.creator.username }}</div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
   </div>
   {% endif %}
 
 </div>
-
-{% endblock %}
-{% block scripts %}
-<script>
-async function toggleLike(pk, btn) {
-  {% if not user.is_authenticated %}showToast('Sign in to like content','w');return;{% endif %}
-  const fd = new FormData();
-  fd.append('csrfmiddlewaretoken', getCookie('csrftoken'));
-  try {
-    const r = await fetch(`/content/${pk}/like/`, {method:'POST', body:fd});
-    const d = await r.json();
-    btn.querySelector('.lc').textContent = d.count;
-    btn.classList.toggle('liked', d.liked);
-  } catch(e) { showToast('Error','e'); }
-}
-function shareContent(title, path) {
-  const url = window.location.origin + path;
-  if (navigator.share) { navigator.share({title, url}).catch(()=>{}); return; }
-  navigator.clipboard.writeText(url).then(()=>showToast('Link copied!','s')).catch(()=>{});
-}
-</script>
 {% endblock %}

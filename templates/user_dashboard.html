@@ -20,6 +20,14 @@
 .dash-tab:hover{color:var(--tx);background:rgba(255,255,255,.06)}
 .dash-tab.on{background:rgba(124,92,252,.12);color:var(--ac);}
 .dash-panel{display:none}.dash-panel.on{display:block}
+
+@media(max-width:600px){
+  .dash-stat{padding:14px 16px}
+  .dash-stat-val{font-size:24px}
+}
+@media(max-width:400px){
+  div[style*="grid-template-columns:repeat(auto-fill,minmax(180px"]{grid-template-columns:1fr 1fr!important}
+}
 </style>
 {% endblock %}
 {% block content %}

@@ -408,7 +408,173 @@ select.form-input option,select.finput option{background:var(--bg3);color:var(--
 }
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 
-/* ═══════════════ ADDITIONAL RESPONSIVE FIXES ════════════
+/* ═══════════════════════════════════════════════════════════
+   NEXUS · COMPLETE RESPONSIVE SYSTEM
+   Covers every page — base rules + per-breakpoint overrides.
+   Nothing should overflow or break below 320px.
+═══════════════════════════════════════════════════════════ */
+
+/* ── Foundation ──────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box}
+html,body{max-width:100%;overflow-x:hidden}
+img,video,iframe,embed,object{max-width:100%;height:auto}
+table{width:100%;word-break:break-word}
+
+/* ── Layout containers ───────────────────────────────────── */
+.wrap,.container{width:100%;padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
+
+/* ── Typography scale ────────────────────────────────────── */
+h1{font-size:clamp(22px,5.5vw,52px);line-height:1.15}
+h2{font-size:clamp(18px,4vw,36px)}
+h3{font-size:clamp(15px,3vw,24px)}
+
+/* ── Grids that need responsive collapse ─────────────────── */
+/* Two-column sidebar layouts → single column on mobile */
+@media(max-width:860px){
+  [class*="blog-layout"],
+  [class*="mv-body"],
+  [class*="ig-layout"],
+  [class*="ep-layout"],
+  [class*="cf-grid"],
+  [class*="profile-name-grid"]{
+    grid-template-columns:1fr !important;
+    gap:20px !important;
+  }
+  /* Inline style two-col grids */
+  div[style*="grid-template-columns:1fr 3"],
+  div[style*="grid-template-columns:2fr"],
+  div[style*="grid-template-columns:260px"],
+  div[style*="grid-template-columns:1fr 340px"],
+  div[style*="grid-template-columns:1fr 320px"],
+  div[style*="grid-template-columns:1fr 300px"]{
+    grid-template-columns:1fr !important;
+  }
+}
+
+/* ── Nav improvements ────────────────────────────────────── */
+@media(max-width:768px){
+  .nav-search input{width:110px}
+}
+@media(max-width:480px){
+  .nav-inner{gap:6px;padding:0 10px}
+  .nav-logo{font-size:18px}
+}
+
+/* ── Hero / page-hero ────────────────────────────────────── */
+@media(max-width:600px){
+  .page-hero{padding:36px 0 28px}
+  .hero{padding:48px 0 36px}
+}
+@media(max-width:400px){
+  .page-hero{padding:24px 0 20px}
+}
+
+/* ── Grids ───────────────────────────────────────────────── */
+@media(max-width:600px){
+  .poster-grid{grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px}
+  .content-grid{grid-template-columns:repeat(2,1fr);gap:9px}
+  .music-grid{grid-template-columns:repeat(2,1fr);gap:9px}
+}
+@media(max-width:360px){
+  .content-grid{grid-template-columns:1fr;gap:10px}
+  .music-grid{grid-template-columns:repeat(2,1fr);gap:8px}
+  .poster-grid{grid-template-columns:repeat(3,1fr);gap:6px}
+}
+
+/* ── Cards ───────────────────────────────────────────────── */
+@media(max-width:480px){
+  .card-body{padding:10px 12px 12px}
+  .card-title{font-size:12px}
+}
+
+/* ── Buttons ─────────────────────────────────────────────── */
+@media(max-width:480px){
+  .btn-lg{padding:11px 20px;font-size:14px}
+  .btn{font-size:12.5px}
+}
+
+/* ── Forms ───────────────────────────────────────────────── */
+@media(max-width:480px){
+  .form-input,.form-textarea,.finput{font-size:16px !important} /* prevent iOS zoom */
+  select{font-size:16px !important}
+}
+
+/* ── Section padding ─────────────────────────────────────── */
+@media(max-width:600px){
+  .sec{padding:28px 0}
+  .sec-sm{padding:20px 0}
+  .wrap,.container{padding:0 12px}
+}
+@media(max-width:380px){
+  .wrap,.container{padding:0 10px}
+}
+
+/* ── Footer ──────────────────────────────────────────────── */
+@media(max-width:640px){
+  .footer-grid{grid-template-columns:1fr 1fr;gap:20px}
+  .footer{padding:36px 0 20px;margin-top:44px}
+}
+@media(max-width:400px){
+  .footer-grid{grid-template-columns:1fr;gap:16px}
+  .footer-bottom{flex-direction:column;gap:10px;text-align:center}
+}
+
+/* ── Announcement bar ────────────────────────────────────── */
+@media(max-width:600px){
+  .ann-bar{font-size:11.5px;padding:8px 38px 8px 14px}
+}
+
+/* ── Mini player body padding ────────────────────────────── */
+@media(max-width:380px){
+  body[style*="padding-bottom"]{padding-bottom:70px !important}
+}
+
+/* ── Stitle (section titles) ─────────────────────────────── */
+@media(max-width:480px){
+  .stitle h2{font-size:15px}
+  .stitle{margin-bottom:14px}
+}
+
+/* ── Engage bar ──────────────────────────────────────────── */
+@media(max-width:480px){
+  .engage-bar{gap:5px}
+  .engage-btn{padding:6px 10px;font-size:11.5px}
+}
+
+/* ── Subscribe/Checkout ──────────────────────────────────── */
+@media(max-width:600px){
+  .plan-card{padding:20px 16px !important}
+}
+
+/* ── Search results ──────────────────────────────────────── */
+@media(max-width:600px){
+  .search-result-card{flex-direction:column !important}
+  .search-thumb{width:100% !important;height:160px !important}
+}
+
+/* ── Auth pages ──────────────────────────────────────────── */
+@media(max-width:480px){
+  .auth-card{padding:20px 16px !important;border-radius:12px !important}
+}
+
+/* ── Table overflow wrapper ──────────────────────────────── */
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+@media(max-width:700px){
+  table{min-width:480px}
+}
+
+/* ── Global: prevent any fixed-width element overflowing ─── */
+@media(max-width:600px){
+  [style*="width:160px"][style*="height"],[style*="width:220px"],[style*="width:240px"]{
+    width:100% !important;max-width:100% !important
+  }
+}
+
+/* ── Scroll snapping pill strip ──────────────────────────── */
+.pill-strip{-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory}
+.pill{scroll-snap-align:start}
+
+/* ═══════════════ ADDITIONAL RESPONSIVE FIXES 
    Covers edge-cases that the per-component rules don't catch. */
 
 /* ── Overflow protection ── */

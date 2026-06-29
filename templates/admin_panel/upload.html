@@ -1,69 +1,203 @@
 {% extends 'admin_panel/base_admin.html' %}
-{% block admin_title %}Upload{% endblock %}
-{% block topbar_title %}Upload Content{% endblock %}
+{% block admin_title %}Upload Content{% endblock %}
+{% block topbar_title %}⬆ Upload Content{% endblock %}
 {% block content %}
-<div style="max-width:640px;">
-<div class="panel">
-  <div class="panel-head"><span class="panel-title">⬆ Upload New Content</span></div>
-  <div class="panel-body">
-    <form method="post" enctype="multipart/form-data" id="uploadForm">{% csrf_token %}
-      <div class="fg">
-        <label>Content Type</label>
-        <select class="finput" name="content_type" id="ct" onchange="updateUI()">
-          {% for v,l in content_types %}<option value="{{ v }}">{{ l }}</option>{% endfor %}
-        </select>
+<style>
+.mode-btn{flex:1;padding:12px;border:2px solid var(--border);border-radius:12px;background:none;color:var(--text2);cursor:pointer;font-size:14px;font-weight:600;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:8px}
+.mode-btn.active{border-color:var(--accent);background:rgba(124,92,252,.1);color:var(--text)}
+.mode-btn:hover:not(.active){border-color:rgba(124,92,252,.3);color:var(--text)}
+.drop-zone{border:2px dashed var(--border);border-radius:12px;padding:40px 20px;text-align:center;cursor:pointer;transition:all .2s;background:rgba(255,255,255,.02)}
+.drop-zone:hover,.drop-zone.dragover{border-color:var(--accent);background:rgba(124,92,252,.06)}
+.drop-zone input{display:none}
+.progress-bar{height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;display:none;margin-top:12px}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:3px;width:0%;transition:width .3s}
+@media(max-width:600px){
+  .upload-cols{grid-template-columns:1fr!important}
+}
+</style>
+
+<div style="max-width:780px;">
+
+  <!-- Mode selector -->
+  <div class="panel" style="margin-bottom:20px;">
+    <div class="panel-head"><span class="panel-title">Choose Upload Method</span></div>
+    <div class="panel-body">
+      <div style="display:flex;gap:10px;margin-bottom:4px;">
+        <button class="mode-btn active" id="btn-file" onclick="setMode('file')">📁 Upload File</button>
+        <button class="mode-btn" id="btn-url" onclick="setMode('url')">🔗 Add by URL / Link</button>
       </div>
-      <div class="fg"><label>Title *</label><input class="finput" name="title" required placeholder="Give your content a compelling title"></div>
-      <div class="fg"><label>Description</label><textarea class="finput" name="description" rows="3" placeholder="Describe your content…"></textarea></div>
-      <div class="fg" id="body-group" style="display:none;">
-        <label>Blog Post Body</label>
-        <textarea class="finput code" name="body" rows="10" style="min-height:200px;" placeholder="Full blog post content (HTML supported)…"></textarea>
-      </div>
-      <div class="form-grid">
-        <div class="fg">
-          <label>Tier</label>
-          <select class="finput" name="tier">{% for v,l in tiers %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select>
-        </div>
-        <div class="fg">
-          <label>Price (for pay-per-view)</label>
-          <input class="finput" type="number" name="price" value="0" min="0" step="100" placeholder="0 = free or sub-only">
-        </div>
-      </div>
-      <div class="fg" id="file-group">
-        <label id="file-label">File * <span class="hint" style="font-weight:400;letter-spacing:0;" id="file-hint">Select file</span></label>
-        <input class="finput" type="file" name="file" id="file-input">
-      </div>
-      <div class="fg">
-        <label>Thumbnail <span class="hint" style="font-weight:400;letter-spacing:0;">JPG/PNG/WebP — strongly recommended</span></label>
-        <input class="finput" type="file" name="thumbnail" accept="image/*">
-      </div>
-      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;font-size:15px;">⬆ Upload & Publish</button>
-    </form>
+      <p id="mode-hint" style="font-size:12px;color:var(--text2);margin-top:8px;">Upload a file directly from your device. Supports video, audio, images, and blog posts.</p>
+    </div>
   </div>
+
+  <form method="post" enctype="multipart/form-data" id="uploadForm">{% csrf_token %}
+  <input type="hidden" name="upload_mode" id="upload_mode" value="file">
+
+  <div class="panel">
+    <div class="panel-head"><span class="panel-title">Content Details</span></div>
+    <div class="panel-body" style="display:flex;flex-direction:column;gap:16px;">
+
+      <!-- Content type + tier -->
+      <div class="upload-cols" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="fg">
+          <label>Content Type *</label>
+          <select class="finput" name="content_type" id="ct" onchange="updateUI()">
+            {% for v,l in content_types %}<option value="{{ v }}">{{ l }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="fg">
+          <label>Access Tier</label>
+          <select class="finput" name="tier">
+            {% for v,l in tiers %}<option value="{{ v }}">{{ l }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <!-- Title + description -->
+      <div class="fg">
+        <label>Title *</label>
+        <input class="finput" name="title" required placeholder="Give your content a compelling title">
+      </div>
+      <div class="fg">
+        <label>Description</label>
+        <textarea class="finput" name="description" rows="3" placeholder="Describe your content briefly…" style="resize:vertical;"></textarea>
+      </div>
+
+      <!-- Blog body (shown for blog type) -->
+      <div id="body-group" class="fg" style="display:none;">
+        <label>Blog Post Body</label>
+        <textarea class="finput" name="body" rows="10" style="min-height:200px;font-family:monospace;font-size:13px;resize:vertical;" placeholder="Full blog post content (HTML supported)…"></textarea>
+      </div>
+
+      <!-- Tags -->
+      <div class="fg">
+        <label>Tags <span class="hint" style="font-weight:400;letter-spacing:0;">comma-separated</span></label>
+        <input class="finput" name="tags" placeholder="action, sci-fi, 2024">
+      </div>
+
+      <!-- Price -->
+      <div class="fg">
+        <label>Price (₦) <span class="hint" style="font-weight:400;letter-spacing:0;">0 = free or subscription-only</span></label>
+        <input class="finput" type="number" name="price" value="0" min="0" step="50" placeholder="0">
+      </div>
+
+      <!-- ── FILE UPLOAD MODE ───────────────────────────────── -->
+      <div id="file-section">
+        <div class="fg" id="file-group">
+          <label id="file-label">File *</label>
+          <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+            <div style="font-size:36px;margin-bottom:10px;" id="drop-icon">📁</div>
+            <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:5px;" id="drop-title">Click to choose or drag & drop</div>
+            <div style="font-size:12px;color:var(--text2);" id="drop-hint">Select file</div>
+            <input type="file" name="file" id="file-input" onchange="fileChosen(this)">
+          </div>
+          <div class="progress-bar" id="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+          <div id="file-chosen" style="font-size:12px;color:#22c55e;margin-top:5px;display:none;"></div>
+        </div>
+        <div class="fg" style="margin-top:14px;">
+          <label>Thumbnail <span class="hint" style="font-weight:400;letter-spacing:0;">JPG/PNG/WebP — strongly recommended</span></label>
+          <div class="drop-zone" style="padding:20px;" onclick="document.getElementById('thumb-input').click()">
+            <div style="font-size:22px;margin-bottom:6px;">🖼</div>
+            <div style="font-size:13px;color:var(--text2);">Click to upload thumbnail</div>
+            <input type="file" name="thumbnail" id="thumb-input" accept="image/*" onchange="thumbChosen(this)">
+          </div>
+          <div id="thumb-chosen" style="font-size:12px;color:#22c55e;margin-top:4px;display:none;"></div>
+        </div>
+      </div>
+
+      <!-- ── URL UPLOAD MODE ────────────────────────────────── -->
+      <div id="url-section" style="display:none;">
+        <div class="fg">
+          <label>Content URL *</label>
+          <input class="finput" type="url" name="source_url" id="source_url" placeholder="https://example.com/video.mp4 or YouTube/Vimeo link">
+          <div style="font-size:11px;color:var(--text2);margin-top:5px;">Paste a direct link to a video, audio file, image, or any media URL. YouTube, Vimeo, SoundCloud, and direct file URLs are all supported.</div>
+        </div>
+        <div class="fg" style="margin-top:14px;">
+          <label>Thumbnail URL <span class="hint" style="font-weight:400;letter-spacing:0;">optional</span></label>
+          <input class="finput" type="url" name="thumb_url" placeholder="https://example.com/cover.jpg">
+        </div>
+        <!-- URL type guide -->
+        <div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:14px;">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);margin-bottom:10px;">Supported URL types</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
+            <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:16px;">🎬</span><span style="color:var(--text2);">YouTube / Vimeo embeds</span></div>
+            <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:16px;">🎵</span><span style="color:var(--text2);">SoundCloud / Spotify links</span></div>
+            <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:16px;">📄</span><span style="color:var(--text2);">Direct MP4 / MP3 / WebM files</span></div>
+            <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:16px;">🖼</span><span style="color:var(--text2);">Direct image URLs (JPG, PNG, WebP)</span></div>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;justify-content:center;padding:13px;font-size:15px;margin-top:4px;">
+        ⬆ Upload & Publish
+      </button>
+    </div>
+  </div>
+  </form>
 </div>
-</div>
-{% endblock %}
-{% block extra_scripts %}
+
 <script>
 const specs = {
-  image: {accept:'image/*', hint:'JPG, PNG, WebP, GIF — max 50MB', label:'Image File', show:true},
-  video: {accept:'video/*', hint:'MP4, WebM, MOV — max 500MB', label:'Video File', show:true},
-  music: {accept:'audio/*', hint:'MP3, WAV, FLAC, AAC — max 100MB', label:'Audio File', show:true},
-  blog:  {accept:'', hint:'', label:'', show:false},
+  image: {accept:'image/*', hint:'JPG, PNG, WebP, GIF — max 50 MB', label:'Image File', icon:'🖼', show:true},
+  video: {accept:'video/*', hint:'MP4, WebM, MOV — max 500 MB', label:'Video File', icon:'🎬', show:true},
+  music: {accept:'audio/*', hint:'MP3, WAV, FLAC, AAC — max 100 MB', label:'Audio File', icon:'🎵', show:true},
+  blog:  {accept:'',        hint:'',                                 label:'',          icon:'📝', show:false},
 };
-function updateUI(){
-  const ct = document.getElementById('ct').value;
-  const s = specs[ct] || specs.image;
-  const fi = document.getElementById('file-input');
-  const fg = document.getElementById('file-group');
-  const bg = document.getElementById('body-group');
-  fi.accept = s.accept;
-  document.getElementById('file-label').childNodes[0].textContent = s.show ? s.label + ' * ' : '';
-  document.getElementById('file-hint').textContent = s.hint;
+
+function updateUI() {
+  const ct   = document.getElementById('ct').value;
+  const s    = specs[ct] || specs.image;
+  const fi   = document.getElementById('file-input');
+  const fg   = document.getElementById('file-group');
+  const bg   = document.getElementById('body-group');
+  fi.accept  = s.accept;
+  document.getElementById('file-label').textContent = s.show ? s.label + ' *' : '';
+  document.getElementById('drop-hint').textContent  = s.hint;
+  document.getElementById('drop-icon').textContent  = s.icon;
   fg.style.display = s.show ? 'block' : 'none';
   bg.style.display = ct === 'blog' ? 'block' : 'none';
-  fi.required = s.show;
+  fi.required = s.show && document.getElementById('upload_mode').value === 'file';
 }
+
+function setMode(mode) {
+  document.getElementById('upload_mode').value = mode;
+  document.getElementById('btn-file').classList.toggle('active', mode === 'file');
+  document.getElementById('btn-url').classList.toggle('active', mode === 'url');
+  document.getElementById('file-section').style.display = mode === 'file' ? 'block' : 'none';
+  document.getElementById('url-section').style.display  = mode === 'url'  ? 'block' : 'none';
+  document.getElementById('mode-hint').textContent = mode === 'file'
+    ? 'Upload a file directly from your device. Supports video, audio, images, and blog posts.'
+    : 'Add content from an external URL — no storage used. Paste a YouTube, Vimeo, or direct file link.';
+  document.getElementById('submit-btn').textContent = mode === 'url' ? '🔗 Add by URL & Publish' : '⬆ Upload & Publish';
+  updateUI();
+}
+
+function fileChosen(inp) {
+  if (!inp.files[0]) return;
+  const el = document.getElementById('file-chosen');
+  el.textContent = '✓ ' + inp.files[0].name + ' (' + (inp.files[0].size/1048576).toFixed(1) + ' MB)';
+  el.style.display = 'block';
+  document.getElementById('drop-title').textContent = inp.files[0].name;
+}
+
+function thumbChosen(inp) {
+  if (!inp.files[0]) return;
+  const el = document.getElementById('thumb-chosen');
+  el.textContent = '✓ Thumbnail: ' + inp.files[0].name;
+  el.style.display = 'block';
+}
+
+// Drag & drop
+const dz = document.getElementById('drop-zone');
+if (dz) {
+  ['dragenter','dragover'].forEach(e => dz.addEventListener(e, ev => { ev.preventDefault(); dz.classList.add('dragover'); }));
+  ['dragleave','drop'].forEach(e => dz.addEventListener(e, ev => { ev.preventDefault(); dz.classList.remove('dragover'); }));
+  dz.addEventListener('drop', ev => {
+    const f = ev.dataTransfer.files[0];
+    if (f) { document.getElementById('file-input').files = ev.dataTransfer.files; fileChosen(document.getElementById('file-input')); }
+  });
+}
+
 updateUI();
 </script>
 {% endblock %}

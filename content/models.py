@@ -52,6 +52,7 @@ class Content(models.Model):
     file       = models.FileField(upload_to='content/', null=True, blank=True)
     thumbnail  = models.ImageField(upload_to='thumbnails/', null=True, blank=True)
     source_url = models.URLField(blank=True, help_text='External link used instead of an upload, to save storage space.')
+    thumbnail_url = models.URLField(blank=True, help_text='External thumbnail URL for URL-uploaded content.')
 
     # Blog specific
     body = models.TextField(blank=True)
