@@ -1799,3 +1799,36 @@ def creator_delete_content(request, pk):
     content.delete()
     messages.success(request, f'"{title}" deleted.')
     return redirect('creator_dashboard')
+
+    # =============================================================================
+# MISSING CREATOR SERIES VIEWS – add these to avoid AttributeError
+# =============================================================================
+
+@_creator_required
+def creator_series_list(request):
+    """List series created by the user (placeholder)."""
+    # You can implement a full list view, or redirect to dashboard
+    return redirect('creator_dashboard')
+
+
+@_creator_required
+def creator_series_create(request):
+    """Create a new series (placeholder)."""
+    return redirect('creator_dashboard')
+
+
+@_creator_required
+def creator_series_edit(request, pk):
+    """Edit a series (placeholder)."""
+    return redirect('creator_dashboard')
+
+
+@_creator_required
+def creator_series_delete(request, pk):
+    """Delete a series (placeholder)."""
+    return redirect('creator_dashboard')
+
+
+# Add any other missing creator series views if needed, e.g.:
+# def creator_series_detail(request, pk):
+#     return redirect('creator_dashboard')
