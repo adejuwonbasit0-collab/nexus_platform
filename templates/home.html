@@ -428,7 +428,7 @@ body { background:#07060f; color:#e8e8f0; }
       <div id="ns-hero">
         <div class="ns-greeting">
           {% if user.is_authenticated %}
-          Good {% now "G" as _h %}{% if _h|add:"0" < 12 %}morning{% elif _h|add:"0" < 18 %}afternoon{% else %}evening{% endif %},
+          Good {% now "G" as hour %}{% if hour|add:"0" < 12 %}morning{% elif hour|add:"0" < 18 %}afternoon{% else %}evening{% endif %},
           <span class="accent">{{ user.username }}</span>.
           {% else %}
           Music that <span class="accent">moves you.</span>
