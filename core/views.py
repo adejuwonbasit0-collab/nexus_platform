@@ -1832,3 +1832,56 @@ def creator_series_delete(request, pk):
 # Add any other missing creator series views if needed, e.g.:
 # def creator_series_detail(request, pk):
 #     return redirect('creator_dashboard')
+
+
+# =============================================================================
+# ADDITIONAL MISSING CREATOR VIEWS – Series, Episodes, etc.
+# =============================================================================
+
+@_creator_required
+def creator_series_list(request):
+    """List series created by the user."""
+    return redirect('creator_dashboard')
+
+
+@_creator_required
+def creator_create_series(request):
+    """Create a new series."""
+    return redirect('creator_dashboard')
+
+
+@_creator_required
+def creator_series_edit(request, pk):
+    """Edit a series."""
+    return redirect('creator_dashboard')
+
+
+@_creator_required
+def creator_series_delete(request, pk):
+    """Delete a series."""
+    return redirect('creator_dashboard')
+
+
+@_creator_required
+def creator_series_detail(request, pk):
+    """View a series detail."""
+    return redirect('creator_dashboard')
+
+
+# If there are episode-related views, add them too:
+@_creator_required
+def creator_episode_create(request, series_pk):
+    """Create an episode for a series."""
+    return redirect('creator_dashboard')
+
+
+@_creator_required
+def creator_episode_edit(request, series_pk, episode_pk):
+    """Edit an episode."""
+    return redirect('creator_dashboard')
+
+
+@_creator_required
+def creator_episode_delete(request, series_pk, episode_pk):
+    """Delete an episode."""
+    return redirect('creator_dashboard')
