@@ -9,7 +9,8 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
 from content.models import Content
-from accounts.models import User, Notification
+from accounts.models import User
+from .models import SiteSettings, Notification, AIProviderSettings
 
 
 def _admin_required(view_func):
