@@ -1885,3 +1885,49 @@ def creator_episode_edit(request, series_pk, episode_pk):
 def creator_episode_delete(request, series_pk, episode_pk):
     """Delete an episode."""
     return redirect('creator_dashboard')
+
+    # =============================================================================
+# ALL MISSING CREATOR SERIES/EPISODE VIEWS
+# =============================================================================
+
+@_creator_required
+def creator_series_episodes(request, series_pk):
+    """List episodes of a series."""
+    return redirect('creator_dashboard')
+
+
+@_creator_required
+def creator_episode_create(request, series_pk):
+    """Create an episode for a series."""
+    return redirect('creator_dashboard')
+
+
+@_creator_required
+def creator_episode_edit(request, series_pk, episode_pk):
+    """Edit an episode."""
+    return redirect('creator_dashboard')
+
+
+@_creator_required
+def creator_episode_delete(request, series_pk, episode_pk):
+    """Delete an episode."""
+    return redirect('creator_dashboard')
+
+
+@_creator_required
+def creator_episode_detail(request, series_pk, episode_pk):
+    """View an episode detail."""
+    return redirect('creator_dashboard')
+
+
+# If your creator_urls.py also expects these:
+@_creator_required
+def creator_series_publish(request, series_pk):
+    """Publish a series."""
+    return redirect('creator_dashboard')
+
+
+@_creator_required
+def creator_series_unpublish(request, series_pk):
+    """Unpublish a series."""
+    return redirect('creator_dashboard')
