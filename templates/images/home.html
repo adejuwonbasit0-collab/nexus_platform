@@ -1,107 +1,52 @@
 {% extends 'base.html' %}
-{% block title %}Image Gallery — NEXUS{% endblock %}
-{% block extra_head %}
+{% block title %}Gallery — NEXUS{% endblock %}
+{% block head %}
 <style>
-.ig-hero{background:linear-gradient(160deg,rgba(124,92,252,.12) 0%,rgba(0,212,170,.06) 60%,transparent 100%);border-bottom:1px solid var(--bd);padding:48px 0 36px;}
-.ig-hero h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(1.8rem,4vw,2.8rem);font-weight:800;margin-bottom:8px;}
-/* Category pills */
-.cat-strip{display:flex;gap:7px;flex-wrap:wrap;margin-top:18px;}
-.cat-pill{padding:5px 15px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid var(--bd);color:var(--tx2);background:rgba(255,255,255,.03);text-decoration:none;transition:all .15s;}
-.cat-pill:hover,.cat-pill.active{background:var(--ac);border-color:var(--ac);color:#fff;}
-/* Masonry grid */
-.masonry{columns:5 160px;gap:12px;}
-@media(max-width:900px){.masonry{columns:3 140px;}}
-@media(max-width:560px){.masonry{columns:2 130px;}}
-/* Image card */
-.img-card{display:block;break-inside:avoid;margin-bottom:12px;border-radius:12px;overflow:hidden;position:relative;text-decoration:none;background:var(--bg3);}
-.img-card img{width:100%;display:block;transition:transform .35s;}
-.img-card:hover img{transform:scale(1.04);}
-.img-card-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.82) 0%,rgba(0,0,0,.15) 50%,transparent 100%);opacity:0;transition:opacity .25s;display:flex;flex-direction:column;justify-content:flex-end;padding:12px;}
-.img-card:hover .img-card-overlay{opacity:1;}
-/* Placeholder */
-.img-ph{aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;font-size:2.5rem;background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(255,77,109,.07));}
-/* Section title */
-.stitle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
-.stitle-row h2{font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:700;}
-.stitle-row a{font-size:13px;color:var(--ac);text-decoration:none;}
+.ig-masonry{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.ig-card{border-radius:var(--r2);overflow:hidden;cursor:pointer;position:relative;background:var(--bg2);transition:transform .2s}
+.ig-card:hover{transform:scale(1.02)}
+.ig-card img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.ig-overlay{position:absolute;inset:0;background:linear-gradient(180deg,transparent 50%,rgba(0,0,0,.8) 100%);display:flex;align-items:flex-end;padding:12px;opacity:0;transition:opacity .2s}
+.ig-card:hover .ig-overlay{opacity:1}
+.ig-title{font-size:12px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:900px){.sp-sec{padding-left:16px;padding-right:16px}}
+@media(max-width:600px){.ig-masonry{grid-template-columns:repeat(2,1fr);gap:8px}}
 </style>
 {% endblock %}
 {% block content %}
+<div class="home-greeting" style="padding:32px 32px 0">🖼 Gallery</div>
 
-<div class="ig-hero">
-  <div class="container">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;">
-      <div>
-        <h1>🖼 Image <span style="background:linear-gradient(135deg,var(--ac),var(--ac2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Gallery</span></h1>
-        <p style="color:var(--tx2);font-size:14px;">Browse, download and share high-quality images</p>
-      </div>
-      <div style="display:flex;gap:8px;">
-        <a href="/ai/studio/" class="btn btn-outline" style="border-color:rgba(124,92,252,.4);color:var(--ac);">✨ AI Generate</a>
-        <a href="/images/browse/" class="btn btn-primary">Browse All</a>
-      </div>
-    </div>
-    <div class="cat-strip">
-      <a href="/images/" class="cat-pill active">All</a>
-      {% for c in cats %}<a href="/images/browse/?cat={{ c.slug }}" class="cat-pill">{{ c.name }}</a>{% endfor %}
-    </div>
+{% if featured %}
+<div class="sp-sec">
+  <div class="sp-section-head"><div class="sp-section-title">⭐ Featured</div></div>
+  <div class="sp-row">
+    {% for img in featured %}
+    <a href="/images/{{ img.slug }}/" class="sp-card" style="width:180px;flex-shrink:0">
+      <div class="sp-card-cover">{% if img.file %}<img src="{{ img.file.url }}" loading="lazy">{% else %}🖼{% endif %}</div>
+      <div class="sp-card-title">{{ img.title }}</div>
+    </a>
+    {% endfor %}
   </div>
 </div>
+{% endif %}
 
-<div class="container" style="padding-top:36px;padding-bottom:80px;">
+{% if cats %}
+<div class="sp-sec">
+  <div class="pill-nav">{% for c in cats %}<a href="/images/browse/?cat={{ c.slug }}" class="pill-btn">{{ c.name }}</a>{% endfor %}</div>
+</div>
+{% endif %}
 
-  {# Featured #}
-  {% if featured %}
-  <div style="margin-bottom:44px;">
-    <div class="stitle-row">
-      <h2>⭐ Featured Images</h2>
-      <a href="/images/browse/">Browse All →</a>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">
-      {% for img in featured %}
-      <a href="/images/view/{{ img.slug }}/" class="img-card">
-        {% if img.has_image %}
-        <img src="{{ img.display_url }}" alt="{{ img.title }}" style="aspect-ratio:4/3;object-fit:cover;">
-        {% else %}<div class="img-ph">🖼</div>{% endif %}
-        <div class="img-card-overlay">
-          <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ img.title }}</div>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <span style="font-size:11px;color:rgba(255,255,255,.7);">{{ img.resolution|default:"HD"|upper }}</span>
-            {% if img.is_premium %}<span style="font-size:10px;background:rgba(124,92,252,.6);color:#fff;padding:1px 7px;border-radius:4px;font-weight:700;">PRO</span>
-            {% else %}<span style="font-size:10px;background:rgba(34,197,94,.4);color:#fff;padding:1px 7px;border-radius:4px;font-weight:700;">FREE</span>{% endif %}
-          </div>
-        </div>
-      </a>
-      {% endfor %}
-    </div>
+<div class="sp-sec">
+  <div class="sp-section-head"><div class="sp-section-title">🆕 Recent Uploads</div><a href="/images/browse/" class="sp-section-more">Browse all</a></div>
+  <div class="ig-masonry">
+    {% for img in recent %}
+    <a href="/images/{{ img.slug }}/" class="ig-card">
+      {% if img.file %}<img src="{{ img.file.url }}" loading="lazy" alt="{{ img.title }}">{% else %}<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:36px;background:var(--bg3)">🖼</div>{% endif %}
+      <div class="ig-overlay"><div class="ig-title">{{ img.title }}</div></div>
+    </a>
+    {% empty %}
+    <div class="empty" style="grid-column:1/-1"><div class="empty-icon">🖼</div><h3>No images yet</h3></div>
+    {% endfor %}
   </div>
-  {% endif %}
-
-  {# Recent - masonry #}
-  <div>
-    <div class="stitle-row">
-      <h2>🆕 Latest Uploads</h2>
-      <a href="/images/browse/">See all →</a>
-    </div>
-    {% if recent %}
-    <div class="masonry">
-      {% for img in recent %}
-      <a href="/images/view/{{ img.slug }}/" class="img-card">
-        {% if img.has_image %}
-        <img src="{{ img.display_url }}" alt="{{ img.title }}">
-        {% else %}<div class="img-ph" style="aspect-ratio:{% cycle '3/4' '4/3' '1/1' %};">🖼</div>{% endif %}
-        <div class="img-card-overlay">
-          <div style="font-size:12px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ img.title }}</div>
-        </div>
-      </a>
-      {% endfor %}
-    </div>
-    {% else %}
-    <div style="text-align:center;padding:80px 20px;color:var(--tx2);">
-      <div style="font-size:3rem;margin-bottom:12px;opacity:.3;">🖼</div>
-      <p>No images uploaded yet.</p>
-    </div>
-    {% endif %}
-  </div>
-
 </div>
 {% endblock %}

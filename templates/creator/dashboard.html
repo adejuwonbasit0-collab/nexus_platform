@@ -1,500 +1,110 @@
 {% extends 'base.html' %}
 {% block title %}Creator Studio — NEXUS{% endblock %}
-{% block extra_head %}
+{% block head %}
 <style>
-/* ── Layout ── */
-:root{--csb:220px}
-.cs-layout{display:flex;min-height:calc(100vh - 60px)}
-/* Sidebar */
-.cs-sidebar{width:var(--csb);flex-shrink:0;background:rgba(10,10,18,.97);border-right:1px solid rgba(255,255,255,.07);padding:20px 0 40px;position:sticky;top:60px;height:calc(100vh - 60px);overflow-y:auto;display:flex;flex-direction:column}
-.cs-logo{padding:0 16px 18px;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:14px}
-.cs-logo span{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:14px;background:linear-gradient(135deg,var(--ac),var(--ac2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.csb-sec{padding:0 8px;margin-bottom:6px}
-.csb-lbl{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.25);padding:6px 10px 3px}
-.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;font-size:13px;font-weight:500;color:rgba(255,255,255,.55);cursor:pointer;border:none;background:none;width:100%;text-align:left;transition:all .15s}
-.nav-item:hover{color:#fff;background:rgba(255,255,255,.06)}
-.nav-item.active{color:#fff;background:linear-gradient(135deg,rgba(124,92,252,.25),rgba(124,92,252,.1));border:1px solid rgba(124,92,252,.25)}
-.nav-icon{font-size:16px;width:22px;text-align:center;flex-shrink:0}
-.cs-footer{margin-top:auto;padding:14px 16px;border-top:1px solid rgba(255,255,255,.07);font-size:11px;color:rgba(255,255,255,.25);line-height:1.6}
-
-/* Main */
-.cs-main{flex:1;overflow-y:auto;background:var(--bg)}
-.cs-inner{max-width:900px;margin:0 auto;padding:28px 28px 80px}
-
-/* Panels */
-.cp{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:16px;overflow:hidden;margin-bottom:20px}
-.cp-head{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.07)}
-.cp-title{font-size:14px;font-weight:700;font-family:'Space Grotesk',sans-serif}
-.cp-body{padding:20px}
-
-/* Stats */
-.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:24px}
-.stat{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:16px 18px;transition:all .2s}
-.stat:hover{border-color:rgba(124,92,252,.25);transform:translateY(-2px);box-shadow:0 12px 32px rgba(0,0,0,.35)}
-.stat-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.4);margin-bottom:8px}
-.stat-val{font-size:24px;font-weight:800;font-family:'Space Grotesk',sans-serif;line-height:1}
-
-/* Form fields */
-.fg{display:flex;flex-direction:column;gap:5px}
-.fg label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.5)}
-.finput{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:9px;padding:11px 13px;color:#fff;font-size:13px;outline:none;transition:all .15s;font-family:inherit}
-.finput:focus{border-color:rgba(124,92,252,.6);box-shadow:0 0 0 3px rgba(124,92,252,.12)}
-.finput::placeholder{color:rgba(255,255,255,.2)}
-select.finput option{background:#1a1a2e;color:#fff}
-.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.fgrid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
-.span2{grid-column:span 2}
-.fcheck{display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,.7);cursor:pointer;padding:8px 0}
-.fcheck input[type=checkbox]{width:16px;height:16px;accent-color:var(--ac)}
-.ftag{display:inline-flex;align-items:center;gap:5px;padding:3px 10px 3px 11px;border-radius:20px;background:rgba(124,92,252,.15);border:1px solid rgba(124,92,252,.25);color:var(--ac);font-size:12px;cursor:pointer;margin:3px 2px}
-.ftag:hover{background:rgba(124,92,252,.25)}
-.ftag input[type=checkbox]{display:none}
-.ftag.sel{background:rgba(124,92,252,.3);border-color:var(--ac)}
-
-/* Section tabs */
-.stab-bar{display:none}
-.ctab{display:none}.ctab.active{display:block}
-
-/* Status badges */
-.s-pending{background:rgba(245,158,11,.1);color:#f59e0b;border:1px solid rgba(245,158,11,.2);border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700}
-.s-approved{background:rgba(34,197,94,.1);color:#22c55e;border:1px solid rgba(34,197,94,.2);border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700}
-.s-rejected{background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.2);border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700}
-.s-draft{background:rgba(156,163,175,.1);color:#9ca3af;border:1px solid rgba(156,163,175,.2);border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700}
-
-/* Info alert */
-.info-box{padding:12px 16px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.15);border-radius:9px;font-size:12px;color:rgba(255,255,255,.5);margin-top:8px}
-
-/* Mobile */
-.mob-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:rgba(10,10,18,.97);border-top:1px solid rgba(255,255,255,.08);z-index:200;padding:6px 0 max(6px,env(safe-area-inset-bottom))}
-.mob-nav-inner{display:grid;grid-template-columns:repeat(6,1fr);gap:2px;padding:0 8px}
-.mob-btn{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px;border-radius:8px;border:none;background:none;cursor:pointer;color:rgba(255,255,255,.4);font-size:9px;font-weight:600;letter-spacing:.03em;transition:color .15s}
-.mob-btn:hover,.mob-btn.active{color:var(--ac)}
-.mob-btn .mi{font-size:18px}
-
-@media(min-width:769px) and (max-width:1024px){
-  :root{--csb:180px}
-  .cs-inner{max-width:100%;padding:24px 20px 80px}
-  .fgrid-3{grid-template-columns:1fr 1fr}
-}
-@media(max-width:768px){
-  .cs-sidebar{display:none}
-  .mob-nav{display:block}
-  .cs-inner{padding:16px 14px 100px}
-  .fgrid{grid-template-columns:1fr}
-  .fgrid-3{grid-template-columns:1fr}
-  .span2{grid-column:span 1}
-  .stat-row{grid-template-columns:repeat(2,1fr)}
-}
+.cd-hero{background:linear-gradient(180deg,rgba(29,185,84,.18) 0%,transparent 60%);padding:40px 32px 24px}
+.cd-title{font-family:'Space Grotesk',sans-serif;font-size:clamp(24px,4vw,38px);font-weight:900;color:#fff;margin-bottom:8px}
+.cd-sub{font-size:14px;color:var(--tx2)}
+.cd-stat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;padding:0 32px;margin-bottom:32px}
+.cd-stat{background:var(--bg2);border-radius:var(--r2);padding:18px 20px;border:1px solid rgba(255,255,255,.04)}
+.cd-stat-val{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:800;color:#fff}
+.cd-stat-label{font-size:11px;color:var(--tx2);margin-top:4px;text-transform:uppercase;letter-spacing:.05em}
+.cd-stat.green .cd-stat-val{color:var(--sp-green)}
+.cd-stat.yellow .cd-stat-val{color:#f59e0b}
+.cd-stat.red .cd-stat-val{color:#ef4444}
+.cd-actions{display:flex;gap:12px;padding:0 32px 32px;flex-wrap:wrap}
 @media(max-width:900px){
-  .panel:has(table), .card:has(table){overflow-x:auto;-webkit-overflow-scrolling:touch}
-  table{min-width:480px}
-}
-@media(max-width:400px){
-  .stat-row{grid-template-columns:1fr}
-  .cs-inner{padding:12px 10px 90px}
+  .cd-stat-grid{grid-template-columns:repeat(2,1fr);padding:0 16px}
+  .cd-hero,.cd-actions{padding-left:16px;padding-right:16px}
 }
 </style>
 {% endblock %}
 {% block content %}
-<div class="cs-layout">
 
-{# ── Desktop Sidebar ── #}
-<aside class="cs-sidebar">
-  <div class="cs-logo"><span>⚡ Creator Studio</span></div>
-  <div class="csb-sec">
-    <div class="csb-lbl">Studio</div>
-    <button class="nav-item active" onclick="goTab('overview',this)"><span class="nav-icon">📊</span>Overview</button>
-    <button class="nav-item" onclick="goTab('my-content',this)"><span class="nav-icon">📁</span>My Content</button>
-  </div>
-  <div class="csb-sec" style="margin-top:4px">
-    <div class="csb-lbl">Upload</div>
-    <button class="nav-item" onclick="goTab('up-music',this)"><span class="nav-icon">🎵</span>Music / Track</button>
-    <button class="nav-item" onclick="goTab('up-video',this)"><span class="nav-icon">🎬</span>Movie / Video</button>
-    <button class="nav-item" onclick="goTab('up-image',this)"><span class="nav-icon">🖼</span>Image</button>
-    <button class="nav-item" onclick="goTab('up-blog',this)"><span class="nav-icon">📝</span>Blog Post</button>
-  </div>
-  <div class="csb-sec" style="margin-top:4px">
-    <div class="csb-lbl">Finance</div>
-    <button class="nav-item" onclick="goTab('earnings',this)"><span class="nav-icon">💰</span>Earnings</button>
-  </div>
-  <div class="cs-footer">All uploads need admin review before going live.</div>
-</aside>
+<div class="cd-hero">
+  <div class="cd-title">✨ Creator Studio</div>
+  <div class="cd-sub">Upload, manage, and earn from your content.</div>
+</div>
 
-{# ── Main ── #}
-<main class="cs-main">
-<div class="cs-inner">
+<div class="cd-stat-grid">
+  <div class="cd-stat"><div class="cd-stat-val">{{ stats.total_uploads }}</div><div class="cd-stat-label">Total Uploads</div></div>
+  <div class="cd-stat green"><div class="cd-stat-val">{{ stats.approved }}</div><div class="cd-stat-label">Approved</div></div>
+  <div class="cd-stat yellow"><div class="cd-stat-val">{{ stats.pending }}</div><div class="cd-stat-label">Pending</div></div>
+  <div class="cd-stat red"><div class="cd-stat-val">{{ stats.rejected }}</div><div class="cd-stat-label">Rejected</div></div>
+  <div class="cd-stat"><div class="cd-stat-val">{{ stats.total_views }}</div><div class="cd-stat-label">Total Views</div></div>
+</div>
 
-  {% for msg in messages %}
-  <div style="padding:12px 16px;border-radius:10px;margin-bottom:16px;font-size:13px;{% if 'error' in msg.tags %}background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#fca5a5;{% else %}background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);color:#86efac;{% endif %}">{{ msg }}</div>
-  {% endfor %}
+<div class="cd-actions">
+  <a href="/creator/upload/" class="btn btn-primary btn-lg" style="padding:13px 28px;font-size:14px">⬆ Upload Content</a>
+  <a href="/creator/write/" class="btn btn-outline" style="padding:13px 24px">📝 Write Blog Post</a>
+  {% if wallet %}<a href="/monetization/wallet/" class="btn btn-outline" style="padding:13px 24px">💰 Wallet — ₦{{ wallet.balance|default:0 }}</a>{% endif %}
+</div>
 
-{# ══ OVERVIEW ══ #}
-<div class="ctab active" id="tab-overview">
-  <div style="margin-bottom:22px">
-    <h1 style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:800;margin-bottom:4px">👋 Hey, {{ user.username }}</h1>
-    <p style="color:rgba(255,255,255,.4);font-size:13px">Here's your creator summary</p>
-  </div>
-  <div class="stat-row">
-    <div class="stat"><div class="stat-lbl">Uploads</div><div class="stat-val">{{ stats.total_uploads }}</div></div>
-    <div class="stat"><div class="stat-lbl">Live</div><div class="stat-val" style="color:#22c55e">{{ stats.approved }}</div></div>
-    <div class="stat"><div class="stat-lbl">In Review</div><div class="stat-val" style="color:#f59e0b">{{ stats.pending }}</div></div>
-    <div class="stat"><div class="stat-lbl">Total Views</div><div class="stat-val">{{ stats.total_views }}</div></div>
-    {% if wallet %}<div class="stat" style="background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(255,77,109,.1));border-color:rgba(124,92,252,.3)">
-      <div class="stat-lbl" style="color:rgba(255,255,255,.5)">Wallet</div>
-      <div class="stat-val">₦{{ wallet.balance|default:"0" }}</div>
-      <a href="/creator/withdraw/" style="font-size:11px;color:var(--ac);margin-top:8px;display:inline-block">Withdraw →</a>
-    </div>{% endif %}
-  </div>
-  <div class="cp">
-    <div class="cp-head"><span class="cp-title">📋 Recent Uploads</span></div>
-    <div style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;font-size:13px">
-        <thead><tr style="border-bottom:1px solid rgba(255,255,255,.07)">
-          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.35)">Title</th>
-          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.35)">Type</th>
-          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.35)">Status</th>
-          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.35)">Date</th>
-          <th></th>
-        </tr></thead>
-        <tbody>
-        {% for c in content %}
-        <tr style="border-bottom:1px solid rgba(255,255,255,.04)">
-          <td style="padding:11px 14px;font-weight:500;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.title }}</td>
-          <td style="padding:11px 14px"><span style="background:rgba(124,92,252,.12);color:var(--ac);border-radius:20px;padding:2px 9px;font-size:10px;text-transform:uppercase">{{ c.content_type }}</span></td>
-          <td style="padding:11px 14px"><span class="s-{{ c.status }}">{{ c.status }}</span></td>
-          <td style="padding:11px 14px;font-size:11px;color:rgba(255,255,255,.3)">{{ c.created_at|date:"M d, Y" }}</td>
-          <td style="padding:11px 14px"><form method="post" action="/creator/delete/{{ c.pk }}/" onsubmit="return confirm('Delete?')" style="display:inline">{% csrf_token %}<button style="background:none;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:14px;padding:3px 7px;border-radius:6px;transition:color .15s" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='rgba(255,255,255,.3)'">🗑</button></form></td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="5" style="text-align:center;padding:40px;color:rgba(255,255,255,.3);font-size:13px">No uploads yet — choose a content type below to start.</td></tr>
-        {% endfor %}
-        </tbody>
-      </table>
+{% if recent_earnings %}
+<div class="sp-sec">
+  <div class="sp-section-head"><div class="sp-section-title">💰 Recent Earnings</div></div>
+  <div class="panel">
+    <div class="panel-body" style="padding:8px">
+      {% for e in recent_earnings %}
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--bd)">
+        <div><div style="font-size:13px;font-weight:600">{{ e.description|default:e.get_source_display }}</div><div style="font-size:11px;color:var(--tx2)">{{ e.created_at|date:"M d, Y" }}</div></div>
+        <div style="font-size:14px;font-weight:700;color:var(--sp-green)">+₦{{ e.amount }}</div>
+      </div>
+      {% endfor %}
     </div>
   </div>
 </div>
+{% endif %}
 
-{# ══ MY CONTENT ══ #}
-<div class="ctab" id="tab-my-content">
-  <h2 style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:800;margin-bottom:18px">📁 All My Content</h2>
-  <div class="cp">
+<div class="sp-sec">
+  <div class="sp-section-head"><div class="sp-section-title">📦 My Content</div><a href="#" onclick="document.getElementById('cd-all').scrollIntoView({behavior:'smooth'});return false" class="sp-section-more">View all ({{ all_content.count }})</a></div>
+  {% if content %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:16px">
+    {% for c in content %}
+    <a href="/creator/edit/{{ c.pk }}/" class="sp-card">
+      <div class="sp-card-cover">
+        {% if c.thumbnail %}<img src="{{ c.thumbnail.url }}" loading="lazy">{% else %}{% if c.content_type == 'video' %}🎬{% elif c.content_type == 'music' %}🎵{% elif c.content_type == 'image' %}🖼{% else %}📝{% endif %}{% endif %}
+      </div>
+      <div class="sp-card-title">{{ c.title }}</div>
+      <div class="sp-card-sub">
+        <span class="badge {% if c.status == 'approved' %}badge-green{% elif c.status == 'pending' %}badge-gold{% else %}badge-red{% endif %}">{{ c.get_status_display }}</span>
+        {{ c.views|default:0 }} views
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty"><div class="empty-icon">📤</div><h3>No content yet</h3><p>Start uploading to grow your audience and earnings.</p><a href="/creator/upload/" class="btn btn-primary" style="margin-top:16px">Upload Your First Content</a></div>
+  {% endif %}
+</div>
+
+<div class="sp-sec" id="cd-all">
+  <div class="sp-section-head"><div class="sp-section-title">All Uploads</div></div>
+  <div class="panel">
     <div style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;font-size:13px">
-        <thead><tr style="border-bottom:1px solid rgba(255,255,255,.07)">
-          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.35)">Title</th>
-          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.35)">Type</th>
-          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.35)">Status</th>
-          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.35)">Views</th>
-          <th></th>
+      <table style="width:100%;border-collapse:collapse;min-width:560px">
+        <thead><tr style="border-bottom:1px solid var(--bd)">
+          <th style="text-align:left;padding:10px 16px;font-size:11px;color:var(--tx2);text-transform:uppercase">Title</th>
+          <th style="text-align:left;padding:10px 16px;font-size:11px;color:var(--tx2);text-transform:uppercase">Type</th>
+          <th style="text-align:left;padding:10px 16px;font-size:11px;color:var(--tx2);text-transform:uppercase">Status</th>
+          <th style="text-align:right;padding:10px 16px;font-size:11px;color:var(--tx2);text-transform:uppercase">Views</th>
+          <th style="text-align:right;padding:10px 16px;font-size:11px;color:var(--tx2);text-transform:uppercase">Date</th>
         </tr></thead>
         <tbody>
         {% for c in all_content %}
-        <tr style="border-bottom:1px solid rgba(255,255,255,.04)">
-          <td style="padding:10px 14px;font-weight:500;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.title }}</td>
-          <td style="padding:10px 14px"><span style="background:rgba(124,92,252,.12);color:var(--ac);border-radius:20px;padding:2px 9px;font-size:10px;text-transform:uppercase">{{ c.content_type }}</span></td>
-          <td style="padding:10px 14px"><span class="s-{{ c.status }}">{{ c.status }}</span></td>
-          <td style="padding:10px 14px;font-size:12px;color:rgba(255,255,255,.4)">{{ c.views|default:0 }}</td>
-          <td style="padding:10px 14px;display:flex;gap:5px">
-            <a href="/creator/edit/{{ c.pk }}/" class="btn btn-ghost btn-xs">✏</a>
-            <form method="post" action="/creator/delete/{{ c.pk }}/" onsubmit="return confirm('Delete?')" style="display:inline">{% csrf_token %}<button style="background:none;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:14px;padding:3px;transition:color .15s" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='rgba(255,255,255,.3)'">🗑</button></form>
-          </td>
+        <tr style="border-bottom:1px solid rgba(255,255,255,.04)" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background=''">
+          <td style="padding:10px 16px;font-size:13px;font-weight:500"><a href="/creator/edit/{{ c.pk }}/" style="color:#fff;text-decoration:none">{{ c.title }}</a></td>
+          <td style="padding:10px 16px;font-size:12px;color:var(--tx2)">{{ c.get_content_type_display }}</td>
+          <td style="padding:10px 16px"><span class="badge {% if c.status == 'approved' %}badge-green{% elif c.status == 'pending' %}badge-gold{% else %}badge-red{% endif %}">{{ c.get_status_display }}</span></td>
+          <td style="padding:10px 16px;text-align:right;font-size:13px">{{ c.views|default:0 }}</td>
+          <td style="padding:10px 16px;text-align:right;font-size:12px;color:var(--tx2)">{{ c.created_at|date:"M d" }}</td>
         </tr>
         {% empty %}
-        <tr><td colspan="5" style="text-align:center;padding:40px;color:rgba(255,255,255,.3)">Nothing yet.</td></tr>
+        <tr><td colspan="5" style="text-align:center;padding:32px;color:var(--tx2)">No content yet.</td></tr>
         {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
 </div>
-
-{# ══ MUSIC UPLOAD ══ #}
-<div class="ctab" id="tab-up-music">
-  <h2 style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:800;margin-bottom:20px">🎵 Upload Music Track</h2>
-  <div class="cp"><div class="cp-body">
-  <form method="post" action="/creator/upload/" enctype="multipart/form-data">{% csrf_token %}
-  <input type="hidden" name="content_type" value="music">
-  <div class="fgrid">
-    <div class="fg"><label>Track Title *</label><input class="finput" name="title" required placeholder="Song title…"></div>
-    <div class="fg"><label>Release Year</label><input class="finput" type="number" name="release_year" value="2025" min="1950" max="2030"></div>
-
-    <div class="fg">
-      <label>Main Artist *</label>
-      <select class="finput" name="artist_pk">
-        <option value="">— Select existing —</option>
-        {% for a in artists %}<option value="{{ a.pk }}">{{ a.name }}</option>{% endfor %}
-      </select>
-    </div>
-    <div class="fg"><label>— or — New Artist Name</label><input class="finput" name="artist_name_new" placeholder="Type new artist name…"></div>
-
-    <div class="fg">
-      <label>Genre</label>
-      <select class="finput" name="genre_pk">
-        <option value="">No genre</option>
-        {% for g in music_genres %}<option value="{{ g.pk }}">{{ g.name }}</option>{% endfor %}
-      </select>
-    </div>
-    <div class="fg">
-      <label>Album (optional)</label>
-      <select class="finput" name="album_pk">
-        <option value="">No album</option>
-        {% for al in albums %}<option value="{{ al.pk }}">{{ al.title }} — {{ al.artist.name }}</option>{% endfor %}
-      </select>
-    </div>
-
-    <div class="fg"><label>Audio File * <span style="font-weight:400;color:rgba(255,255,255,.3)">MP3 / WAV / FLAC</span></label><input class="finput" type="file" name="audio_file" accept="audio/*" required></div>
-    <div class="fg"><label>Cover Art</label><input class="finput" type="file" name="cover_image" accept="image/*"></div>
-
-    <div class="fg"><label>Produced By</label><input class="finput" name="produced_by" placeholder="Producer name"></div>
-    <div class="fg"><label>Written By</label><input class="finput" name="written_by" placeholder="Songwriter(s)"></div>
-    <div class="fg"><label>Label</label><input class="finput" name="label" placeholder="Record label"></div>
-    <div class="fg">
-      <label>Tier</label>
-      <select class="finput" name="tier">
-        <option value="free">Free</option>
-        <option value="premium">Premium</option>
-      </select>
-    </div>
-    <div class="fg span2"><label>Lyrics</label><textarea class="finput" name="lyrics" rows="6" placeholder="Paste song lyrics…"></textarea></div>
-  </div>
-  <div class="info-box">⚠️ Submitted for admin review before going live on the platform.</div>
-  <button type="submit" class="btn btn-primary" style="margin-top:16px;padding:12px 32px;font-size:15px">🎵 Submit Track</button>
-  </form>
-  </div></div>
-</div>
-
-{# ══ VIDEO / MOVIE UPLOAD ══ #}
-<div class="ctab" id="tab-up-video">
-  <h2 style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:800;margin-bottom:20px">🎬 Upload Movie / Video</h2>
-  <div class="cp"><div class="cp-body">
-  <form method="post" action="/creator/upload/" enctype="multipart/form-data">{% csrf_token %}
-  <input type="hidden" name="content_type" value="video">
-  <div class="fgrid">
-    <div class="fg"><label>Movie / Video Title *</label><input class="finput" name="title" required placeholder="Title…"></div>
-    <div class="fg"><label>Release Year</label><input class="finput" type="number" name="release_year" value="2025" min="1900" max="2030"></div>
-
-    <div class="fg">
-      <label>Quality</label>
-      <select class="finput" name="quality">
-        {% for q_val, q_label in qualities %}<option value="{{ q_val }}">{{ q_label }}</option>{% endfor %}
-      </select>
-    </div>
-    <div class="fg">
-      <label>Tier</label>
-      <select class="finput" name="tier">
-        <option value="free">Free</option>
-        <option value="premium">Premium</option>
-      </select>
-    </div>
-
-    <div class="fg"><label>Trailer URL <span style="font-weight:400;color:rgba(255,255,255,.3)">YouTube link</span></label><input class="finput" type="url" name="trailer_url" placeholder="https://youtube.com/watch?v=..."></div>
-    <div class="fg">
-      <label>Genre</label>
-      <select class="finput" name="genre_pk">
-        <option value="">No genre</option>
-        {% for g in movie_genres %}<option value="{{ g.pk }}">{{ g.name }}</option>{% endfor %}
-      </select>
-    </div>
-
-    <div class="fg"><label>Video File *</label><input class="finput" type="file" name="video_file" accept="video/*" required></div>
-    <div class="fg"><label>Poster / Thumbnail</label><input class="finput" type="file" name="thumbnail" accept="image/*"></div>
-
-    <div class="fg span2"><label>Synopsis / Description</label><textarea class="finput" name="description" rows="4" placeholder="Movie synopsis…"></textarea></div>
-  </div>
-  <div class="info-box">⚠️ Submitted for admin review before going live.</div>
-  <button type="submit" class="btn btn-primary" style="margin-top:16px;padding:12px 32px;font-size:15px">🎬 Submit Movie</button>
-  </form>
-  </div></div>
-</div>
-
-{# ══ IMAGE UPLOAD ══ #}
-<div class="ctab" id="tab-up-image">
-  <h2 style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:800;margin-bottom:20px">🖼 Upload Image</h2>
-  <div class="cp"><div class="cp-body">
-  <form method="post" action="/creator/upload/" enctype="multipart/form-data">{% csrf_token %}
-  <input type="hidden" name="content_type" value="image">
-  <div class="fgrid">
-    <div class="fg"><label>Image Title *</label><input class="finput" name="title" required placeholder="Title for this image…"></div>
-    <div class="fg">
-      <label>Category</label>
-      <select class="finput" name="category_pk">
-        <option value="">No category</option>
-        {% for cat in image_cats %}<option value="{{ cat.pk }}">{{ cat.name }}</option>{% endfor %}
-      </select>
-    </div>
-    <div class="fg">
-      <label>Resolution</label>
-      <select class="finput" name="resolution">
-        <option value="sd">SD — Standard</option>
-        <option value="hd" selected>HD — High Definition</option>
-        <option value="fhd">FHD — Full HD</option>
-        <option value="4k">4K — Ultra HD</option>
-      </select>
-    </div>
-    <div class="fg">
-      <label>Tier</label>
-      <select class="finput" name="tier">
-        <option value="free">Free — Anyone can download</option>
-        <option value="premium">Premium — Subscribers only</option>
-      </select>
-    </div>
-    <div class="fg span2"><label>Image File *</label><input class="finput" type="file" name="image_file" accept="image/*" required></div>
-    <div class="fg span2"><label>Description</label><textarea class="finput" name="description" rows="3" placeholder="Describe this image…"></textarea></div>
-    {% if image_tags %}
-    <div class="fg span2">
-      <label>Tags <span style="font-weight:400;color:rgba(255,255,255,.3)">(select all that apply)</span></label>
-      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">
-        {% for t in image_tags %}
-        <label class="ftag" id="itag-{{ t.pk }}" onclick="toggleTag(this,'{{ t.pk }}','tag_ids')">
-          <input type="checkbox" name="tag_ids" value="{{ t.pk }}">#{{ t.name }}
-        </label>
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
-  </div>
-  <div class="info-box">⚠️ Submitted for admin review before going live.</div>
-  <button type="submit" class="btn btn-primary" style="margin-top:16px;padding:12px 32px;font-size:15px">🖼 Submit Image</button>
-  </form>
-  </div></div>
-</div>
-
-{# ══ BLOG POST ══ #}
-<div class="ctab" id="tab-up-blog">
-  <h2 style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:800;margin-bottom:20px">📝 Write Blog Post</h2>
-  <div class="cp"><div class="cp-body">
-  <form method="post" action="/creator/upload/" enctype="multipart/form-data">{% csrf_token %}
-  <input type="hidden" name="content_type" value="blog">
-  <div style="display:grid;gap:14px">
-    <div class="fgrid">
-      <div class="fg"><label>Post Title *</label><input class="finput" name="title" required placeholder="Post title…"></div>
-      <div class="fg">
-        <label>Category</label>
-        <select class="finput" name="category_pk">
-          <option value="">No category</option>
-          {% for cat in blog_cats %}<option value="{{ cat.pk }}">{{ cat.name }}</option>{% endfor %}
-        </select>
-      </div>
-    </div>
-    <div class="fg"><label>Featured Image</label><input class="finput" type="file" name="featured_img" accept="image/*"></div>
-    <div class="fg"><label>Excerpt <span style="font-weight:400;color:rgba(255,255,255,.3)">(short description)</span></label><textarea class="finput" name="excerpt" rows="2" placeholder="Brief summary shown in listings…"></textarea></div>
-
-    {# Toolbar #}
-    <div class="fg">
-      <label>Content *</label>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;padding:8px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:9px 9px 0 0;border-bottom:none">
-        <button type="button" onclick="fmt('bold')" style="padding:4px 9px;border-radius:5px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:#fff;cursor:pointer;font-size:12px;font-weight:700">B</button>
-        <button type="button" onclick="fmt('italic')" style="padding:4px 9px;border-radius:5px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:#fff;cursor:pointer;font-size:12px;font-style:italic">I</button>
-        <button type="button" onclick="fmtBlock('h2')" style="padding:4px 9px;border-radius:5px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:#fff;cursor:pointer;font-size:12px">H2</button>
-        <button type="button" onclick="fmtBlock('h3')" style="padding:4px 9px;border-radius:5px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:#fff;cursor:pointer;font-size:12px">H3</button>
-        <button type="button" onclick="fmt('insertUnorderedList')" style="padding:4px 9px;border-radius:5px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:#fff;cursor:pointer;font-size:12px">• List</button>
-        <button type="button" onclick="fmtBlock('blockquote')" style="padding:4px 9px;border-radius:5px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:#fff;cursor:pointer;font-size:12px">" Quote</button>
-        <button type="button" onclick="insertLink()" style="padding:4px 9px;border-radius:5px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:#fff;cursor:pointer;font-size:12px">🔗 Link</button>
-      </div>
-      <div id="blog-editor" contenteditable="true" style="min-height:280px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:0 0 9px 9px;padding:14px 16px;color:#fff;font-size:14px;line-height:1.8;outline:none" oninput="syncBlog()"></div>
-      <input type="hidden" name="content" id="blog-content">
-    </div>
-
-    {% if blog_tags %}
-    <div class="fg">
-      <label>Tags</label>
-      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">
-        {% for t in blog_tags %}
-        <label class="ftag" id="btag-{{ t.pk }}" onclick="toggleTag(this,'{{ t.pk }}','tag_ids')">
-          <input type="checkbox" name="tag_ids" value="{{ t.pk }}">#{{ t.name }}
-        </label>
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
-  </div>
-  <div class="info-box">💾 Saved as draft — publish from the admin panel or request approval.</div>
-  <button type="submit" class="btn btn-primary" style="margin-top:16px;padding:12px 32px;font-size:15px" onclick="syncBlog()">📝 Save Post</button>
-  </form>
-  </div></div>
-</div>
-
-{# ══ EARNINGS ══ #}
-<div class="ctab" id="tab-earnings">
-  <h2 style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:800;margin-bottom:20px">💰 Earnings</h2>
-  {% if wallet %}
-  <div class="stat-row">
-    <div class="stat" style="background:linear-gradient(135deg,rgba(34,197,94,.1),rgba(0,212,170,.05));border-color:rgba(34,197,94,.2)">
-      <div class="stat-lbl" style="color:rgba(255,255,255,.5)">Available Balance</div>
-      <div class="stat-val" style="color:#22c55e">₦{{ wallet.balance|default:"0.00" }}</div>
-    </div>
-  </div>
-  <a href="/creator/withdraw/" class="btn btn-primary" style="margin-bottom:24px;display:inline-flex">💸 Request Withdrawal</a>
-  {% else %}
-  <div style="padding:24px;background:rgba(255,255,255,.03);border-radius:12px;color:rgba(255,255,255,.4);font-size:14px;margin-bottom:24px">Earnings will appear here once your content goes live and gets views.</div>
-  {% endif %}
-  <div class="cp">
-    <div class="cp-head"><span class="cp-title">Recent Earnings</span></div>
-    <div class="cp-body">
-    {% if recent_earnings %}
-    {% for e in recent_earnings %}
-    <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px">
-      <span style="color:rgba(255,255,255,.5)">{{ e.reason|default:'Earning' }}</span>
-      <span style="color:#22c55e;font-weight:600">+₦{{ e.amount }}</span>
-    </div>
-    {% endfor %}
-    {% else %}<p style="color:rgba(255,255,255,.3);font-size:13px">No earnings yet.</p>{% endif %}
-    </div>
-  </div>
-</div>
-
-</div>{# end cs-inner #}
-</main>
-</div>
-
-{# Mobile Bottom Nav #}
-<nav class="mob-nav">
-  <div class="mob-nav-inner">
-    <button class="mob-btn active" onclick="goTab('overview',this)"><span class="mi">📊</span>Overview</button>
-    <button class="mob-btn" onclick="goTab('up-music',this)"><span class="mi">🎵</span>Music</button>
-    <button class="mob-btn" onclick="goTab('up-video',this)"><span class="mi">🎬</span>Video</button>
-    <button class="mob-btn" onclick="goTab('up-image',this)"><span class="mi">🖼</span>Image</button>
-    <button class="mob-btn" onclick="goTab('up-blog',this)"><span class="mi">📝</span>Blog</button>
-    <button class="mob-btn" onclick="goTab('earnings',this)"><span class="mi">💰</span>Money</button>
-  </div>
-</nav>
-
-<script>
-function goTab(id, btn) {
-  document.querySelectorAll('.ctab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.nav-item, .mob-btn').forEach(b => b.classList.remove('active'));
-  const tab = document.getElementById('tab-' + id);
-  if (tab) tab.classList.add('active');
-  btn.classList.add('active');
-  // Also activate matching desktop sidebar item or mobile btn
-  document.querySelectorAll('[onclick*="' + id + '"]').forEach(el => el.classList.add('active'));
-  // Scroll to top
-  document.querySelector('.cs-main')?.scrollTo({top:0, behavior:'smooth'});
-  window.scrollTo({top:0, behavior:'smooth'});
-}
-function toggleTag(label, id, name) {
-  label.classList.toggle('sel');
-  const cb = label.querySelector('input[type=checkbox]');
-  if (cb) cb.checked = !cb.checked;
-}
-// Blog rich text
-function fmt(cmd) { document.execCommand(cmd, false, null); syncBlog(); }
-function fmtBlock(tag) { document.execCommand('formatBlock', false, tag); syncBlog(); }
-function syncBlog() {
-  const el = document.getElementById('blog-editor');
-  const h = document.getElementById('blog-content');
-  if (el && h) h.value = el.innerHTML;
-}
-function insertLink() {
-  const url = prompt('Enter URL:');
-  if (url) { document.execCommand('createLink', false, url); syncBlog(); }
-}
-document.querySelector('form[action="/creator/upload/"]')?.addEventListener('submit', syncBlog);
-// Hash routing
-const h = location.hash.slice(1);
-if (h) {
-  const b = document.querySelector('[onclick*="' + h + '"]');
-  if (b) goTab(h, b);
-}
-</script>
 {% endblock %}

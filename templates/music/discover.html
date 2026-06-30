@@ -2,213 +2,231 @@
 {% block title %}Discover Music — NEXUS{% endblock %}
 {% block head %}
 <style>
-body{background:#060810;}
-.disc-wrap{max-width:540px;margin:0 auto;padding:48px 20px 100px;text-align:center;}
-.disc-title{font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:800;color:#fff;margin-bottom:8px;}
-.disc-sub{color:rgba(255,255,255,.45);font-size:14px;margin-bottom:40px;line-height:1.6;}
-.disc-btn{width:160px;height:160px;border-radius:50%;border:3px solid rgba(124,92,252,.4);background:rgba(124,92,252,.12);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 32px;transition:all .25s;position:relative;overflow:hidden;}
-.disc-btn:hover{border-color:var(--ac);background:rgba(124,92,252,.22);}
-.disc-btn.listening{border-color:#1db954;background:rgba(29,185,84,.15);animation:disc-pulse 1.5s ease-in-out infinite;}
-@keyframes disc-pulse{0%,100%{box-shadow:0 0 0 0 rgba(29,185,84,.4);}50%{box-shadow:0 0 0 24px rgba(29,185,84,0);}}
-.disc-icon{font-size:48px;margin-bottom:6px;}
-.disc-label{font-size:13px;font-weight:600;color:rgba(255,255,255,.7);}
-.disc-status{min-height:32px;font-size:14px;color:rgba(255,255,255,.5);margin-bottom:24px;}
-.hint-row{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;}
-.hint-row input{flex:1;min-width:140px;}
-.result-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:20px;display:none;text-align:left;margin-top:20px;}
-.result-card.show{display:block;}
-.cand-list{display:flex;flex-direction:column;gap:8px;margin-top:16px;}
-.cand-row{display:flex;align-items:center;gap:12px;padding:10px 12px;background:rgba(255,255,255,.04);border-radius:10px;cursor:pointer;transition:background .18s;}
-.cand-row:hover{background:rgba(255,255,255,.09);}
-.cand-cover{width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0;background:rgba(124,92,252,.2);display:flex;align-items:center;justify-content:center;font-size:18px;}
+.disc-wrap{max-width:680px;margin:0 auto;padding:40px 24px 100px}
+.disc-title{font-family:'Space Grotesk',sans-serif;font-size:clamp(24px,4vw,34px);font-weight:800;color:#fff;margin-bottom:8px;text-align:center}
+.disc-sub{color:var(--tx2);font-size:14px;margin-bottom:32px;text-align:center;line-height:1.6}
+.disc-search-box{position:relative;margin-bottom:24px}
+.disc-search-input{
+  width:100%;background:var(--bg2);border:1px solid var(--bd2);border-radius:50px;
+  padding:14px 50px 14px 50px;font-size:15px;color:#fff;outline:none;transition:border-color .15s
+}
+.disc-search-input:focus{border-color:var(--sp-green)}
+.disc-search-icon{position:absolute;left:18px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--tx2)}
+.disc-search-clear{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--tx2);font-size:18px;cursor:pointer;display:none}
+.disc-mic-row{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:28px}
+.disc-mic-btn{
+  width:90px;height:90px;border-radius:50%;border:3px solid rgba(29,185,84,.4);
+  background:rgba(29,185,84,.1);cursor:pointer;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;transition:all .25s;position:relative
+}
+.disc-mic-btn:hover{border-color:var(--sp-green);background:rgba(29,185,84,.18)}
+.disc-mic-btn.listening{border-color:var(--sp-green);background:rgba(29,185,84,.22);animation:disc-pulse 1.5s ease-in-out infinite}
+@keyframes disc-pulse{0%,100%{box-shadow:0 0 0 0 rgba(29,185,84,.4)}50%{box-shadow:0 0 0 18px rgba(29,185,84,0)}}
+.disc-mic-icon{font-size:32px}
+.disc-mic-label{font-size:11px;font-weight:700;color:var(--tx2);margin-top:14px;text-align:center}
+.disc-status{min-height:24px;font-size:13px;color:var(--tx2);text-align:center;margin-bottom:24px}
+.disc-tabs{display:flex;gap:8px;margin-bottom:20px;justify-content:center}
+.disc-results{display:none}
+.disc-results.show{display:block}
+.disc-section-label{font-size:12px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.disc-result-row{
+  display:flex;align-items:center;gap:14px;padding:10px 12px;border-radius:var(--r2);
+  cursor:pointer;transition:background .15s;text-decoration:none;color:inherit;margin-bottom:4px
+}
+.disc-result-row:hover{background:rgba(255,255,255,.07)}
+.disc-result-cover{width:48px;height:48px;border-radius:6px;overflow:hidden;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.disc-result-cover img{width:100%;height:100%;object-fit:cover}
+.disc-result-info{flex:1;min-width:0}
+.disc-result-title{font-size:14px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.disc-result-sub{font-size:12px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.disc-result-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;flex-shrink:0}
+.disc-empty{text-align:center;padding:50px 20px;color:var(--tx2)}
+@media(max-width:480px){
+  .disc-mic-btn{width:76px;height:76px}
+  .disc-mic-icon{font-size:26px}
+}
 </style>
 {% endblock %}
 {% block content %}
 <div class="disc-wrap">
-  <div class="disc-title">🎵 Discover</div>
-  <div class="disc-sub">Hold your phone near the music being played, press the button, and we'll identify it from our library.</div>
+  <div class="disc-title">🎵 Discover Music</div>
+  <div class="disc-sub">Search our entire library instantly, or hold your phone near playing music to identify it — works for songs in our library and worldwide.</div>
 
-  <button class="disc-btn" id="discBtn" onclick="toggleListen()">
-    <div class="disc-icon" id="discIcon">🎙</div>
-    <div class="disc-label" id="discLabel">Tap to Listen</div>
-  </button>
-
-  <div class="disc-status" id="discStatus">Ready — press the button and hold near the music.</div>
-
-  <div style="color:rgba(255,255,255,.4);font-size:12px;margin-bottom:16px;">— or type what you know —</div>
-  <div class="hint-row">
-    <input class="form-input" id="hintTitle" placeholder="Song title hint…">
-    <input class="form-input" id="hintArtist" placeholder="Artist name hint…">
+  {# Instant live text search #}
+  <div class="disc-search-box">
+    <span class="disc-search-icon">⌕</span>
+    <input type="text" class="disc-search-input" id="disc-live-search" placeholder="Search any song, artist, or album…" oninput="discLiveSearch(this.value)" autocomplete="off">
+    <button class="disc-search-clear" id="disc-clear-btn" onclick="discClearSearch()">×</button>
   </div>
-  <button class="btn btn-primary" onclick="searchByHint()" style="width:100%;margin-bottom:6px;">🔍 Search on Platform</button>
-  <button class="btn btn-outline" onclick="searchExternal()" style="width:100%;margin-bottom:8px;">🌍 Search Worldwide</button>
 
-  <div class="result-card" id="resultCard">
-    <div id="resultContent"></div>
+  <div class="disc-mic-row">
+    <div>
+      <button class="disc-mic-btn" id="discBtn" onclick="toggleListen()">
+        <div class="disc-mic-icon" id="discIcon">🎙</div>
+      </button>
+      <div class="disc-mic-label" id="discLabel">Tap to identify<br>playing music</div>
+    </div>
+  </div>
+
+  <div class="disc-status" id="discStatus"></div>
+
+  {# Results area #}
+  <div class="disc-results" id="disc-results">
+    <div id="disc-platform-section" style="margin-bottom:28px;display:none">
+      <div class="disc-section-label">📚 From Your Library</div>
+      <div id="disc-platform-list"></div>
+    </div>
+    <div id="disc-external-section" style="display:none">
+      <div class="disc-section-label">🌍 Worldwide Results</div>
+      <div id="disc-external-list"></div>
+    </div>
+    <div id="disc-empty-state" style="display:none" class="disc-empty">
+      <div style="font-size:40px;margin-bottom:12px">🔍</div>
+      <div>No results found. Try a different search.</div>
+    </div>
+  </div>
+
+  {# Default: browse all tracks when no search #}
+  <div id="disc-browse-all">
+    <div class="disc-section-label">🎵 Browse All Tracks</div>
+    <div id="disc-all-tracks">
+      {% for t in all_tracks %}
+      <div class="disc-result-row" onclick="playTrack('{{ t.playable_url|default:'' }}','{{ t.title|escapejs }}','{{ t.artist.name|escapejs }}','{% if t.cover_image %}{{ t.cover_image.url }}{% elif t.album and t.album.cover_image %}{{ t.album.cover_image.url }}{% endif %}','/music/track/{{ t.slug }}/',{{ t.pk }})">
+        <div class="disc-result-cover">{% if t.cover_image %}<img src="{{ t.cover_image.url }}" loading="lazy">{% elif t.album and t.album.cover_image %}<img src="{{ t.album.cover_image.url }}" loading="lazy">{% else %}🎵{% endif %}</div>
+        <div class="disc-result-info"><div class="disc-result-title">{{ t.title }}</div><div class="disc-result-sub">{{ t.artist.name }}</div></div>
+        <span class="disc-result-badge badge-green">▶ Play</span>
+      </div>
+      {% empty %}
+      <div class="disc-empty"><div style="font-size:40px;margin-bottom:12px">🎵</div><div>No tracks in the library yet.</div></div>
+      {% endfor %}
+    </div>
   </div>
 </div>
 
 <script>
-let mediaStream = null;
-let mediaRecorder = null;
-let isListening = false;
-let audioChunks = [];
-let speechResult = '';
-const CSRF = '{{ csrf_token }}';
+let mediaStream=null, isListening=false;
+const CSRF = getCookie('csrftoken');
+let _discDebounce;
 
-async function toggleListen() {
-  if (isListening) { stopListen(); return; }
-  const btn = document.getElementById('discBtn');
-  const status = document.getElementById('discStatus');
-  // Try microphone access
-  try {
-    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  } catch(e) {
-    setStatus('🚫 Microphone access denied. Use the text search below instead.');
+/* ── Instant platform-library search (debounced, live) ───────── */
+function discLiveSearch(v){
+  clearTimeout(_discDebounce);
+  document.getElementById('disc-clear-btn').style.display = v.trim() ? 'block' : 'none';
+  if(!v.trim()){
+    document.getElementById('disc-results').classList.remove('show');
+    document.getElementById('disc-browse-all').style.display='block';
+    setStatus('');
     return;
   }
-  isListening = true;
-  btn.classList.add('listening');
-  document.getElementById('discIcon').textContent = '⏹';
-  document.getElementById('discLabel').textContent = 'Listening…';
-  setStatus('🎙 Listening for music… hold near the speaker for 5 seconds.');
-  audioChunks = [];
-  speechResult = '';
-
-  // Web Speech API for lyrics/title recognition (Chrome/Edge only)
-  if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recog = new SR();
-    recog.continuous = true;
-    recog.interimResults = true;
-    recog.onresult = e => {
-      speechResult = Array.from(e.results).map(r => r[0].transcript).join(' ');
-    };
-    recog.start();
-    window._disc_recog = recog;
-  }
-
-  // Record 5 seconds of audio to get duration context
-  mediaRecorder = new MediaRecorder(mediaStream);
-  mediaRecorder.ondataavailable = e => { if(e.data.size > 0) audioChunks.push(e.data); };
-  mediaRecorder.onstop = () => { analyseRecording(); };
-  mediaRecorder.start();
-
-  // Auto-stop after 6 seconds
-  setTimeout(() => { if(isListening) stopListen(); }, 6000);
+  document.getElementById('disc-browse-all').style.display='none';
+  _discDebounce = setTimeout(()=>doLiveSearch(v.trim()), 350);
 }
 
-function stopListen() {
-  isListening = false;
-  if(mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
-  if(mediaStream) mediaStream.getTracks().forEach(t => t.stop());
-  if(window._disc_recog) { try{window._disc_recog.stop();}catch(e){} }
-  const btn = document.getElementById('discBtn');
-  btn.classList.remove('listening');
-  document.getElementById('discIcon').textContent = '🎙';
-  document.getElementById('discLabel').textContent = 'Tap to Listen';
-  setStatus('⏳ Analysing…');
-}
-
-async function analyseRecording() {
-  // Get duration of recorded audio
-  const blob = new Blob(audioChunks, { type: 'audio/webm' });
-  const url  = URL.createObjectURL(blob);
-  const tmpAudio = new Audio(url);
-  await new Promise(res => { tmpAudio.onloadedmetadata = res; tmpAudio.onerror = res; });
-  const duration = tmpAudio.duration || 0;
-  URL.revokeObjectURL(url);
-
-  // Send hint data to the identify endpoint
-  const fd = new FormData();
-  fd.append('csrfmiddlewaretoken', CSRF);
-  fd.append('duration', duration.toFixed(1));
-  if(speechResult) fd.append('hint_title', speechResult.slice(0, 200));
-  await identify(fd);
-}
-
-async function searchByHint() {
-  const t = document.getElementById('hintTitle').value.trim();
-  const a = document.getElementById('hintArtist').value.trim();
-  if(!t && !a) { setStatus('Enter a title or artist name first.'); return; }
+async function doLiveSearch(q){
   setStatus('🔍 Searching…');
-  const fd = new FormData();
-  fd.append('csrfmiddlewaretoken', CSRF);
-  if(t) fd.append('hint_title', t);
-  if(a) fd.append('hint_artist', a);
-  await identify(fd);
-}
-
-async function identify(fd) {
-  try {
-    const r = await fetch('/music/discover/identify/', { method:'POST', body:fd });
+  try{
+    const r = await fetch(`/music/search-live/?q=${encodeURIComponent(q)}`);
     const d = await r.json();
-    showResult(d);
-  } catch(e) {
-    setStatus('❌ Something went wrong. Try again.');
+    renderPlatformResults(d.results || []);
+    document.getElementById('disc-results').classList.add('show');
+    document.getElementById('disc-external-section').style.display='none';
+    document.getElementById('disc-empty-state').style.display = (d.results && d.results.length) ? 'none' : 'block';
+    setStatus(d.results && d.results.length ? `Found ${d.results.length} result(s) in your library` : '');
+  }catch(e){
+    setStatus('Search failed — please try again.');
   }
 }
 
-function showResult(d) {
-  const card  = document.getElementById('resultCard');
-  const inner = document.getElementById('resultContent');
-  card.classList.add('show');
+function renderPlatformResults(results){
+  const sec = document.getElementById('disc-platform-section');
+  const list = document.getElementById('disc-platform-list');
+  if(!results.length){ sec.style.display='none'; return; }
+  sec.style.display='block';
+  list.innerHTML = results.map(t => `
+    <div class="disc-result-row" onclick="playTrack('${t.url}','${(t.title||'').replace(/'/g,"\\'")}','${(t.artist||'').replace(/'/g,"\\'")}','${t.cover||''}','/music/track/${t.slug}/',${t.pk})">
+      <div class="disc-result-cover">${t.cover?`<img src="${t.cover}" loading="lazy">`:'🎵'}</div>
+      <div class="disc-result-info"><div class="disc-result-title">${t.title}</div><div class="disc-result-sub">${t.artist}</div></div>
+      <span class="disc-result-badge badge-green">▶ Play</span>
+    </div>`).join('');
+}
 
-  if(d.matched && d.track) {
-    const t = d.track;
-    const cover = t.cover ? `<img src="${t.cover}" style="width:80px;height:80px;border-radius:12px;object-fit:cover;margin-bottom:12px;">` : '<div style="width:80px;height:80px;border-radius:12px;background:rgba(124,92,252,.2);display:flex;align-items:center;justify-content:center;font-size:2rem;margin-bottom:12px;">🎵</div>';
-    inner.innerHTML = `<div style="text-align:center;">${cover}<div style="font-size:18px;font-weight:800;color:#fff;font-family:'Space Grotesk',sans-serif;">${t.title}</div><div style="color:rgba(255,255,255,.5);font-size:13px;margin-top:4px;">by ${t.artist}</div><div style="display:flex;gap:10px;justify-content:center;margin-top:16px;"><button class="btn btn-primary" onclick="playMiniTrack('${t.url}','${t.title.replace(/'/g,"\\'")}','${t.artist.replace(/'/g,"\\'")}','${t.cover}','/music/track/${t.slug}/',${t.pk})">▶ Play</button><a href="/music/track/${t.slug}/" class="btn btn-outline">View Track</a></div></div>`;
+function discClearSearch(){
+  document.getElementById('disc-live-search').value='';
+  discLiveSearch('');
+}
+
+/* ── Microphone identify (Shazam-style) ───────────────────────── */
+async function toggleListen(){
+  if(isListening){ stopListen(); return; }
+  const btn=document.getElementById('discBtn');
+  try{ mediaStream = await navigator.mediaDevices.getUserMedia({audio:true}); }
+  catch(e){ setStatus('🚫 Microphone access denied. Use search instead.'); return; }
+  isListening=true;
+  btn.classList.add('listening');
+  document.getElementById('discIcon').textContent='⏹';
+  document.getElementById('discLabel').textContent='Listening…';
+  setStatus('🎙 Listening — hold your phone near the music for 5 seconds.');
+
+  const recorder = new MediaRecorder(mediaStream);
+  const chunks=[];
+  recorder.ondataavailable = e=>chunks.push(e.data);
+  recorder.onstop = async ()=>{
+    const blob = new Blob(chunks,{type:'audio/webm'});
+    setStatus('🔎 Identifying…');
+    const fd = new FormData();
+    fd.append('csrfmiddlewaretoken',CSRF);
+    fd.append('audio',blob,'capture.webm');
+    try{
+      const r = await fetch('/music/discover/identify/',{method:'POST',body:fd});
+      const d = await r.json();
+      showIdentifyResult(d);
+    }catch(e){ setStatus('❌ Could not identify — try the search bar instead.'); }
+  };
+  recorder.start();
+  setTimeout(()=>{ if(isListening){ recorder.stop(); stopListen(); } }, 6000);
+  window._discRecorder = recorder;
+}
+
+function stopListen(){
+  isListening=false;
+  const btn=document.getElementById('discBtn');
+  btn.classList.remove('listening');
+  document.getElementById('discIcon').textContent='🎙';
+  document.getElementById('discLabel').textContent='Tap to identify\nplaying music';
+  if(mediaStream){ mediaStream.getTracks().forEach(t=>t.stop()); mediaStream=null; }
+  if(window._discRecorder && window._discRecorder.state==='recording') window._discRecorder.stop();
+}
+
+function showIdentifyResult(d){
+  document.getElementById('disc-browse-all').style.display='none';
+  document.getElementById('disc-results').classList.add('show');
+  const platSec = document.getElementById('disc-platform-section');
+  const extSec  = document.getElementById('disc-external-section');
+
+  if(d.matched && d.track){
     setStatus('✅ Found a match!');
-  } else if(d.candidates && d.candidates.length) {
-    let html = `<div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:12px;">No exact match — here are possible results:</div><div class="cand-list">`;
-    d.candidates.forEach(t => {
-      const cover = t.cover ? `<img src="${t.cover}" class="cand-cover">` : '<div class="cand-cover">🎵</div>';
-      html += `<div class="cand-row" onclick="playMiniTrack('${t.url}','${t.title.replace(/'/g,"\\'")}','${t.artist.replace(/'/g,"\\'")}','${t.cover}','/music/track/${t.slug}/',${t.pk})">${cover}<div style="min-width:0;flex:1;"><div style="font-weight:500;font-size:13px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.title}</div><div style="font-size:11px;color:rgba(255,255,255,.4);">${t.artist}</div></div><a href="/music/track/${t.slug}/" onclick="event.stopPropagation()" style="font-size:11px;color:rgba(255,255,255,.35);text-decoration:none;padding:4px;">→</a></div>`;
-    });
-    html += '</div>';
-    inner.innerHTML = html;
-    setStatus('Here are the closest matches from our library:');
+    renderPlatformResults([d.track]);
+    extSec.style.display='none';
+  } else if(d.candidates && d.candidates.length){
+    setStatus('Here are the closest matches:');
+    renderPlatformResults(d.candidates.filter(c=>c.in_library));
+    const ext = d.candidates.filter(c=>!c.in_library);
+    if(ext.length){
+      extSec.style.display='block';
+      document.getElementById('disc-external-list').innerHTML = ext.map(t=>`
+        <div class="disc-result-row" style="cursor:default">
+          <div class="disc-result-cover">${t.cover?`<img src="${t.cover}" loading="lazy">`:'🎵'}</div>
+          <div class="disc-result-info"><div class="disc-result-title">${t.title}</div><div class="disc-result-sub">${t.artist}</div></div>
+          ${t.spotify_url?`<a href="${t.spotify_url}" target="_blank" class="disc-result-badge badge-green" style="text-decoration:none">Spotify ↗</a>`:''}
+        </div>`).join('');
+    } else { extSec.style.display='none'; }
   } else {
-    inner.innerHTML = `<div style="text-align:center;color:rgba(255,255,255,.4);">No tracks found. Try adding more music to the platform!</div>`;
-    setStatus('');
+    document.getElementById('disc-empty-state').style.display='block';
+    platSec.style.display='none'; extSec.style.display='none';
+    setStatus('No match found. Try the search bar above.');
   }
 }
 
-function setStatus(msg) { document.getElementById('discStatus').textContent = msg; }
-
-async function searchExternal() {
-  const title = document.getElementById('hintTitle').value.trim();
-  const artist = document.getElementById('hintArtist').value.trim();
-  if (!title && !artist) { setStatus('Enter a title or artist name first.'); return; }
-  setStatus('🔍 Searching iTunes worldwide…');
-  try {
-    const query = encodeURIComponent([title, artist].filter(Boolean).join(' '));
-    const r = await fetch(`https://itunes.apple.com/search?term=${query}&media=music&limit=8`);
-    const d = await r.json();
-    if (!d.results || !d.results.length) {
-      setStatus('No results found worldwide.');
-      return;
-    }
-    setStatus(`Found ${d.results.length} result(s) worldwide`);
-    const rc = document.getElementById('resultContent');
-    const card = document.getElementById('resultCard');
-    rc.innerHTML = '<div style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:12px;">🌍 Worldwide results (iTunes)</div>' +
-      '<div class="cand-list">' +
-      d.results.map(t => `
-        <a href="${t.trackViewUrl || '#'}" target="_blank" rel="noopener" class="cand-row" style="text-decoration:none;color:inherit;">
-          <div class="cand-cover" style="background:none;">
-            ${t.artworkUrl60 ? `<img src="${t.artworkUrl60}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;">` : '🎵'}
-          </div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.trackName || t.collectionName || '?'}</div>
-            <div style="font-size:11px;color:rgba(255,255,255,.4);">${t.artistName} · ${t.primaryGenreName || ''}</div>
-          </div>
-          <span style="font-size:10px;color:rgba(255,255,255,.3);flex-shrink:0;">iTunes →</span>
-        </a>`).join('') + '</div>';
-    card.classList.add('show');
-  } catch(e) {
-    setStatus('Search failed: ' + e.message);
-  }
-}
+function setStatus(msg){ document.getElementById('discStatus').textContent = msg; }
 </script>
 {% endblock %}

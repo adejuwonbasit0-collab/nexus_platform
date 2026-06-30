@@ -2,839 +2,154 @@
 {% block title %}{{ track.title }} — {{ track.artist.name }}{% endblock %}
 {% block head %}
 <style>
-/* ═══════════════════════════════════════════════════════════
-   APPLE MUSIC / SPOTIFY-STYLE LYRICS — karaoke mode
-   Active line = huge, bold, white
-   Past lines = small, faded
-   Future lines = medium, dim
-═══════════════════════════════════════════════════════════ */
-
-body { background:#07060f; color:#e8e8f0; }
-
-/* ── Track page layout ─────────────────────────────────── */
-.tp-hero {
-  position:relative; overflow:hidden; padding:52px 0 40px;
-  background:linear-gradient(180deg,rgba(0,0,0,0) 0%,#07060f 100%);
+.tk-hero{position:relative;padding:48px 32px 32px;overflow:hidden;background:linear-gradient(180deg,rgba(124,92,252,.25) 0%,transparent 100%)}
+.tk-hero-bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(60px) brightness(.25) saturate(1.4);transform:scale(1.3);z-index:0}
+.tk-hero-inner{position:relative;z-index:1;display:flex;align-items:flex-end;gap:24px}
+.tk-cover{width:220px;height:220px;border-radius:8px;object-fit:cover;box-shadow:0 24px 60px rgba(0,0,0,.6);flex-shrink:0}
+.tk-cover-ph{width:220px;height:220px;border-radius:8px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:60px;box-shadow:0 24px 60px rgba(0,0,0,.6);flex-shrink:0}
+.tk-type{font-size:13px;font-weight:700;margin-bottom:8px}
+.tk-title{font-family:'Space Grotesk',sans-serif;font-size:clamp(28px,5vw,56px);font-weight:900;color:#fff;line-height:1.05;margin-bottom:14px}
+.tk-meta-row{display:flex;align-items:center;gap:6px;font-size:13px;color:rgba(255,255,255,.7);flex-wrap:wrap}
+.tk-action-bar{display:flex;align-items:center;gap:20px;padding:20px 32px;position:relative;z-index:1}
+.tk-play-big{width:56px;height:56px;border-radius:50%;background:var(--sp-green);border:none;color:#000;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s;box-shadow:0 6px 20px rgba(29,185,84,.4)}
+.tk-play-big:hover{transform:scale(1.05);background:var(--sp-green-hover)}
+.tk-icon-btn{background:none;border:none;color:rgba(255,255,255,.5);font-size:24px;cursor:pointer;padding:4px;transition:color .15s}
+.tk-icon-btn:hover{color:#fff}
+.tk-icon-btn.liked{color:var(--sp-green)}
+@media(max-width:760px){
+  .tk-hero{padding:32px 16px 24px}
+  .tk-hero-inner{flex-direction:column;align-items:center;text-align:center}
+  .tk-cover,.tk-cover-ph{width:180px;height:180px}
+  .tk-action-bar{padding:16px;justify-content:center}
 }
-.tp-hero-bg {
-  position:absolute; inset:0; background-size:cover; background-position:center;
-  filter:blur(80px) brightness(.25) saturate(1.4); transform:scale(1.3);
-  transition:background-image .6s ease;
+@media(max-width:900px){
+  div[style*="grid-template-columns:1fr 320px"]{grid-template-columns:1fr!important;padding:0 16px 80px!important}
 }
-.tp-hero-inner {
-  position:relative; z-index:2;
-  display:grid; grid-template-columns:auto 1fr; gap:32px; align-items:start;
-}
-.tp-cover {
-  width:220px; height:220px; border-radius:18px; object-fit:cover;
-  box-shadow:0 32px 80px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.06);
-  flex-shrink:0;
-}
-.tp-cover-ph {
-  width:220px; height:220px; border-radius:18px; flex-shrink:0;
-  background:linear-gradient(135deg,rgba(124,92,252,.3),rgba(255,77,109,.15));
-  display:flex; align-items:center; justify-content:center; font-size:70px;
-  box-shadow:0 32px 80px rgba(0,0,0,.7);
-}
-.tp-info { min-width:0; padding-top:8px; }
-.tp-type { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.12em; color:rgba(255,255,255,.4); margin-bottom:10px; }
-.tp-title { font-family:'Space Grotesk',sans-serif; font-size:clamp(22px,4vw,42px); font-weight:800; color:#fff; line-height:1.1; margin-bottom:8px; }
-.tp-artist { font-size:16px; color:rgba(255,255,255,.6); margin-bottom:18px; }
-.tp-artist a { color:#c4abff; text-decoration:none; font-weight:600; }
-.tp-meta { display:flex; flex-wrap:wrap; gap:10px 20px; font-size:12px; color:rgba(255,255,255,.35); margin-bottom:24px; }
-.tp-actions { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-.tp-btn-play {
-  display:flex; align-items:center; gap:9px; padding:13px 28px; border-radius:50px;
-  background:#fff; color:#07060f; font-size:15px; font-weight:800;
-  border:none; cursor:pointer; transition:all .2s;
-}
-.tp-btn-play:hover { transform:scale(1.04); box-shadow:0 12px 36px rgba(255,255,255,.2); }
-.tp-btn-outline {
-  display:flex; align-items:center; gap:8px; padding:12px 22px; border-radius:50px;
-  background:rgba(255,255,255,.08); color:rgba(255,255,255,.8); font-size:14px; font-weight:600;
-  border:1px solid rgba(255,255,255,.15); cursor:pointer; text-decoration:none; transition:all .18s;
-}
-.tp-btn-outline:hover { background:rgba(255,255,255,.15); color:#fff; }
-
-/* ── Body layout ─────────────────────────────────────── */
-.tp-body { display:grid; grid-template-columns:1fr 300px; gap:28px; padding:32px 0 100px; }
-.tp-sidebar-panel {
-  background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07);
-  border-radius:16px; padding:20px; margin-bottom:16px;
-}
-.tp-panel-title { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:rgba(255,255,255,.3); margin-bottom:14px; }
-
-/* ── Engage bar ───────────────────────────────────────── */
-.tp-engage {
-  display:flex; align-items:center; gap:6px; flex-wrap:wrap;
-  padding:16px 0; border-top:1px solid rgba(255,255,255,.06);
-  border-bottom:1px solid rgba(255,255,255,.06); margin-bottom:28px;
-}
-.tp-engage-btn {
-  display:flex; align-items:center; gap:6px; padding:8px 16px; border-radius:22px;
-  background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1);
-  color:rgba(255,255,255,.6); font-size:13px; font-weight:500; cursor:pointer;
-  text-decoration:none; transition:all .18s;
-}
-.tp-engage-btn:hover { background:rgba(255,255,255,.1); color:#fff; }
-.tp-engage-btn.liked { background:rgba(255,77,109,.15); border-color:rgba(255,77,109,.3); color:#ff4d6d; }
-
-/* ══════════════════════════════════════════════════════════
-   APPLE MUSIC KARAOKE LYRICS PANEL
-══════════════════════════════════════════════════════════ */
-#lyr-panel {
-  display:none;
-  position:fixed; inset:0; z-index:9500;
-  background:#07060f;
-  flex-direction:column;
-  overflow:hidden;
-}
-
-/* Blurred album art background */
-#lyr-bg {
-  position:absolute; inset:0;
-  background-size:cover; background-position:center;
-  filter:blur(90px) brightness(.2) saturate(1.6);
-  transform:scale(1.3);
-  transition:background-image .8s ease;
-}
-/* Dark overlay gradient */
-#lyr-panel::after {
-  content:'';
-  position:absolute; inset:0;
-  background:linear-gradient(180deg, rgba(7,6,15,.6) 0%, rgba(7,6,15,.4) 40%, rgba(7,6,15,.8) 100%);
-  pointer-events:none; z-index:0;
-}
-
-/* ── Header bar ───────────────────────────────────────── */
-#lyr-header {
-  position:relative; z-index:10;
-  display:flex; align-items:center; justify-content:space-between;
-  padding:max(16px,env(safe-area-inset-top)) 20px 14px;
-  flex-shrink:0;
-}
-#lyr-header-info { display:flex; align-items:center; gap:12px; min-width:0; flex:1; }
-#lyr-header-cover {
-  width:42px; height:42px; border-radius:8px; object-fit:cover; flex-shrink:0;
-  background:rgba(124,92,252,.2); display:flex; align-items:center; justify-content:center; font-size:18px;
-  overflow:hidden;
-}
-#lyr-header-text { min-width:0; }
-#lyr-header-title { font-size:14px; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-#lyr-header-artist { font-size:11px; color:rgba(255,255,255,.45); margin-top:1px; }
-.lyr-close-btn {
-  width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,.1);
-  border:none; color:rgba(255,255,255,.7); cursor:pointer; font-size:16px;
-  display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all .18s;
-}
-.lyr-close-btn:hover { background:rgba(255,255,255,.18); color:#fff; }
-
-/* Source badge */
-#lyr-badge {
-  display:none; position:relative; z-index:10;
-  background:rgba(124,92,252,.12); border-bottom:1px solid rgba(124,92,252,.2);
-  padding:7px 20px; font-size:11px; color:rgba(180,160,255,.8); flex-shrink:0;
-}
-
-/* ── Karaoke scroll area ─────────────────────────────── */
-#lyr-scroll {
-  flex:1; overflow-y:auto; overflow-x:hidden;
-  position:relative; z-index:5;
-  padding:40px 24px 180px;
-  -webkit-overflow-scrolling:touch;
-  scroll-behavior:smooth;
-}
-#lyr-scroll::-webkit-scrollbar { width:0; }
-#lyr-inner { max-width:640px; margin:0 auto; }
-
-/* ── Karaoke line styles ─────────────────────────────── */
-.lyr-line {
-  display:block;
-  padding:4px 0;
-  /* DEFAULT: future lines — medium size, dim */
-  font-family:'Space Grotesk',sans-serif;
-  font-size:clamp(18px,4vw,26px);
-  font-weight:700;
-  color:rgba(255,255,255,.22);
-  line-height:1.35;
-  cursor:pointer;
-  transition:
-    color .35s ease,
-    font-size .35s cubic-bezier(.34,1.56,.64,1),
-    font-weight .3s ease,
-    transform .35s cubic-bezier(.34,1.56,.64,1),
-    opacity .35s ease;
-  transform-origin:left center;
-  user-select:none;
-  margin-bottom:6px;
-}
-
-/* Past lines — smaller, more faded */
-.lyr-line.past {
-  font-size:clamp(14px,2.8vw,20px);
-  font-weight:600;
-  color:rgba(255,255,255,.18);
-  transform:scale(.98);
-}
-
-/* Active line — BIG, bright white, bold */
-.lyr-line.active {
-  font-size:clamp(26px,6vw,44px);
-  font-weight:800;
-  color:#fff;
-  transform:scale(1.02);
-  text-shadow:0 0 40px rgba(255,255,255,.15);
-}
-
-/* The line just after active — slightly more visible */
-.lyr-line.next {
-  font-size:clamp(16px,3.2vw,22px);
-  font-weight:700;
-  color:rgba(255,255,255,.35);
-}
-
-/* Plain text (no LRC) */
-#lyr-plain {
-  font-family:'Space Grotesk',sans-serif;
-  font-size:clamp(20px,4.5vw,32px);
-  font-weight:700;
-  line-height:1.6;
-  color:rgba(255,255,255,.7);
-  white-space:pre-wrap;
-}
-
-/* Loading spinner */
-#lyr-loading { text-align:center; padding:80px 0; color:rgba(255,255,255,.3); }
-#lyr-loading .spin { font-size:2.5rem; display:inline-block; animation:lyr-spin 1s linear infinite; }
-
-/* Error state */
-#lyr-error { display:none; text-align:center; padding:60px 0; color:rgba(255,255,255,.3); }
-
-/* Live caption */
-#lyr-live { display:none; max-width:640px; margin:0 auto; text-align:center; }
-#lyr-live-text {
-  font-family:'Space Grotesk',sans-serif;
-  font-size:clamp(22px,5vw,36px);
-  font-weight:800; color:#fff; line-height:1.5; min-height:80px;
-}
-#lyr-live-interim { font-size:18px; color:rgba(255,255,255,.35); margin-top:10px; font-style:italic; }
-
-/* ── Bottom player bar ───────────────────────────────── */
-#lyr-bar {
-  position:relative; z-index:10; flex-shrink:0;
-  background:rgba(7,6,15,.92); backdrop-filter:blur(20px);
-  border-top:1px solid rgba(255,255,255,.07);
-  padding:14px 20px max(16px,env(safe-area-inset-bottom));
-}
-#lyr-seek {
-  height:4px; background:rgba(255,255,255,.15); border-radius:2px;
-  cursor:pointer; position:relative; margin-bottom:10px;
-}
-#lyr-seek-fill {
-  height:100%; background:linear-gradient(90deg,#7c5cfc,#ff4d6d);
-  border-radius:2px; width:0%; transition:width .25s linear;
-  position:relative;
-}
-#lyr-seek-fill::after {
-  content:''; position:absolute; right:-6px; top:-4px;
-  width:12px; height:12px; border-radius:50%; background:#fff;
-  box-shadow:0 2px 8px rgba(0,0,0,.5);
-}
-#lyr-controls {
-  display:flex; align-items:center; gap:14px;
-}
-#lyr-cover-sm {
-  width:46px; height:46px; border-radius:10px; overflow:hidden; flex-shrink:0;
-  background:rgba(124,92,252,.2); display:flex; align-items:center; justify-content:center; font-size:20px;
-}
-#lyr-cover-sm img { width:100%; height:100%; object-fit:cover; }
-#lyr-bar-info { flex:1; min-width:0; }
-#lyr-bar-title { font-size:14px; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-#lyr-bar-artist { font-size:11px; color:rgba(255,255,255,.4); margin-top:2px; }
-#lyr-bar-times { display:flex; justify-content:space-between; font-size:10px; color:rgba(255,255,255,.3); margin-top:4px; font-variant-numeric:tabular-nums; }
-#lyr-btn-prev,#lyr-btn-next {
-  background:none; border:none; color:rgba(255,255,255,.6); cursor:pointer; font-size:20px; padding:4px; transition:color .15s;
-}
-#lyr-btn-prev:hover,#lyr-btn-next:hover { color:#fff; }
-#lyr-btn-play {
-  width:50px; height:50px; border-radius:50%; background:#fff;
-  border:none; cursor:pointer; font-size:20px; color:#07060f;
-  display:flex; align-items:center; justify-content:center;
-  box-shadow:0 6px 20px rgba(0,0,0,.4); transition:transform .15s;
-}
-#lyr-btn-play:hover { transform:scale(1.06); }
-#lyr-caption-btn {
-  background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12);
-  color:rgba(255,255,255,.5); cursor:pointer; font-size:11px; padding:5px 11px;
-  border-radius:16px; transition:all .2s; white-space:nowrap;
-}
-#lyr-caption-btn.on { background:rgba(124,92,252,.2); border-color:rgba(124,92,252,.4); color:#c4abff; }
-
-/* ── No-lyrics placeholder ───────────────────────────── */
-#lyr-nolyr {
-  display:none; text-align:center; padding:60px 20px;
-}
-#lyr-nolyr .emoji { font-size:64px; margin-bottom:16px; display:block; opacity:.4; }
-#lyr-nolyr h3 { font-size:20px; font-weight:700; color:rgba(255,255,255,.6); margin-bottom:8px; }
-#lyr-nolyr p { font-size:14px; color:rgba(255,255,255,.3); max-width:320px; margin:0 auto; }
-
-/* ── Responsive ──────────────────────────────────────── */
-@media(max-width:860px){
-  .tp-hero-inner { grid-template-columns:1fr; text-align:center; gap:20px; }
-  .tp-cover, .tp-cover-ph { width:180px; height:180px; margin:0 auto; }
-  .tp-actions { justify-content:center; }
-  .tp-body { grid-template-columns:1fr; }
-}
-@media(max-width:480px){
-  .tp-cover,.tp-cover-ph { width:150px; height:150px; }
-  .tp-title { font-size:22px; }
-  .lyr-line.active { font-size:28px; }
-  .lyr-line { font-size:18px; }
-  #lyr-scroll { padding:28px 18px 160px; }
-}
-
-/* Animations */
-@keyframes lyr-spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }
-@keyframes lyr-in { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:none} }
 </style>
 {% endblock %}
-
-
-<script>
-// Bridge: playTrack → playMiniTrack (defined in base.html)
-function playTrack(url, title, artist, cover, detail, pk) {
-  if (!url) { if (typeof showToast === 'function') showToast('Track not available'); return; }
-  if (typeof setPlayerQueue === 'function') setPlayerQueue([{url,title,artist,cover,detail,pk}]);
-  if (typeof playMiniTrack === 'function') playMiniTrack(url, title, artist, cover, detail, pk);
-}
-</script>
 {% block content %}
 
-{# ── TRACK HERO ────────────────────────────────────────────── #}
-<div class="tp-hero">
-  <div class="tp-hero-bg" id="tp-bg" {% if track.cover_image %}style="background-image:url('{{ track.cover_image.url }}')"{% elif track.album and track.album.cover_image %}style="background-image:url('{{ track.album.cover_image.url }}')"{% endif %}></div>
-  <div class="container">
-    <div class="tp-hero-inner">
-
-      {# Cover #}
-      {% if track.cover_image %}
-        <img src="{{ track.cover_image.url }}" class="tp-cover" alt="{{ track.title }}">
-      {% elif track.album and track.album.cover_image %}
-        <img src="{{ track.album.cover_image.url }}" class="tp-cover" alt="{{ track.title }}">
-      {% else %}
-        <div class="tp-cover-ph">🎵</div>
-      {% endif %}
-
-      {# Info #}
-      <div class="tp-info">
-        <div class="tp-type">
-          Song{% if track.is_premium %} · <span style="color:#a07cff;">PRO</span>{% endif %}
-        </div>
-        <div class="tp-title">{{ track.title }}</div>
-        <div class="tp-artist">
-          <a href="/music/artist/{{ track.artist.slug }}/">{{ track.artist.name }}</a>
-          {% if track.featured_artists.all %}
-          <span style="color:rgba(255,255,255,.3);"> ft. </span>
-          {% for fa in track.featured_artists.all %}{{ fa.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
-          {% endif %}
-        </div>
-        <div class="tp-meta">
-          {% if track.album %}<span>💿 <a href="/music/album/{{ track.album.slug }}/" style="color:inherit;text-decoration:none;">{{ track.album.title }}</a></span>{% endif %}
-          {% if track.genre %}<span>🎸 {{ track.genre.name }}</span>{% endif %}
-          {% if track.release_year %}<span>📅 {{ track.release_year }}</span>{% endif %}
-          <span>▶ {{ track.plays_count|default:0 }} plays</span>
-          {% if track.duration_str %}<span>⏱ {{ track.duration_str }}</span>{% endif %}
-        </div>
-        <div class="tp-actions">
-          <button class="tp-btn-play" onclick="playTrack('{{ track.playable_url|default:'' }}','{{ track.title|escapejs }}','{{ track.artist.name|escapejs }}','{% if track.cover_image %}{{ track.cover_image.url }}{% elif track.album and track.album.cover_image %}{{ track.album.cover_image.url }}{% endif %}','/music/track/{{ track.slug }}/',{{ track.pk }})">
-            ▶ Play
-          </button>
-          {% if track.lyrics or track.has_audio %}
-          <button class="tp-btn-outline" onclick="openLyrics()">🎤 Lyrics</button>
-          {% endif %}
-          {% if track.has_audio %}
-          <a href="/music/download/{{ track.pk }}/" class="tp-btn-outline">⬇ Download</a>
-          {% endif %}
-          <button class="tp-btn-outline" id="tp-like-btn" onclick="toggleLike({{ track.pk }},this)">{% if user_liked %}♥ Liked{% else %}♡ Like{% endif %}</button>
-          <button class="tp-btn-outline" onclick="shareTrack()">↗ Share</button>
-        </div>
+<div class="tk-hero">
+  <div class="tk-hero-bg" {% if track.cover_image %}style="background-image:url('{{ track.cover_image.url }}')"{% elif track.album and track.album.cover_image %}style="background-image:url('{{ track.album.cover_image.url }}')"{% endif %}></div>
+  <div class="tk-hero-inner">
+    {% if track.cover_image %}<img src="{{ track.cover_image.url }}" class="tk-cover" alt="{{ track.title }}">
+    {% elif track.album and track.album.cover_image %}<img src="{{ track.album.cover_image.url }}" class="tk-cover" alt="{{ track.title }}">
+    {% else %}<div class="tk-cover-ph">🎵</div>{% endif %}
+    <div>
+      <div class="tk-type">Song{% if track.is_premium %} <span class="badge badge-green">PRO</span>{% endif %}</div>
+      <div class="tk-title">{{ track.title }}</div>
+      <div class="tk-meta-row">
+        <a href="/music/artist/{{ track.artist.slug }}/" style="color:#fff;font-weight:700;text-decoration:none">{{ track.artist.name }}</a>
+        {% if track.album %}<span>·</span><a href="/music/album/{{ track.album.slug }}/" style="color:rgba(255,255,255,.7);text-decoration:none">{{ track.album.title }}</a>{% endif %}
+        {% if track.release_year %}<span>·</span><span>{{ track.release_year }}</span>{% endif %}
+        <span>·</span><span>{{ track.plays_count|default:0 }} plays</span>
       </div>
     </div>
   </div>
 </div>
 
-{# ── BODY ─────────────────────────────────────────────────── #}
-<div class="container">
-  <div class="tp-body">
+<div class="tk-action-bar">
+  <button class="tk-play-big" onclick="playTrack('{{ track.playable_url|default:'' }}','{{ track.title|escapejs }}','{{ track.artist.name|escapejs }}','{% if track.cover_image %}{{ track.cover_image.url }}{% elif track.album and track.album.cover_image %}{{ track.album.cover_image.url }}{% endif %}','/music/track/{{ track.slug }}/',{{ track.pk }})">▶</button>
+  <button class="tk-icon-btn {% if user_liked %}liked{% endif %}" id="tk-like-btn" onclick="trackToggleLike({{ track.pk }})">{% if user_liked %}♥{% else %}♡{% endif %}</button>
+  {% if track.lyrics or track.has_audio %}
+  <button class="tk-icon-btn" onclick="window._LYR_TRACK_PK={{ track.pk }};openLyrics()" title="Lyrics" style="font-size:20px">📝</button>
+  {% endif %}
+  {% if track.has_audio %}<a href="/music/download/{{ track.pk }}/" class="tk-icon-btn" style="font-size:20px;text-decoration:none">⬇</a>{% endif %}
+  <button class="tk-icon-btn" onclick="shareContent('{{ track.title|escapejs }}','/music/track/{{ track.slug }}/')" style="font-size:20px">↗</button>
+  {% if user.is_authenticated %}
+  <div style="position:relative">
+    <button class="tk-icon-btn" onclick="document.getElementById('tk-pl-menu').classList.toggle('show')" style="font-size:20px">⋯</button>
+    <div id="tk-pl-menu" style="display:none;position:absolute;top:100%;left:0;margin-top:8px;background:var(--bg3);border:1px solid var(--bd2);border-radius:var(--r2);padding:8px;min-width:200px;z-index:50;box-shadow:var(--shadow)">
+      <div style="font-size:11px;font-weight:700;color:var(--tx2);padding:6px 10px;text-transform:uppercase">Add to playlist</div>
+      {% for pl in user_playlists %}
+      <form method="post" action="/music/playlists/{{ pl.pk }}/add/{{ track.pk }}/">{% csrf_token %}
+        <button type="submit" style="width:100%;background:none;border:none;text-align:left;padding:8px 10px;border-radius:6px;color:var(--tx);font-size:13px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.07)'" onmouseout="this.style.background='none'">{{ pl.title }}</button>
+      </form>
+      {% empty %}
+      <a href="/music/playlists/" style="display:block;padding:8px 10px;font-size:13px;color:var(--tx2)">+ Create playlist</a>
+      {% endfor %}
+    </div>
+  </div>
+  <style>#tk-pl-menu.show{display:block!important}</style>
+  {% endif %}
+</div>
 
-    {# ── Main column ── #}
-    <div>
-
-      {# Quick lyrics preview (plain, no panel needed) #}
-      {% if track.lyrics %}
-      <div class="tp-sidebar-panel" style="margin-bottom:20px;cursor:pointer;" onclick="openLyrics()">
-        <div class="tp-panel-title">🎤 Lyrics preview · tap to open full view</div>
-        <div style="font-size:15px;line-height:2;color:rgba(255,255,255,.55);white-space:pre-wrap;max-height:160px;overflow:hidden;mask-image:linear-gradient(180deg,#fff 60%,transparent);-webkit-mask-image:linear-gradient(180deg,#fff 60%,transparent);">{{ track.lyrics|truncatechars:400 }}</div>
-        <div style="margin-top:12px;font-size:13px;color:#a07cff;font-weight:600;">Open full lyrics view →</div>
+<div style="padding:0 32px 100px;display:grid;grid-template-columns:1fr 320px;gap:28px">
+  <div>
+    {% if track.lyrics %}
+    <div class="panel" style="cursor:pointer" onclick="window._LYR_TRACK_PK={{ track.pk }};openLyrics()">
+      <div class="panel-head"><span class="panel-title">📝 Lyrics</span><span style="font-size:12px;color:var(--sp-green);font-weight:700">Open full view →</span></div>
+      <div class="panel-body">
+        <div style="font-size:14px;line-height:2;color:var(--tx2);white-space:pre-wrap;max-height:160px;overflow:hidden;mask-image:linear-gradient(180deg,#fff 60%,transparent)">{{ track.lyrics|truncatechars:380 }}</div>
       </div>
-      {% endif %}
+    </div>
+    {% endif %}
 
-      {# Description #}
-      {% if track.description %}
-      <div class="tp-sidebar-panel">
-        <div class="tp-panel-title">About</div>
-        <p style="font-size:14px;line-height:1.8;color:rgba(255,255,255,.6);">{{ track.description }}</p>
-      </div>
-      {% endif %}
-
-      {# Album tracks #}
-      {% if track.album and track.album.tracks.count > 1 %}
-      <div class="tp-sidebar-panel">
-        <div class="tp-panel-title">From the Album: {{ track.album.title }}</div>
-        {% for t in track.album.tracks.all|slice:":12" %}
-        <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer;" onclick="playTrack('{{ t.playable_url|default:'' }}','{{ t.title|escapejs }}','{{ t.artist.name|escapejs }}','{% if t.cover_image %}{{ t.cover_image.url }}{% elif t.album and t.album.cover_image %}{{ t.album.cover_image.url }}{% endif %}','/music/track/{{ t.slug }}/',{{ t.pk }})">
-          <span style="width:20px;text-align:right;font-size:12px;color:rgba(255,255,255,.3);{% if t.pk == track.pk %}color:#a07cff;{% endif %}">{% if t.pk == track.pk %}▶{% else %}{{ forloop.counter }}{% endif %}</span>
-          <div style="min-width:0;flex:1;">
-            <div style="font-size:13px;font-weight:{% if t.pk == track.pk %}700{% else %}500{% endif %};color:{% if t.pk == track.pk %}#a07cff{% else %}#fff{% endif %};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ t.title }}</div>
-          </div>
-          {% if t.duration_str %}<span style="font-size:11px;color:rgba(255,255,255,.3);">{{ t.duration_str }}</span>{% endif %}
+    {% if track.album and track.album.tracks.count > 1 %}
+    <div class="panel">
+      <div class="panel-head"><span class="panel-title">From {{ track.album.title }}</span></div>
+      <div class="panel-body" style="padding:8px">
+        {% for t in track.album.tracks.all|slice:":15" %}
+        <div class="sp-track-row" style="grid-template-columns:30px 1fr auto" onclick="playTrack('{{ t.playable_url|default:'' }}','{{ t.title|escapejs }}','{{ t.artist.name|escapejs }}','{% if t.cover_image %}{{ t.cover_image.url }}{% elif t.album and t.album.cover_image %}{{ t.album.cover_image.url }}{% endif %}','/music/track/{{ t.slug }}/',{{ t.pk }})">
+          <span class="sp-track-num" style="{% if t.pk == track.pk %}color:var(--sp-green){% endif %}">{% if t.pk == track.pk %}▶{% else %}{{ forloop.counter }}{% endif %}</span>
+          <div class="sp-track-info"><div class="sp-track-title" style="{% if t.pk == track.pk %}color:var(--sp-green){% endif %}">{{ t.title }}</div></div>
+          <span class="sp-track-dur">{{ t.duration_str|default:"—" }}</span>
         </div>
         {% endfor %}
       </div>
-      {% endif %}
+    </div>
+    {% endif %}
 
-      {# Related tracks #}
-      {% if related %}
-      <div class="tp-sidebar-panel">
-        <div class="tp-panel-title">You might also like</div>
+    {% if related %}
+    <div class="panel">
+      <div class="panel-head"><span class="panel-title">You might also like</span></div>
+      <div class="panel-body" style="padding:8px">
         {% for t in related %}
-        <div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer;" onclick="playTrack('{{ t.playable_url|default:'' }}','{{ t.title|escapejs }}','{{ t.artist.name|escapejs }}','{% if t.cover_image %}{{ t.cover_image.url }}{% elif t.album and t.album.cover_image %}{{ t.album.cover_image.url }}{% endif %}','/music/track/{{ t.slug }}/',{{ t.pk }})">
-          <div style="width:40px;height:40px;border-radius:8px;overflow:hidden;flex-shrink:0;background:rgba(124,92,252,.1);display:flex;align-items:center;justify-content:center;font-size:16px;">
-            {% if t.cover_image %}<img src="{{ t.cover_image.url }}" style="width:100%;height:100%;object-fit:cover;">
-            {% elif t.album and t.album.cover_image %}<img src="{{ t.album.cover_image.url }}" style="width:100%;height:100%;object-fit:cover;">
-            {% else %}🎵{% endif %}
-          </div>
-          <div style="min-width:0;flex:1;">
-            <div style="font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ t.title }}</div>
-            <div style="font-size:11px;color:rgba(255,255,255,.4);">{{ t.artist.name }}</div>
-          </div>
-          {% if t.duration_str %}<span style="font-size:11px;color:rgba(255,255,255,.3);">{{ t.duration_str }}</span>{% endif %}
+        <div class="sp-track-row" style="grid-template-columns:40px 1fr auto" onclick="playTrack('{{ t.playable_url|default:'' }}','{{ t.title|escapejs }}','{{ t.artist.name|escapejs }}','{% if t.cover_image %}{{ t.cover_image.url }}{% elif t.album and t.album.cover_image %}{{ t.album.cover_image.url }}{% endif %}','/music/track/{{ t.slug }}/',{{ t.pk }})">
+          <div class="sp-track-thumb">{% if t.cover_image %}<img src="{{ t.cover_image.url }}" loading="lazy">{% elif t.album and t.album.cover_image %}<img src="{{ t.album.cover_image.url }}" loading="lazy">{% else %}🎵{% endif %}</div>
+          <div class="sp-track-info"><div class="sp-track-title">{{ t.title }}</div><div class="sp-track-artist">{{ t.artist.name }}</div></div>
+          <span class="sp-track-dur">{{ t.duration_str|default:"—" }}</span>
         </div>
         {% endfor %}
       </div>
-      {% endif %}
     </div>
-
-    {# ── Sidebar ── #}
-    <div>
-
-      {# Add to playlist #}
-      {% if user.is_authenticated %}
-      <div class="tp-sidebar-panel">
-        <div class="tp-panel-title">Add to Playlist</div>
-        {% if user_playlists %}
-        {% for pl in user_playlists %}
-        <form method="post" action="/music/playlist/{{ pl.pk }}/add/">{% csrf_token %}
-          <input type="hidden" name="track_pk" value="{{ track.pk }}">
-          <button type="submit" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px 12px;font-size:13px;color:rgba(255,255,255,.7);cursor:pointer;text-align:left;margin-bottom:6px;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.05)'">
-            📋 {{ pl.name }}
-          </button>
-        </form>
-        {% endfor %}
-        {% endif %}
-        <a href="/music/playlists/" class="tp-btn-outline" style="width:100%;justify-content:center;margin-top:4px;font-size:13px;">+ New Playlist</a>
-      </div>
-      {% endif %}
-
-      {# Track info panel #}
-      <div class="tp-sidebar-panel">
-        <div class="tp-panel-title">Track Info</div>
-        {% if track.genre %}<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px;"><span style="color:rgba(255,255,255,.4);">Genre</span><span>{{ track.genre.name }}</span></div>{% endif %}
-        {% if track.release_year %}<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px;"><span style="color:rgba(255,255,255,.4);">Year</span><span>{{ track.release_year }}</span></div>{% endif %}
-        {% if track.duration_str %}<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px;"><span style="color:rgba(255,255,255,.4);">Duration</span><span>{{ track.duration_str }}</span></div>{% endif %}
-        {% if track.bpm %}<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px;"><span style="color:rgba(255,255,255,.4);">BPM</span><span>{{ track.bpm }}</span></div>{% endif %}
-        <div style="display:flex;justify-content:space-between;padding:7px 0;font-size:13px;"><span style="color:rgba(255,255,255,.4);">Plays</span><span>{{ track.plays_count|default:0 }}</span></div>
-      </div>
-
-      {# Tier badge #}
-      {% if track.is_premium %}
-      <div class="tp-sidebar-panel" style="background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(255,77,109,.06));border-color:rgba(124,92,252,.2);">
-        <div style="text-align:center;">
-          <div style="font-size:28px;margin-bottom:8px;">💎</div>
-          <div style="font-size:14px;font-weight:700;color:#c4abff;margin-bottom:6px;">Premium Track</div>
-          <div style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:14px;">Subscribe to unlock full access</div>
-          <a href="/subscribe/" class="tp-btn-play" style="text-decoration:none;justify-content:center;font-size:13px;padding:10px 20px;">Unlock Premium →</a>
-        </div>
-      </div>
-      {% endif %}
-    </div>
-
-  </div>
-</div>
-
-{# ══════════════════════════════════════════════════════════
-   APPLE MUSIC KARAOKE LYRICS PANEL
-══════════════════════════════════════════════════════════ #}
-<div id="lyr-panel">
-  <div id="lyr-bg" {% if track.cover_image %}style="background-image:url('{{ track.cover_image.url }}')"{% elif track.album and track.album.cover_image %}style="background-image:url('{{ track.album.cover_image.url }}')"{% endif %}></div>
-
-  {# Header #}
-  <div id="lyr-header">
-    <div id="lyr-header-info">
-      <div id="lyr-header-cover">
-        {% if track.cover_image %}<img src="{{ track.cover_image.url }}" style="width:100%;height:100%;object-fit:cover;">
-        {% elif track.album and track.album.cover_image %}<img src="{{ track.album.cover_image.url }}" style="width:100%;height:100%;object-fit:cover;">
-        {% else %}🎵{% endif %}
-      </div>
-      <div id="lyr-header-text">
-        <div id="lyr-header-title">{{ track.title }}</div>
-        <div id="lyr-header-artist">{{ track.artist.name }}</div>
-      </div>
-    </div>
-    <div style="display:flex;align-items:center;gap:8px;">
-      <button id="lyr-caption-btn" onclick="lyrToggleCaption()" title="Live captions">🎙 Live</button>
-      <button class="lyr-close-btn" onclick="closeLyrics()">✕</button>
-    </div>
+    {% endif %}
   </div>
 
-  {# AI source badge #}
-  <div id="lyr-badge"></div>
-
-  {# Scroll area — the karaoke lines go here #}
-  <div id="lyr-scroll">
-    <div id="lyr-inner">
-      <div id="lyr-loading">
-        <div class="spin">⟳</div>
-        <div style="font-size:14px;margin-top:12px;">Loading lyrics…</div>
-      </div>
-      <div id="lyr-lrc-container"></div>
-      <div id="lyr-plain" style="display:none;"></div>
-      <div id="lyr-live" style="display:none;">
-        <div style="font-size:11px;color:rgba(255,255,255,.3);margin-bottom:20px;text-align:center;">🎙 Listening — captions appear in real time</div>
-        <div id="lyr-live-text"></div>
-        <div id="lyr-live-interim"></div>
-      </div>
-      <div id="lyr-nolyr">
-        <span class="emoji">🎵</span>
-        <h3>No lyrics available</h3>
-        <p>We couldn't find lyrics for this track. Try enabling AI transcription in settings.</p>
-      </div>
-      <div id="lyr-error">
-        <div style="font-size:2rem;margin-bottom:12px;">😔</div>
-        <div id="lyr-error-msg" style="font-size:13px;"></div>
+  <div>
+    <div class="panel">
+      <div class="panel-head"><span class="panel-title">Track Info</span></div>
+      <div class="panel-body">
+        {% if track.genre %}<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bd);font-size:13px"><span style="color:var(--tx2)">Genre</span><span>{{ track.genre.name }}</span></div>{% endif %}
+        {% if track.release_year %}<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bd);font-size:13px"><span style="color:var(--tx2)">Year</span><span>{{ track.release_year }}</span></div>{% endif %}
+        {% if track.duration_str %}<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bd);font-size:13px"><span style="color:var(--tx2)">Duration</span><span>{{ track.duration_str }}</span></div>{% endif %}
+        <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px"><span style="color:var(--tx2)">Plays</span><span>{{ track.plays_count|default:0 }}</span></div>
       </div>
     </div>
-  </div>
-
-  {# Bottom player bar #}
-  <div id="lyr-bar">
-    <div id="lyr-seek" onclick="lyrSeek(event)">
-      <div id="lyr-seek-fill"></div>
-    </div>
-    <div id="lyr-controls">
-      <div id="lyr-cover-sm">
-        {% if track.cover_image %}<img src="{{ track.cover_image.url }}" alt="">
-        {% elif track.album and track.album.cover_image %}<img src="{{ track.album.cover_image.url }}" alt="">
-        {% else %}🎵{% endif %}
+    {% if track.is_premium %}
+    <div class="panel" style="background:linear-gradient(135deg,rgba(29,185,84,.1),rgba(124,92,252,.06));border-color:rgba(29,185,84,.2)">
+      <div class="panel-body" style="text-align:center">
+        <div style="font-size:28px;margin-bottom:8px">💎</div>
+        <div style="font-size:14px;font-weight:700;color:var(--sp-green);margin-bottom:6px">Premium Track</div>
+        <a href="/subscribe/" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:10px">Unlock Premium →</a>
       </div>
-      <div id="lyr-bar-info">
-        <div id="lyr-bar-title">{{ track.title }}</div>
-        <div id="lyr-bar-artist">{{ track.artist.name }}</div>
-        <div id="lyr-bar-times"><span id="lyr-cur">0:00</span><span id="lyr-dur">{{ track.duration_str|default:"—" }}</span></div>
-      </div>
-      <button id="lyr-btn-prev" onclick="mpPrev()">⏮</button>
-      <button id="lyr-btn-play" onclick="mpTogglePlay()">▶</button>
-      <button id="lyr-btn-next" onclick="mpNext()">⏭</button>
     </div>
+    {% endif %}
   </div>
 </div>
 
 <script>
-/* ════════════════════════════════════════════════════════════
-   NEXUS · APPLE MUSIC KARAOKE LYRICS ENGINE
-════════════════════════════════════════════════════════════ */
-const _TRACK_PK = {{ track.pk }};
-let _lyrData    = null;
-let _lrcLines   = [];     // [{time, el}]
-let _activeIdx  = -1;
-let _lyrRAF     = null;
-let _captionOn  = false;
-let _speechRec  = null;
-
-// ── Open / Close ──────────────────────────────────────────
-function openLyrics() {
-  const panel = document.getElementById('lyr-panel');
-  panel.style.display = 'flex';
-  document.body.style.overflow = 'hidden';
-  // Auto-play the track if nothing is playing
-  const audio = document.getElementById('mini-audio');
-  if (audio && !audio.src) {
-    playTrack(
-      '{{ track.playable_url|default:'' }}',
-      '{{ track.title|escapejs }}',
-      '{{ track.artist.name|escapejs }}',
-      '{% if track.cover_image %}{{ track.cover_image.url }}{% elif track.album and track.album.cover_image %}{{ track.album.cover_image.url }}{% endif %}',
-      '/music/track/{{ track.slug }}/',
-      {{ track.pk }}
-    );
-  }
-  if (_lyrData) { _lyrStartSync(); return; }
-  _lyrLoad();
+window._LYR_TRACK_PK = {{ track.pk }};
+async function trackToggleLike(pk){
+  const fd=new FormData();fd.append('csrfmiddlewaretoken',getCookie('csrftoken'));
+  const r=await fetch(`/music/like/${pk}/`,{method:'POST',body:fd});
+  const d=await r.json();
+  const b=document.getElementById('tk-like-btn');
+  b.textContent=d.liked?'♥':'♡';b.classList.toggle('liked',d.liked);
+  showToast(d.liked?'♥ Saved to Liked Songs':'Removed from Liked Songs',d.liked?'s':'i');
 }
-
-function closeLyrics() {
-  document.getElementById('lyr-panel').style.display = 'none';
-  document.body.style.overflow = '';
-  cancelAnimationFrame(_lyrRAF);
-  if (_speechRec) { try { _speechRec.stop(); } catch(e) {} }
-}
-
-// Swipe-down to close
-(function(){
-  const panel = document.getElementById('lyr-panel');
-  let sy = null;
-  panel.addEventListener('touchstart', e => { sy = e.touches[0].clientY; }, {passive:true});
-  panel.addEventListener('touchmove', e => {
-    if (sy === null) return;
-    const dy = e.touches[0].clientY - sy;
-    if (dy > 0 && document.getElementById('lyr-scroll').scrollTop === 0)
-      panel.style.transform = `translateY(${dy}px)`;
-  }, {passive:true});
-  panel.addEventListener('touchend', e => {
-    if (sy === null) return;
-    const dy = e.changedTouches[0].clientY - sy;
-    panel.style.transform = '';
-    if (dy > 130) closeLyrics();
-    sy = null;
-  });
-})();
-
-// ── Load ──────────────────────────────────────────────────
-async function _lyrLoad() {
-  document.getElementById('lyr-loading').style.display = 'block';
-  document.getElementById('lyr-lrc-container').style.display = 'none';
-  document.getElementById('lyr-plain').style.display = 'none';
-  document.getElementById('lyr-nolyr').style.display = 'none';
-  document.getElementById('lyr-error').style.display = 'none';
-  try {
-    const r = await fetch(`/music/lyrics/${_TRACK_PK}/`);
-    const d = await r.json();
-    document.getElementById('lyr-loading').style.display = 'none';
-    if (!d.ok) {
-      const msg = d.message || 'Could not load lyrics.';
-      if (msg.includes('No lyrics')) {
-        document.getElementById('lyr-nolyr').style.display = 'block';
-      } else {
-        document.getElementById('lyr-error-msg').textContent = msg;
-        document.getElementById('lyr-error').style.display = 'block';
-      }
-      return;
-    }
-    _lyrData = d;
-    _lyrRender(d);
-  } catch(e) {
-    document.getElementById('lyr-loading').style.display = 'none';
-    document.getElementById('lyr-error-msg').textContent = 'Network error — please try again.';
-    document.getElementById('lyr-error').style.display = 'block';
-  }
-}
-
-// ── Render ────────────────────────────────────────────────
-function _lyrRender(d) {
-  // Badge
-  const badgeMap = {
-    stored_lrc: '✅ Official synced lyrics',
-    stored:     '✅ Official lyrics',
-    whisper:    '🎙 Auto-transcribed · may not match exactly',
-    claude:     '✨ AI-generated · may not match exactly',
-  };
-  const badge = document.getElementById('lyr-badge');
-  if (d.source && badgeMap[d.source]) {
-    badge.textContent = badgeMap[d.source];
-    badge.style.display = 'block';
-  }
-
-  if (d.has_lrc && d.lrc) {
-    _lyrRenderLRC(d.lrc);
-  } else if (d.lyrics) {
-    const plain = document.getElementById('lyr-plain');
-    plain.textContent = d.lyrics;
-    plain.style.display = 'block';
-  } else {
-    document.getElementById('lyr-nolyr').style.display = 'block';
-    return;
-  }
-  _lyrStartSync();
-}
-
-// ── LRC parser & renderer ─────────────────────────────────
-function _lyrRenderLRC(lrc) {
-  const container = document.getElementById('lyr-lrc-container');
-  container.innerHTML = '';
-  _lrcLines = [];
-  _activeIdx = -1;
-
-  const re = /\[(\d{2}):(\d{2})\.(\d{2,3})\]\s*(.*)/;
-  lrc.split('\n').forEach(line => {
-    const m = line.match(re);
-    if (!m) return;
-    const secs = +m[1]*60 + +m[2] + +m[3]/Math.pow(10, m[3].length);
-    const text = m[4].trim();
-    if (!text) return;
-
-    const el = document.createElement('span');
-    el.className = 'lyr-line';
-    el.textContent = text;
-    el.dataset.time = secs;
-    el.onclick = () => {
-      const audio = document.getElementById('mini-audio');
-      if (audio) audio.currentTime = secs;
-    };
-    container.appendChild(el);
-    container.appendChild(document.createElement('br'));
-    _lrcLines.push({ time: secs, el });
-  });
-  container.style.display = 'block';
-
-  // Add spacer at top so first line is roughly centered
-  container.style.paddingTop = '30vh';
-  container.style.paddingBottom = '30vh';
-}
-
-// ── Real-time sync RAF loop ───────────────────────────────
-function _lyrStartSync() {
-  cancelAnimationFrame(_lyrRAF);
-  const audio = document.getElementById('mini-audio');
-  if (!audio || !_lrcLines.length) return;
-
-  function tick() {
-    _lyrRAF = requestAnimationFrame(tick);
-    const ct = audio.currentTime;
-
-    // Update seek bar
-    if (audio.duration) {
-      const pct = (ct / audio.duration * 100).toFixed(2) + '%';
-      document.getElementById('lyr-seek-fill').style.width = pct;
-    }
-    // Update times
-    document.getElementById('lyr-cur').textContent = _fmtTime(ct);
-    document.getElementById('lyr-dur').textContent = _fmtTime(audio.duration);
-
-    // Find active line
-    let newIdx = -1;
-    for (let i = _lrcLines.length - 1; i >= 0; i--) {
-      if (ct >= _lrcLines[i].time) { newIdx = i; break; }
-    }
-    if (newIdx === _activeIdx) return;
-    _activeIdx = newIdx;
-
-    _lrcLines.forEach(({el}, i) => {
-      el.classList.remove('active','past','next');
-      if (i < newIdx) el.classList.add('past');
-      else if (i === newIdx) el.classList.add('active');
-      else if (i === newIdx + 1) el.classList.add('next');
-    });
-
-    // Scroll active line into center
-    if (newIdx >= 0) {
-      const el = _lrcLines[newIdx].el;
-      const scroll = document.getElementById('lyr-scroll');
-      const elTop = el.offsetTop;
-      const targetScroll = elTop - scroll.clientHeight / 2 + el.clientHeight / 2;
-      scroll.scrollTo({ top: targetScroll, behavior: 'smooth' });
-    }
-  }
-  tick();
-}
-
-// ── Seek ──────────────────────────────────────────────────
-function lyrSeek(e) {
-  const audio = document.getElementById('mini-audio');
-  if (!audio || !audio.duration) return;
-  const bar = document.getElementById('lyr-seek');
-  const r = bar.getBoundingClientRect();
-  audio.currentTime = ((e.clientX - r.left) / r.width) * audio.duration;
-}
-
-// ── Play icon sync ────────────────────────────────────────
-(function(){
-  const audio = document.getElementById('mini-audio');
-  if (!audio) return;
-  function syncIcon() {
-    const b = document.getElementById('lyr-btn-play');
-    if (b) b.textContent = audio.paused ? '▶' : '⏸';
-  }
-  audio.addEventListener('play',  syncIcon);
-  audio.addEventListener('pause', syncIcon);
-})();
-
-// ── Live caption toggle ───────────────────────────────────
-function lyrToggleCaption() {
-  _captionOn = !_captionOn;
-  const btn = document.getElementById('lyr-caption-btn');
-  if (!btn) return;
-  btn.classList.toggle('on', _captionOn);
-  btn.textContent = _captionOn ? '🎙 Stop' : '🎙 Live';
-  const live = document.getElementById('lyr-live');
-  if (_captionOn) {
-    live.style.display = 'block';
-    document.getElementById('lyr-lrc-container').style.display = 'none';
-    document.getElementById('lyr-plain').style.display = 'none';
-    _startSpeech();
-  } else {
-    live.style.display = 'none';
-    if (_speechRec) { try{ _speechRec.stop(); }catch(e){} }
-    if (_lyrData) _lyrRender(_lyrData);
-  }
-}
-
-function _startSpeech() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) { document.getElementById('lyr-live-text').textContent = 'Speech recognition not supported in this browser.'; return; }
-  _speechRec = new SR();
-  _speechRec.continuous = true;
-  _speechRec.interimResults = true;
-  _speechRec.onresult = e => {
-    let final = '', interim = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      e.results[i].isFinal ? final += e.results[i][0].transcript : interim += e.results[i][0].transcript;
-    }
-    if (final) document.getElementById('lyr-live-text').textContent += ' ' + final;
-    document.getElementById('lyr-live-interim').textContent = interim;
-  };
-  _speechRec.onerror = () => { _captionOn = false; lyrToggleCaption(); };
-  _speechRec.start();
-}
-
-// ── Helpers ───────────────────────────────────────────────
-function _fmtTime(s) {
-  if (!s || isNaN(s)) return '0:00';
-  const m = Math.floor(s / 60);
-  return m + ':' + ('0' + Math.floor(s % 60)).slice(-2);
-}
-
-function toggleLike(pk, btn) {
-  const fd = new FormData();
-  fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-  fetch(`/music/like/${pk}/`, {method:'POST', body:fd})
-    .then(r => r.json())
-    .then(d => {
-      btn.textContent = d.liked ? '♥ Liked' : '♡ Like';
-      btn.style.color = d.liked ? '#ff4d6d' : '';
-      if (typeof showToast === 'function') showToast(d.liked ? '♥ Added to liked songs' : 'Removed from liked songs');
-    }).catch(() => {});
-}
-
-function shareTrack() {
-  if (navigator.share) {
-    navigator.share({ title: '{{ track.title|escapejs }} — {{ track.artist.name|escapejs }}', url: window.location.href });
-  } else {
-    navigator.clipboard.writeText(window.location.href);
-    if (typeof showToast === 'function') showToast('Link copied!');
-  }
-}
-
-// Bridge: mpOpenLyricsFromFs (called from full-screen player)
-function mpOpenLyricsFromFs() { if(typeof mpCollapse==='function')mpCollapse(); openLyrics(); }
+document.addEventListener('click',e=>{if(!e.target.closest('#tk-pl-menu')&&!e.target.closest('[onclick*="tk-pl-menu"]'))document.getElementById('tk-pl-menu')?.classList.remove('show')});
+const tkQueue=[{url:'{{ track.playable_url|default:"" }}',title:'{{ track.title|escapejs }}',artist:'{{ track.artist.name|escapejs }}',cover:'{% if track.cover_image %}{{ track.cover_image.url }}{% elif track.album and track.album.cover_image %}{{ track.album.cover_image.url }}{% endif %}',detail:'/music/track/{{ track.slug }}/',pk:{{ track.pk }}}{% for t in related %},{url:'{{ t.playable_url|default:"" }}',title:'{{ t.title|escapejs }}',artist:'{{ t.artist.name|escapejs }}',cover:'{% if t.cover_image %}{{ t.cover_image.url }}{% elif t.album and t.album.cover_image %}{{ t.album.cover_image.url }}{% endif %}',detail:'/music/track/{{ t.slug }}/',pk:{{ t.pk }}}{% endfor %}];
+if(typeof setPlayerQueue==='function')setPlayerQueue(tkQueue);
 </script>
 {% endblock %}

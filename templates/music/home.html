@@ -1,183 +1,99 @@
 {% extends 'base.html' %}
-{% block title %}Music{% endblock %}
+{% block title %}Music — NEXUS{% endblock %}
 {% block head %}
 <style>
-body{background:#0a0d12;}
-.music-section{padding:40px 0;border-top:1px solid rgba(255,255,255,0.05);}
-.music-heading{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.1rem;color:#fff;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
-.music-heading a{font-size:0.76rem;color:#1db954;text-decoration:none;font-weight:500;}
-.track-row{display:flex;align-items:center;gap:14px;padding:10px 14px;background:#111;border-radius:8px;cursor:pointer;transition:background 0.18s;}
-.track-row:hover{background:#171717;}
-.track-row .num{width:22px;text-align:center;font-size:0.8rem;color:rgba(255,255,255,0.3);flex-shrink:0;}
-.track-row .cover{width:44px;height:44px;border-radius:6px;object-fit:cover;flex-shrink:0;background:linear-gradient(135deg,#0a2010,#1a3020);}
-.track-row .info{flex:1;min-width:0;}
-.track-row .info .title{font-weight:500;font-size:0.86rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.track-row .info .artist-name{font-size:0.74rem;color:#1db954;text-decoration:none;}
-.track-row .meta{font-size:0.72rem;color:rgba(255,255,255,0.35);white-space:nowrap;}
-.artist-card{text-align:center;cursor:pointer;text-decoration:none;display:block;}
-.artist-card img,.artist-card .artist-ph{width:90px;height:90px;border-radius:50%;object-fit:cover;margin:0 auto 8px;display:block;border:2px solid rgba(29,185,84,0.3);}
-.artist-card .artist-ph{background:linear-gradient(135deg,#0a2010,#1db954);display:flex;align-items:center;justify-content:center;font-size:2rem;}
-.artist-card .aname{font-size:0.8rem;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.album-card{text-decoration:none;display:block;}
-.album-card img,.album-card .alph{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;display:block;margin-bottom:8px;}
-.album-card .alph{background:linear-gradient(135deg,#0a2010,#122a16);display:flex;align-items:center;justify-content:center;font-size:2.5rem;}
-.album-card .altitle{font-size:0.82rem;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.album-card .alartist{font-size:0.72rem;color:#1db954;}
+.mh-hero{margin:0 32px 32px;border-radius:14px;overflow:hidden;background:linear-gradient(135deg,#1a0533,#0a2a1a);display:flex;align-items:center;gap:24px;padding:28px 28px 28px 32px;position:relative;min-height:180px}
+.mh-hero-bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(40px) brightness(.3) saturate(1.5);transform:scale(1.2)}
+.mh-hero-cover{width:140px;height:140px;border-radius:12px;flex-shrink:0;object-fit:cover;position:relative;z-index:1;box-shadow:0 16px 40px rgba(0,0,0,.6)}
+.mh-hero-info{position:relative;z-index:1;flex:1;min-width:0}
+@media(max-width:900px){
+  .mh-hero{margin:0 16px 24px;flex-direction:column;text-align:center;padding:20px}
+  .mh-hero-cover{width:110px;height:110px}
+  .sp-sec{padding-left:16px;padding-right:16px}
+}
 </style>
 {% endblock %}
 {% block content %}
-<div style="background:#0a0d12;min-height:100vh;color:#fff;padding-bottom:80px;">
 
-<!-- Hero / Song of the Day -->
+<div class="home-greeting" style="padding:32px 32px 0">🎵 Music</div>
+
 {% if song_of_day %}
-<section style="position:relative;background:#0d1118;border-bottom:1px solid rgba(255,255,255,0.06);padding:52px 0 44px;overflow:hidden;">
-  <div style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 10% 50%,rgba(29,185,84,0.12),transparent);"></div>
-  <div class="container" style="position:relative;z-index:2;display:flex;gap:32px;align-items:center;">
-    <div style="flex-shrink:0;position:relative;">
-      {% if song_of_day.cover_image %}<img src="{{ song_of_day.cover_image.url }}" style="width:200px;height:200px;border-radius:12px;object-fit:cover;box-shadow:0 20px 60px rgba(0,0,0,0.6);">
-      {% elif song_of_day.album and song_of_day.album.cover_image %}<img src="{{ song_of_day.album.cover_image.url }}" style="width:200px;height:200px;border-radius:12px;object-fit:cover;box-shadow:0 20px 60px rgba(0,0,0,0.6);">
-      {% else %}<div style="width:200px;height:200px;border-radius:12px;background:linear-gradient(135deg,#0a2010,#1db954);display:flex;align-items:center;justify-content:center;font-size:4rem;box-shadow:0 20px 60px rgba(0,0,0,0.6);">🎵</div>{% endif %}
-      {% if branding and branding.show_on_player and branding.logo %}
-      <div style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.7);border-radius:6px;padding:4px 8px;">
-        <img src="{{ branding.logo.url }}" style="height:20px;width:auto;">
-      </div>
-      {% endif %}
-    </div>
-    <div style="flex:1;">
-      <div style="display:inline-flex;align-items:center;gap:7px;background:rgba(29,185,84,0.15);border:1px solid rgba(29,185,84,0.3);border-radius:20px;padding:4px 14px;margin-bottom:14px;font-size:0.72rem;font-weight:600;color:#1db954;">
-        <span style="width:6px;height:6px;border-radius:50%;background:#1db954;display:inline-block;animation:pulse 2s infinite;"></span> SONG OF THE DAY
-      </div>
-      <h1 style="font-family:'Space Grotesk',sans-serif;font-size:clamp(1.5rem,3vw,2.4rem);font-weight:800;color:#fff;margin-bottom:8px;line-height:1.2;">{{ song_of_day.title }}</h1>
-      <a href="/music/artist/{{ song_of_day.artist.slug }}/" style="font-size:1rem;color:#1db954;text-decoration:none;font-weight:500;">{{ song_of_day.artist.name }}</a>
-      {% if song_of_day.featured_artists.all %}<span style="color:rgba(255,255,255,0.4);font-size:0.82rem;"> ft. {% for fa in song_of_day.featured_artists.all %}{{ fa.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>{% endif %}
-      <div style="display:flex;gap:16px;margin:12px 0 20px;font-size:0.78rem;color:rgba(255,255,255,0.4);">
-        {% if song_of_day.album %}<span>💿 {{ song_of_day.album.title }}</span>{% endif %}
-        {% if song_of_day.genre %}<span>🎸 {{ song_of_day.genre.name }}</span>{% endif %}
-        <span>📅 {{ song_of_day.release_year }}</span>
-        <span>▶ {{ song_of_day.plays_count }} plays</span>
-      </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        <button onclick="playTrack('{% if song_of_day.has_audio %}{{ song_of_day.playable_url }}{% endif %}','{{ song_of_day.title|escapejs }}','{{ song_of_day.artist.name|escapejs }}','{% if song_of_day.cover_image %}{{ song_of_day.cover_image.url }}{% elif song_of_day.album and song_of_day.album.cover_image %}{{ song_of_day.album.cover_image.url }}{% endif %}',{{ song_of_day.pk }})" class="btn btn-lg" style="background:#1db954;color:var(--tx);font-weight:700;">▶ Play Now</button>
-        <a href="/music/track/{{ song_of_day.slug }}/" class="btn btn-outline btn-lg" style="color:#fff;border-color:rgba(255,255,255,0.25);">View Details</a>
-        <a href="/music/download/{{ song_of_day.pk }}/" class="btn btn-outline btn-lg" style="color:#fff;border-color:rgba(255,255,255,0.25);">⬇ Download</a>
-      </div>
-    </div>
-  </div>
-</section>
-{% endif %}
-
-<div class="container" style="padding:0 20px;">
-
-<!-- Quick actions + Genre pills -->
-<div style="background:rgba(0,0,0,.3);border-bottom:1px solid rgba(255,255,255,.05);">
-  <div class="container" style="padding:12px 20px;">
-    <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;">
-      <a href="/music/discover/" style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:7px 16px;border-radius:20px;background:linear-gradient(135deg,rgba(124,92,252,.3),rgba(255,77,109,.2));color:#fff;text-decoration:none;font-size:13px;font-weight:600;border:1px solid rgba(124,92,252,.3);white-space:nowrap;">🎙 Discover</a>
-      {% if user.is_authenticated %}<a href="/music/playlists/" style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:7px 16px;border-radius:20px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.8);text-decoration:none;font-size:13px;font-weight:600;border:1px solid rgba(255,255,255,.1);white-space:nowrap;">📋 Playlists</a>{% endif %}
-      <div style="width:1px;background:rgba(255,255,255,.1);flex-shrink:0;margin:0 4px;"></div>
-      <a href="/music/" style="flex-shrink:0;padding:7px 16px;border-radius:20px;background:#1db954;color:#000;text-decoration:none;font-size:12px;font-weight:700;white-space:nowrap;">All</a>
-      {% for g in genres %}<a href="/music/genre/{{ g.slug }}/" style="flex-shrink:0;padding:7px 14px;border-radius:20px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.65);text-decoration:none;font-size:12px;border:1px solid rgba(255,255,255,.1);white-space:nowrap;transition:all .18s;" onmouseover="this.style.background='rgba(29,185,84,.2)';this.style.color='#1db954';this.style.borderColor='rgba(29,185,84,.3)'" onmouseout="this.style.background='rgba(255,255,255,.07)';this.style.color='rgba(255,255,255,.65)';this.style.borderColor='rgba(255,255,255,.1)'">{{ g.name }}</a>{% endfor %}
-    </div>
+<div class="mh-hero" style="margin-top:24px">
+  {% if song_of_day.cover_image %}<div class="mh-hero-bg" style="background-image:url('{{ song_of_day.cover_image.url }}')"></div>{% endif %}
+  {% if song_of_day.cover_image %}<img src="{{ song_of_day.cover_image.url }}" class="mh-hero-cover">{% else %}<div class="mh-hero-cover" style="display:flex;align-items:center;justify-content:center;font-size:50px;background:var(--bg3)">🎵</div>{% endif %}
+  <div class="mh-hero-info">
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:8px">🔥 Song of the Day</div>
+    <div style="font-family:'Space Grotesk',sans-serif;font-size:clamp(18px,3vw,28px);font-weight:800;color:#fff;margin-bottom:6px">{{ song_of_day.title }}</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:16px">{{ song_of_day.artist.name }}</div>
+    <button class="btn btn-primary btn-lg" style="padding:12px 28px;font-size:14px" onclick="playTrack('{{ song_of_day.playable_url|default:'' }}','{{ song_of_day.title|escapejs }}','{{ song_of_day.artist.name|escapejs }}','{% if song_of_day.cover_image %}{{ song_of_day.cover_image.url }}{% endif %}','/music/track/{{ song_of_day.slug }}/',{{ song_of_day.pk }})">▶ Play</button>
   </div>
 </div>
+{% endif %}
 
-<!-- Trending Songs -->
 {% if trending %}
-<section class="music-section">
-  <div class="music-heading">🔥 Trending Songs <a href="/music/browse/?sort=-trend_score">See All →</a></div>
-  <div style="display:flex;flex-direction:column;gap:6px;">
+<div class="sp-sec">
+  <div class="sp-section-head"><div class="sp-section-title">🔥 Trending Now</div></div>
+  <div class="sp-row">
     {% for t in trending %}
-    <div class="track-row" onclick="window.location='/music/track/{{ t.slug }}/'">
-      <span class="num">{{ forloop.counter }}</span>
-      {% if t.cover_image %}<img class="cover" src="{{ t.cover_image.url }}" alt="">
-      {% elif t.album and t.album.cover_image %}<img class="cover" src="{{ t.album.cover_image.url }}" alt="">
-      {% else %}<div class="cover" style="display:flex;align-items:center;justify-content:center;font-size:1rem;">🎵</div>{% endif %}
-      <div class="info">
-        <div class="title">{{ t.title }}{% if t.featured_artists.all %} <span style="color:rgba(255,255,255,0.4);font-size:0.7rem;">ft. {% for fa in t.featured_artists.all %}{{ fa.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>{% endif %}</div>
-        <a href="/music/artist/{{ t.artist.slug }}/" class="artist-name" onclick="event.stopPropagation()">{{ t.artist.name }}</a>
-      </div>
-      {% if t.genre %}<span class="meta">{{ t.genre.name }}</span>{% endif %}
-      <span class="meta">▶ {{ t.plays_count }}</span>
-      <span class="meta">{{ t.release_year }}</span>
-      <a href="/music/track/{{ t.slug }}/" onclick="event.stopPropagation()" style="font-size:0.72rem;color:rgba(255,255,255,0.4);text-decoration:none;padding:4px;">⋯</a>
-      <a href="/music/download/{{ t.pk }}/" onclick="event.stopPropagation()" class="btn btn-sm" style="background:rgba(29,185,84,0.15);color:#1db954;border:1px solid rgba(29,185,84,0.2);flex-shrink:0;">⬇</a>
+    <div class="sp-card" style="width:170px;flex-shrink:0" onclick="playTrack('{{ t.playable_url|default:'' }}','{{ t.title|escapejs }}','{{ t.artist.name|escapejs }}','{% if t.cover_image %}{{ t.cover_image.url }}{% elif t.album and t.album.cover_image %}{{ t.album.cover_image.url }}{% endif %}','/music/track/{{ t.slug }}/',{{ t.pk }})">
+      <div class="sp-card-cover">{% if t.cover_image %}<img src="{{ t.cover_image.url }}" loading="lazy">{% elif t.album and t.album.cover_image %}<img src="{{ t.album.cover_image.url }}" loading="lazy">{% else %}🎵{% endif %}<button class="sp-card-play">▶</button></div>
+      <div class="sp-card-title">{{ t.title }}</div><div class="sp-card-sub">{{ t.artist.name }}</div>
     </div>
     {% endfor %}
   </div>
-</section>
+</div>
 {% endif %}
 
-<!-- Popular Albums -->
-{% if popular_albums %}
-<section class="music-section">
-  <div class="music-heading">💿 Popular Albums <a href="/music/browse/?sort=-created_at">Discover →</a></div>
-  <div class="music-grid">
-    {% for a in popular_albums %}
-    <a href="/music/album/{{ a.slug }}/" class="album-card">
-      {% if a.cover_image %}<img src="{{ a.cover_image.url }}" alt="{{ a.title }}">
-      {% else %}<div class="alph">💿</div>{% endif %}
-      <div class="altitle">{{ a.title }}</div>
-      <div class="alartist">{{ a.artist.name }}</div>
-    </a>
-    {% endfor %}
-  </div>
-</section>
-{% endif %}
-
-<!-- Trending Artists -->
 {% if trending_artists %}
-<section class="music-section">
-  <div class="music-heading">🎤 Trending Artists <a href="/music/browse/">All Artists →</a></div>
-  <div class="music-grid">
+<div class="sp-sec">
+  <div class="sp-section-head"><div class="sp-section-title">🎤 Trending Artists</div><a href="/music/browse/" class="sp-section-more">Show all</a></div>
+  <div class="sp-row">
     {% for a in trending_artists %}
-    <a href="/music/artist/{{ a.slug }}/" class="artist-card">
-      {% if a.photo %}<img src="{{ a.photo.url }}" alt="{{ a.name }}">
-      {% else %}<div class="artist-ph">🎤</div>{% endif %}
-      <div class="aname">{{ a.name }}{% if a.is_verified %} <span style="color:#1db954;font-size:0.7rem;">✓</span>{% endif %}</div>
+    <a href="/music/artist/{{ a.slug }}/" class="sp-card" style="width:150px;flex-shrink:0;text-align:center;padding:14px">
+      <div style="width:100%;aspect-ratio:1;border-radius:50%;overflow:hidden;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:36px;margin-bottom:10px">{% if a.image %}<img src="{{ a.image.url }}" style="width:100%;height:100%;object-fit:cover">{% else %}🎤{% endif %}</div>
+      <div class="sp-card-title" style="text-align:center">{{ a.name }}</div>
     </a>
     {% endfor %}
   </div>
-</section>
+</div>
 {% endif %}
 
-<!-- New Releases -->
 {% if new_releases %}
-<section class="music-section">
-  <div class="music-heading">🆕 New Releases <a href="/music/browse/?sort=-created_at">See All →</a></div>
-  <div style="display:flex;flex-direction:column;gap:6px;">
+<div class="sp-sec">
+  <div class="sp-section-head"><div class="sp-section-title">✨ New Releases</div></div>
+  <div class="sp-row">
     {% for t in new_releases %}
-    <div class="track-row" onclick="window.location='/music/track/{{ t.slug }}/'">
-      {% if t.cover_image %}<img class="cover" src="{{ t.cover_image.url }}" alt="">
-      {% elif t.album and t.album.cover_image %}<img class="cover" src="{{ t.album.cover_image.url }}" alt="">
-      {% else %}<div class="cover" style="display:flex;align-items:center;justify-content:center;">🎵</div>{% endif %}
-      <div class="info">
-        <div class="title">{{ t.title }}</div>
-        <a href="/music/artist/{{ t.artist.slug }}/" class="artist-name" onclick="event.stopPropagation()">{{ t.artist.name }}</a>
-      </div>
-      <span class="meta">{{ t.created_at|timesince }} ago</span>
-      <a href="/music/download/{{ t.pk }}/" onclick="event.stopPropagation()" class="btn btn-sm" style="background:rgba(29,185,84,0.15);color:#1db954;border:1px solid rgba(29,185,84,0.2);">⬇ MP3</a>
+    <div class="sp-card" style="width:170px;flex-shrink:0" onclick="playTrack('{{ t.playable_url|default:'' }}','{{ t.title|escapejs }}','{{ t.artist.name|escapejs }}','{% if t.cover_image %}{{ t.cover_image.url }}{% endif %}','/music/track/{{ t.slug }}/',{{ t.pk }})">
+      <div class="sp-card-cover">{% if t.cover_image %}<img src="{{ t.cover_image.url }}" loading="lazy">{% else %}🎵{% endif %}<button class="sp-card-play">▶</button></div>
+      <div class="sp-card-title">{{ t.title }}</div><div class="sp-card-sub">{{ t.artist.name }}</div>
     </div>
     {% endfor %}
   </div>
-</section>
+</div>
 {% endif %}
 
-</div><!-- /container -->
-</div><!-- /bg -->
+{% if popular_albums %}
+<div class="sp-sec">
+  <div class="sp-section-head"><div class="sp-section-title">💿 Popular Albums</div><a href="/music/browse/?sort=-plays_count" class="sp-section-more">Show all</a></div>
+  <div class="sp-row">
+    {% for al in popular_albums %}
+    <a href="/music/album/{{ al.slug }}/" class="sp-card" style="width:170px;flex-shrink:0">
+      <div class="sp-card-cover">{% if al.cover_image %}<img src="{{ al.cover_image.url }}" loading="lazy">{% else %}💿{% endif %}<button class="sp-card-play">▶</button></div>
+      <div class="sp-card-title">{{ al.title }}</div><div class="sp-card-sub">{{ al.artist.name }}</div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
 
-<style>@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}</style>
-{% endblock %}
-{% block scripts %}
-<script>
-// Track slug map for detail links (we only have slug on template side)
-const trackSlugs = {
-  {% for t in trending %}{{ t.pk }}:"{{ t.slug }}"{% if not forloop.last %},{% endif %}{% endfor %}
-};
-function playTrack(url, title, artist, cover, pk) {
-  if (!url) { showToast('No audio file available', 'e'); return; }
-  const detailUrl = (pk && trackSlugs[pk]) ? ('/music/track/' + trackSlugs[pk] + '/') : null;
-  if (typeof playMiniTrack === 'function') playMiniTrack(url, title, artist, cover, detailUrl, pk);
-  showToast('▶ ' + title);
-}
-</script>
+{% if genres %}
+<div class="sp-sec">
+  <div class="sp-section-head"><div class="sp-section-title">🎸 Genres</div></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px">
+    {% for g in genres %}
+    <a href="/music/genre/{{ g.slug }}/" style="border-radius:var(--r2);padding:18px;text-decoration:none;color:#fff;font-weight:700;font-size:15px;min-height:90px;display:flex;align-items:flex-end;background:{% cycle '#3d0c7b' '#7b0c4a' '#0c5a7b' '#7b4a0c' '#0c7b3d' '#4a0c7b' %}">{{ g.name }}</a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
 {% endblock %}

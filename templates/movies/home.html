@@ -1,167 +1,84 @@
 {% extends 'base.html' %}
 {% block title %}Movies & Series — NEXUS{% endblock %}
-{% block extra_head %}
+{% block head %}
 <style>
-body,html{background:#0a0a0a;}
-.mhome{background:#0a0a0a;min-height:100vh;color:#fff;padding-bottom:80px;}
-/* Hero */
-.mhero{position:relative;min-height:480px;display:flex;align-items:flex-end;overflow:hidden;}
-.mhero-bg{position:absolute;inset:0;background-size:cover;background-position:center top;filter:brightness(.28);}
-.mhero-grad{position:absolute;inset:0;background:linear-gradient(to right,rgba(10,10,10,.96) 40%,rgba(10,10,10,.3) 100%),linear-gradient(to top,rgba(10,10,10,1) 0%,transparent 50%);}
-.mhero-content{position:relative;z-index:2;padding:50px 0 60px;}
-/* Section */
-.msec{padding:36px 0 0;}
-.msec-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.1rem;color:#fff;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
-.msec-title a{font-size:12px;color:#e50914;font-weight:500;text-decoration:none;}
-/* Poster card */
-.mc{border-radius:16px;overflow:hidden;background:#111;border:1px solid rgba(255,255,255,.06);transition:transform .22s,box-shadow .22s,border-color .22s;position:relative;display:block;text-decoration:none;box-shadow:0 4px 16px rgba(0,0,0,.25);}
-.mc:hover{transform:translateY(-6px);border-color:rgba(229,9,20,.3);box-shadow:0 20px 50px rgba(0,0,0,.5);}
-.mc img{width:100%;aspect-ratio:2/3;object-fit:cover;display:block;transition:transform .35s;}
-.mc:hover img{transform:scale(1.04);}
-.mc .ph{width:100%;aspect-ratio:2/3;display:flex;align-items:center;justify-content:center;font-size:3rem;background:linear-gradient(160deg,#1a0a1a,#0a0a2a);}
-.mc-badge{position:absolute;border-radius:5px;padding:2px 7px;font-size:9px;font-weight:800;}
-.mc-badge.series-b{top:6px;left:6px;background:rgba(0,212,170,.88);color:#000;}
-.mc-badge.pro-b{top:6px;right:6px;background:rgba(245,158,11,.9);color:#000;}
-.mc-info{padding:8px 10px 10px;}
-.mc-title{font-size:12px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
-.mc-meta{font-size:10px;color:rgba(255,255,255,.38);}
-/* Genre strip */
-.gstrip{display:flex;gap:7px;overflow-x:auto;padding:16px 0;border-bottom:1px solid rgba(255,255,255,.07);scrollbar-width:none;}
-.gstrip::-webkit-scrollbar{display:none;}
-.gtag{flex-shrink:0;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap;border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.65);transition:all .15s;}
-.gtag:hover,.gtag.active{background:#e50914;border-color:#e50914;color:#fff;}
-/* Responsive */
-.poster-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px;}
-@media(max-width:600px){
-  .poster-grid{grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:10px;}
-  .mhero{min-height:340px;}
+.mv-hero{margin:0 32px 32px;border-radius:14px;overflow:hidden;background:linear-gradient(135deg,#1a0533,#000);position:relative;min-height:260px;display:flex;align-items:flex-end;padding:32px}
+.mv-hero-bg{position:absolute;inset:0;background-size:cover;background-position:center;opacity:.5}
+.mv-hero-grad{position:absolute;inset:0;background:linear-gradient(180deg,transparent 0%,rgba(0,0,0,.9) 100%)}
+.mv-hero-content{position:relative;z-index:1}
+@media(max-width:900px){
+  .mv-hero{margin:0 16px 24px;min-height:200px;padding:20px}
+  .sp-sec{padding-left:16px;padding-right:16px}
 }
-@media(min-width:1200px){.poster-grid{grid-template-columns:repeat(auto-fill,minmax(155px,1fr));}}
 </style>
 {% endblock %}
 {% block content %}
-<div class="mhome">
 
-  {# ── HERO ── #}
-  {% if featured %}{% with m=featured.0 %}
-  <section class="mhero">
-    {% if m.thumbnail %}<div class="mhero-bg" style="background-image:url('{{ m.thumbnail.url }}');"></div>{% endif %}
-    <div class="mhero-grad"></div>
-    <div class="mhero-content container" style="max-width:580px;">
-      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px;">
-        {% for g in m.genres.all|slice:":3" %}<span style="background:rgba(229,9,20,.18);color:#e50914;border:1px solid rgba(229,9,20,.3);padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;">{{ g.name }}</span>{% endfor %}
-        {% if m.is_premium %}<span style="background:rgba(245,166,35,.18);color:#f5a623;border:1px solid rgba(245,166,35,.3);padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;">⭐ Premium</span>{% endif %}
-      </div>
-      <h1 style="font-family:'Space Grotesk',sans-serif;font-size:clamp(1.8rem,4vw,3rem);font-weight:800;line-height:1.1;margin-bottom:12px;">{{ m.title }}</h1>
-      <p style="color:rgba(255,255,255,.6);font-size:14px;line-height:1.7;margin-bottom:22px;max-width:500px;">{{ m.description|truncatechars:200 }}</p>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        <a href="/movies/film/{{ m.slug }}/" class="btn btn-lg" style="background:#e50914;color:#fff;padding:12px 28px;font-size:15px;">▶ Watch Now</a>
-        <a href="/movies/browse/" class="btn btn-outline btn-lg" style="border-color:rgba(255,255,255,.25);color:#fff;padding:12px 22px;">Browse All</a>
-      </div>
-    </div>
-  </section>
-  {% endwith %}{% else %}
-  <section style="background:#0a0a0a;padding:60px 0 30px;">
-    <div class="container" style="text-align:center;">
-      <div style="font-size:3rem;margin-bottom:12px;opacity:.3;">🎬</div>
-      <h2 style="font-family:'Space Grotesk',sans-serif;font-size:2rem;font-weight:800;color:#fff;margin-bottom:8px;">Movies & Series</h2>
-      <p style="color:rgba(255,255,255,.4);font-size:14px;">Browse our collection below</p>
-    </div>
-  </section>
-  {% endif %}
+<div class="home-greeting" style="padding:32px 32px 0">🎬 Movies & Series</div>
 
-  <div class="container">
-    {# Genre filter strip #}
-    {% if genres %}
-    <div class="gstrip">
-      <a href="/movies/" class="gtag active">All</a>
-      {% for g in genres %}<a href="/movies/browse/?genre={{ g.slug }}" class="gtag">{{ g.name }}</a>{% endfor %}
-    </div>
-    {% endif %}
-
-    {# ── Trending ── #}
-    {% if trending %}
-    <section class="msec">
-      <div class="msec-title">
-        <span>🔥 Trending Movies</span>
-        <a href="/movies/browse/">View all →</a>
-      </div>
-      <div class="poster-grid">
-        {% for m in trending %}
-        <a href="/movies/film/{{ m.slug }}/" class="mc">
-          {% if m.thumbnail %}<img src="{{ m.thumbnail.url }}" alt="{{ m.title }}">
-          {% else %}<div class="ph">🎬</div>{% endif %}
-          {% if m.is_premium %}<span class="mc-badge pro-b">PRO</span>{% endif %}
-          <div class="mc-info">
-            <div class="mc-title">{{ m.title }}</div>
-            <div class="mc-meta">{{ m.release_year }}{% if m.quality %} · {{ m.quality }}{% endif %} · 👁 {{ m.views_count }}</div>
-          </div>
-        </a>
-        {% endfor %}
-      </div>
-    </section>
-    {% endif %}
-
-    {# ── Series ── ALL of them #}
-    {% if series %}
-    <section class="msec">
-      <div class="msec-title">
-        <span>📺 All Series</span>
-        <a href="/movies/browse/">Browse →</a>
-      </div>
-      <div class="poster-grid">
-        {% for s in series %}
-        <a href="/movies/series/{{ s.slug }}/" class="mc">
-          {% if s.thumbnail %}<img src="{{ s.thumbnail.url }}" alt="{{ s.title }}">
-          {% else %}<div class="ph">📺</div>{% endif %}
-          <span class="mc-badge series-b">SERIES</span>
-          {% if s.is_premium %}<span class="mc-badge pro-b">PRO</span>{% endif %}
-          <div class="mc-info">
-            <div class="mc-title">{{ s.title }}</div>
-            <div class="mc-meta">{{ s.seasons.count }} Season{{ s.seasons.count|pluralize }}</div>
-          </div>
-        </a>
-        {% endfor %}
-      </div>
-    </section>
-    {% endif %}
-
-    {# ── Recently Added ── #}
-    {% if recent %}
-    <section class="msec">
-      <div class="msec-title">
-        <span>🆕 Recently Added</span>
-        <a href="/movies/browse/?sort=-created_at">View all →</a>
-      </div>
-      <div class="poster-grid">
-        {% for m in recent %}
-        <a href="/movies/film/{{ m.slug }}/" class="mc">
-          {% if m.thumbnail %}<img src="{{ m.thumbnail.url }}" alt="{{ m.title }}">
-          {% else %}<div class="ph">🎬</div>{% endif %}
-          {% if m.is_premium %}<span class="mc-badge pro-b">PRO</span>{% endif %}
-          <div class="mc-info">
-            <div class="mc-title">{{ m.title }}</div>
-            <div class="mc-meta">{{ m.release_year }}{% if m.quality %} · {{ m.quality }}{% endif %}</div>
-          </div>
-        </a>
-        {% empty %}
-        <div style="grid-column:1/-1;text-align:center;padding:60px 0;color:rgba(255,255,255,.3);">
-          <div style="font-size:2.5rem;margin-bottom:10px;">🎬</div>
-          <div>No movies added yet</div>
-        </div>
-        {% endfor %}
-      </div>
-    </section>
-    {% endif %}
-
-    {% if not trending and not series and not recent %}
-    <div style="text-align:center;padding:100px 20px;color:rgba(255,255,255,.3);">
-      <div style="font-size:3rem;margin-bottom:14px;">🎬</div>
-      <h3 style="font-family:'Space Grotesk',sans-serif;font-weight:700;margin-bottom:8px;color:rgba(255,255,255,.5);">No content yet</h3>
-      <p>Admin can add movies and series from the dashboard.</p>
-    </div>
-    {% endif %}
-
+{% if featured %}
+{% for f in featured %}
+<div class="mv-hero" style="margin-top:24px">
+  {% if f.thumbnail %}<div class="mv-hero-bg" style="background-image:url('{{ f.thumbnail.url }}')"></div>{% endif %}
+  <div class="mv-hero-grad"></div>
+  <div class="mv-hero-content">
+    <div class="badge badge-green" style="margin-bottom:10px">⭐ Featured</div>
+    <div style="font-family:'Space Grotesk',sans-serif;font-size:clamp(22px,4vw,40px);font-weight:900;color:#fff;margin-bottom:10px">{{ f.title }}</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.6);margin-bottom:18px">{{ f.release_year }}{% if f.quality %} · {{ f.quality }}{% endif %}{% if f.genre %} · {{ f.genre.name }}{% endif %}</div>
+    <a href="/movies/film/{{ f.slug }}/" class="btn btn-primary btn-lg" style="padding:12px 28px;font-size:14px">▶ Watch Now</a>
   </div>
 </div>
+{% endfor %}
+{% endif %}
+
+{% if trending %}
+<div class="sp-sec">
+  <div class="sp-section-head"><div class="sp-section-title">🔥 Trending</div></div>
+  <div class="sp-row">
+    {% for m in trending %}
+    <a href="/movies/film/{{ m.slug }}/" class="sp-card-wide" style="flex-shrink:0">
+      <div class="sp-card-wide-cover">{% if m.thumbnail %}<img src="{{ m.thumbnail.url }}" loading="lazy">{% else %}🎬{% endif %}</div>
+      <div class="sp-card-wide-body"><div class="sp-card-title">{{ m.title }}</div><div class="sp-card-sub">{{ m.release_year }}{% if m.quality %} · {{ m.quality }}{% endif %}</div></div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if series %}
+<div class="sp-sec">
+  <div class="sp-section-head"><div class="sp-section-title">📺 Series</div></div>
+  <div class="sp-row">
+    {% for s in series %}
+    <a href="/movies/series/{{ s.slug }}/" class="sp-card-wide" style="flex-shrink:0">
+      <div class="sp-card-wide-cover">{% if s.thumbnail %}<img src="{{ s.thumbnail.url }}" loading="lazy">{% else %}📺{% endif %}</div>
+      <div class="sp-card-wide-body"><div class="sp-card-title">{{ s.title }}</div><div class="sp-card-sub">{{ s.seasons.count }} season{{ s.seasons.count|pluralize }}</div></div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if recent %}
+<div class="sp-sec">
+  <div class="sp-section-head"><div class="sp-section-title">🆕 Recently Added</div></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:16px">
+    {% for m in recent %}
+    <a href="/movies/film/{{ m.slug }}/" class="sp-card">
+      <div class="sp-card-cover" style="aspect-ratio:2/3">{% if m.thumbnail %}<img src="{{ m.thumbnail.url }}" loading="lazy">{% else %}🎬{% endif %}<button class="sp-card-play">▶</button></div>
+      <div class="sp-card-title">{{ m.title }}</div><div class="sp-card-sub">{{ m.release_year }}</div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if genres %}
+<div class="sp-sec">
+  <div class="sp-section-head"><div class="sp-section-title">🎭 Genres</div></div>
+  <div class="pill-nav">
+    {% for g in genres %}<a href="/movies/?genre={{ g.slug }}" class="pill-btn">{{ g.name }}</a>{% endfor %}
+  </div>
+</div>
+{% endif %}
 {% endblock %}

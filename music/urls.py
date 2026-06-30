@@ -19,6 +19,7 @@ urlpatterns = [
     path('playlists/<int:pk>/delete/',    views.playlist_delete,      name='playlist_delete'),
     # Discover (Shazam-like)
     path('discover/',                     views.music_discover,       name='music_discover'),
+    path('search-live/',                  views.music_search_live,    name='music_search_live'),
     path('discover/identify/',            views.music_identify,       name='music_identify'),
     # Genre filter shortcut
     path('genre/<slug:slug>/',            views.genre_tracks,         name='genre_tracks'),

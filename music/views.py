@@ -447,7 +447,35 @@ def music_discover(request):
     """Full-page Shazam-like UI — user holds up their phone to music playing,
     we capture audio from the microphone, then try to match it against the
     platform's own track library."""
-    return render(request, 'music/discover.html')
+    all_tracks = Track.objects.filter(is_published=True).select_related('artist', 'album').order_by('-created_at')[:30]
+    return render(request, 'music/discover.html', {'all_tracks': all_tracks})
+
+
+def music_search_live(request):
+    """Instant live search against the platform's track library — used by
+    the Discover page's search box for real-time results as the user types."""
+    from django.db.models import Q
+    q = request.GET.get('q', '').strip()
+    if not q or len(q) < 2:
+        return JsonResponse({'results': []})
+    tracks = Track.objects.filter(
+        is_published=True
+    ).filter(
+        Q(title__icontains=q) | Q(artist__name__icontains=q) |
+        (Q(album__title__icontains=q) if True else Q())
+    ).select_related('artist', 'album').distinct()[:15]
+    results = []
+    for t in tracks:
+        cover = ''
+        if t.cover_image:
+            cover = t.cover_image.url
+        elif t.album and t.album.cover_image:
+            cover = t.album.cover_image.url
+        results.append({
+            'pk': t.pk, 'title': t.title, 'artist': t.artist.name if t.artist else '',
+            'slug': t.slug, 'cover': cover, 'url': t.playable_url or '',
+        })
+    return JsonResponse({'results': results})
 
 
 @require_POST

@@ -1,764 +1,251 @@
 {% extends 'base.html' %}
-{% block title %}Home{% endblock %}
+{% block title %}Home — NEXUS{% endblock %}
 {% block head %}
 <style>
-/* Hide base nav on home — sidebar replaces it */
-.nav, nav.site-nav, #site-nav, header.site-header { display:none !important; }
-/* Remove base main padding that assumes nav exists */
-main { padding-top:0 !important; margin-top:0 !important; }
-/* Remove body padding added by base */
-body { padding-top:0 !important; }
-</style>
-<style>
-/* ═══════════════════════════════════════════════════════════
-   NEXUS HOME — Pulse-style dark UI
-═══════════════════════════════════════════════════════════ */
-
-/* ── Layout shell ─────────────────────────────────────────── */
-body { background:#07060f; color:#e8e8f0; }
-
-/* ── Sidebar ──────────────────────────────────────────────── */
-#ns-sidebar {
-  position:fixed; left:0; top:0; bottom:0; width:240px;
-  background:#0d0c1a; border-right:1px solid rgba(255,255,255,.06);
-  z-index:300; display:flex; flex-direction:column;
-  padding:0 0 100px; overflow-y:auto; transition:transform .3s;
+.home-greeting{padding:40px 32px 0;font-family:'Space Grotesk',sans-serif;font-size:clamp(20px,3vw,30px);font-weight:800;color:var(--tx);margin-bottom:24px}
+.quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 32px;margin-bottom:32px}
+.quick-tile{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.1);border-radius:var(--r2);overflow:hidden;text-decoration:none;color:var(--tx);font-size:13px;font-weight:700;transition:background .15s;height:52px}
+.quick-tile:hover{background:rgba(255,255,255,.18)}
+.quick-tile-cover{width:52px;height:52px;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:22px;background:var(--bg3)}
+.quick-tile-cover img{width:100%;height:100%;object-fit:cover}
+.sp-sec{padding:0 32px 36px}
+.hero-banner{
+  margin:0 32px 32px;border-radius:14px;overflow:hidden;
+  background:linear-gradient(135deg,#1a0533,#0a2a1a);
+  display:flex;align-items:center;gap:24px;padding:28px 28px 28px 32px;
+  position:relative;min-height:180px;
 }
-#ns-sidebar::-webkit-scrollbar { width:0 }
-.ns-logo {
-  display:flex; align-items:center; gap:10px;
-  padding:22px 22px 16px;
-  font-family:'Space Grotesk',sans-serif; font-weight:800; font-size:20px;
-  text-decoration:none; color:#fff; border-bottom:1px solid rgba(255,255,255,.05);
-  margin-bottom:8px;
-}
-.ns-logo span { background:linear-gradient(135deg,#7c5cfc,#ff4d6d); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-.ns-section-label {
-  font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
-  color:rgba(255,255,255,.25); padding:14px 22px 6px;
-}
-.ns-nav-item {
-  display:flex; align-items:center; gap:12px;
-  padding:10px 22px; border-radius:0; font-size:13.5px; font-weight:500;
-  color:rgba(255,255,255,.5); text-decoration:none; transition:all .18s;
-  position:relative; cursor:pointer; border:none; background:none; width:100%;
-  text-align:left;
-}
-.ns-nav-item:hover { color:#fff; background:rgba(255,255,255,.05); }
-.ns-nav-item.active {
-  color:#fff; background:linear-gradient(90deg,rgba(124,92,252,.18),transparent);
-}
-.ns-nav-item.active::before {
-  content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
-  background:linear-gradient(180deg,#7c5cfc,#ff4d6d); border-radius:0 2px 2px 0;
-}
-.ns-nav-icon { font-size:18px; width:22px; text-align:center; flex-shrink:0; }
-.ns-badge {
-  margin-left:auto; font-size:10px; font-weight:700;
-  background:rgba(124,92,252,.3); color:#a07cff;
-  padding:2px 7px; border-radius:10px;
-}
-
-/* Sidebar user quick-access */
-.ns-user-bar {
-  margin-top:auto; padding:14px 22px 6px; border-top:1px solid rgba(255,255,255,.06);
-}
-
-/* ── Main content area ────────────────────────────────────── */
-#ns-main {
-  margin-left:240px; min-height:100vh;
-  background:#07060f;
-}
-
-/* ── Top bar ──────────────────────────────────────────────── */
-#ns-topbar {
-  position:sticky; top:0; z-index:200;
-  background:rgba(7,6,15,.85); backdrop-filter:blur(20px);
-  border-bottom:1px solid rgba(255,255,255,.05);
-  display:flex; align-items:center; gap:12px;
-  padding:0 28px; height:64px;
-}
-.ns-search {
-  display:flex; align-items:center; gap:10px;
-  background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.1);
-  border-radius:24px; padding:0 16px; height:40px; flex:1; max-width:420px;
-  transition:all .2s;
-}
-.ns-search:focus-within { background:rgba(255,255,255,.1); border-color:rgba(124,92,252,.5); }
-.ns-search input {
-  background:none; border:none; outline:none; color:#fff; font-size:13px; flex:1;
-}
-.ns-search input::placeholder { color:rgba(255,255,255,.3); }
-.ns-topbar-r { margin-left:auto; display:flex; align-items:center; gap:10px; }
-.ns-avatar {
-  width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,#7c5cfc,#ff4d6d);
-  display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700;
-  cursor:pointer; border:2px solid rgba(124,92,252,.3); text-decoration:none; color:#fff;
-  flex-shrink:0;
-}
-.ns-pill-btn {
-  display:flex; align-items:center; gap:6px; padding:8px 18px; border-radius:22px;
-  font-size:13px; font-weight:600; text-decoration:none; transition:all .18s; border:none; cursor:pointer;
-}
-.ns-pill-btn.primary { background:linear-gradient(135deg,#7c5cfc,#5b3ee0); color:#fff; }
-.ns-pill-btn.ghost { background:rgba(255,255,255,.07); color:rgba(255,255,255,.7); border:1px solid rgba(255,255,255,.12); }
-.ns-pill-btn:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(0,0,0,.3); }
-
-/* ── Greeting hero (Pulse-style) ──────────────────────────── */
-#ns-hero {
-  padding:40px 32px 0;
-}
-.ns-greeting {
-  font-family:'Space Grotesk',sans-serif; font-size:clamp(28px,3vw,42px);
-  font-weight:800; line-height:1.15; margin-bottom:6px;
-}
-.ns-greeting .accent { background:linear-gradient(135deg,#7c5cfc,#ff4d6d); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-.ns-greeting-sub { font-size:14px; color:rgba(255,255,255,.4); margin-bottom:28px; }
-
-/* ── Pill filter row ──────────────────────────────────────── */
-.ns-filter-row {
-  display:flex; gap:8px; overflow-x:auto; padding-bottom:2px; margin-bottom:28px;
-  -webkit-overflow-scrolling:touch; scrollbar-width:none;
-}
-.ns-filter-row::-webkit-scrollbar { display:none; }
-.ns-filter-pill {
-  flex-shrink:0; padding:7px 18px; border-radius:22px; font-size:13px; font-weight:600;
-  text-decoration:none; color:rgba(255,255,255,.55); background:rgba(255,255,255,.07);
-  border:1px solid rgba(255,255,255,.1); transition:all .18s; cursor:pointer; white-space:nowrap;
-}
-.ns-filter-pill:hover, .ns-filter-pill.active {
-  background:rgba(124,92,252,.2); color:#c4abff; border-color:rgba(124,92,252,.4);
-}
-.ns-filter-pill.active { background:linear-gradient(135deg,rgba(124,92,252,.3),rgba(255,77,109,.15)); color:#fff; }
-
-/* ── Section headers ──────────────────────────────────────── */
-.ns-sec { padding:0 32px 36px; }
-.ns-sec-head {
-  display:flex; align-items:baseline; justify-content:space-between; margin-bottom:18px;
-}
-.ns-sec-title { font-family:'Space Grotesk',sans-serif; font-size:17px; font-weight:800; color:#fff; }
-.ns-sec-see { font-size:12px; color:rgba(255,255,255,.4); text-decoration:none; font-weight:600; transition:color .15s; }
-.ns-sec-see:hover { color:#a07cff; }
-
-/* ── Hero card (Now Playing / Featured) ───────────────────── */
-.ns-hero-card {
-  display:flex; gap:28px; background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(255,77,109,.08));
-  border:1px solid rgba(124,92,252,.2); border-radius:20px; padding:28px; align-items:center;
-  margin-bottom:36px; position:relative; overflow:hidden;
-}
-.ns-hero-card::before {
-  content:''; position:absolute; inset:0;
-  background:radial-gradient(ellipse 70% 100% at 0% 50%, rgba(124,92,252,.12), transparent);
-  pointer-events:none;
-}
-.ns-hero-cover {
-  width:140px; height:140px; border-radius:16px; object-fit:cover; flex-shrink:0;
-  box-shadow:0 20px 50px rgba(0,0,0,.6); position:relative; z-index:1;
-}
-.ns-hero-cover-ph {
-  width:140px; height:140px; border-radius:16px; flex-shrink:0;
-  background:linear-gradient(135deg,rgba(124,92,252,.3),rgba(255,77,109,.2));
-  display:flex; align-items:center; justify-content:center; font-size:52px;
-  box-shadow:0 20px 50px rgba(0,0,0,.6);
-}
-.ns-hero-info { flex:1; min-width:0; position:relative; z-index:1; }
-.ns-hero-label {
-  display:inline-flex; align-items:center; gap:6px; font-size:10px; font-weight:700;
-  text-transform:uppercase; letter-spacing:.1em; color:#a07cff;
-  background:rgba(124,92,252,.15); border:1px solid rgba(124,92,252,.25);
-  border-radius:20px; padding:4px 12px; margin-bottom:12px;
-}
-.ns-hero-label .dot { width:5px; height:5px; border-radius:50%; background:#a07cff; animation:ns-pulse 2s infinite; }
-.ns-hero-title {
-  font-family:'Space Grotesk',sans-serif; font-size:clamp(18px,2.5vw,28px); font-weight:800;
-  color:#fff; margin-bottom:5px; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-}
-.ns-hero-artist { font-size:14px; color:rgba(255,255,255,.5); margin-bottom:18px; }
-.ns-hero-btns { display:flex; gap:10px; flex-wrap:wrap; }
-.ns-play-btn {
-  display:flex; align-items:center; gap:8px; padding:10px 22px; border-radius:22px;
-  background:#fff; color:#07060f; font-size:14px; font-weight:700;
-  border:none; cursor:pointer; transition:all .18s;
-}
-.ns-play-btn:hover { transform:scale(1.04); box-shadow:0 8px 24px rgba(255,255,255,.2); }
-.ns-outline-btn {
-  display:flex; align-items:center; gap:7px; padding:10px 20px; border-radius:22px;
-  background:rgba(255,255,255,.08); color:rgba(255,255,255,.75); font-size:14px; font-weight:600;
-  border:1px solid rgba(255,255,255,.15); cursor:pointer; text-decoration:none; transition:all .18s;
-}
-.ns-outline-btn:hover { background:rgba(255,255,255,.14); color:#fff; }
-
-/* ── Horizontal scroll row (cards) ───────────────────────── */
-.ns-hscroll {
-  display:flex; gap:14px; overflow-x:auto; padding-bottom:6px;
-  -webkit-overflow-scrolling:touch; scrollbar-width:none;
-}
-.ns-hscroll::-webkit-scrollbar { display:none; }
-
-/* ── Card types ───────────────────────────────────────────── */
-.ns-card {
-  flex-shrink:0; width:160px; text-decoration:none; color:inherit;
-  border-radius:14px; overflow:hidden; transition:transform .22s;
-  background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06);
-  cursor:pointer;
-}
-.ns-card:hover { transform:translateY(-5px); }
-.ns-card-thumb {
-  width:100%; aspect-ratio:1; background:rgba(124,92,252,.1);
-  display:flex; align-items:center; justify-content:center; font-size:36px;
-  position:relative; overflow:hidden;
-}
-.ns-card-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
-.ns-card-play {
-  position:absolute; bottom:8px; right:8px;
-  width:38px; height:38px; border-radius:50%; background:#fff;
-  display:flex; align-items:center; justify-content:center;
-  font-size:14px; color:#07060f; opacity:0; transform:translateY(6px);
-  transition:all .22s; box-shadow:0 6px 20px rgba(0,0,0,.5);
-}
-.ns-card:hover .ns-card-play { opacity:1; transform:translateY(0); }
-.ns-card-body { padding:10px 12px 12px; }
-.ns-card-title { font-size:13px; font-weight:600; color:#fff; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.ns-card-sub { font-size:11px; color:rgba(255,255,255,.4); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-
-/* Wide card for movies/content */
-.ns-card-wide {
-  flex-shrink:0; width:220px; text-decoration:none; color:inherit;
-  border-radius:14px; overflow:hidden; transition:transform .22s;
-  background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06);
-}
-.ns-card-wide:hover { transform:translateY(-5px); }
-.ns-card-wide .ns-card-thumb { aspect-ratio:16/9; }
-.ns-card-wide .ns-card-body { padding:10px 12px 12px; }
-
-/* Artist pill card */
-.ns-artist-card {
-  flex-shrink:0; width:110px; text-align:center;
-  text-decoration:none; color:inherit; transition:transform .22s;
-}
-.ns-artist-card:hover { transform:translateY(-4px); }
-.ns-artist-av {
-  width:90px; height:90px; border-radius:50%; margin:0 auto 10px;
-  background:linear-gradient(135deg,rgba(124,92,252,.2),rgba(255,77,109,.1));
-  display:flex; align-items:center; justify-content:center; font-size:32px;
-  overflow:hidden; border:2px solid rgba(255,255,255,.08);
-}
-.ns-artist-av img { width:100%; height:100%; object-fit:cover; }
-.ns-artist-name { font-size:12px; font-weight:600; color:rgba(255,255,255,.85); }
-
-/* Track list row */
-.ns-track-row {
-  display:flex; align-items:center; gap:14px; padding:8px 12px; border-radius:10px;
-  transition:background .15s; cursor:pointer; text-decoration:none; color:inherit;
-}
-.ns-track-row:hover { background:rgba(255,255,255,.05); }
-.ns-track-num { width:22px; text-align:center; font-size:12px; color:rgba(255,255,255,.3); flex-shrink:0; }
-.ns-track-thumb {
-  width:44px; height:44px; border-radius:8px; flex-shrink:0;
-  background:rgba(124,92,252,.1); display:flex; align-items:center; justify-content:center;
-  font-size:18px; overflow:hidden;
-}
-.ns-track-thumb img { width:100%; height:100%; object-fit:cover; }
-.ns-track-info { flex:1; min-width:0; }
-.ns-track-title { font-size:13.5px; font-weight:600; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.ns-track-artist { font-size:11.5px; color:rgba(255,255,255,.4); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.ns-track-meta { font-size:11px; color:rgba(255,255,255,.3); flex-shrink:0; }
-.ns-track-play-btn {
-  width:32px; height:32px; border-radius:50%; background:rgba(124,92,252,.15);
-  border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;
-  font-size:12px; color:rgba(255,255,255,.6); flex-shrink:0; opacity:0; transition:all .2s;
-}
-.ns-track-row:hover .ns-track-play-btn { opacity:1; }
-
-/* ── Stats row ────────────────────────────────────────────── */
-.ns-stats-row {
-  display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:32px;
-}
-.ns-stat {
-  background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07);
-  border-radius:14px; padding:16px 18px; text-align:center;
-}
-.ns-stat-val { font-family:'Space Grotesk',sans-serif; font-size:22px; font-weight:800; color:#fff; }
-.ns-stat-label { font-size:11px; color:rgba(255,255,255,.35); margin-top:3px; }
-
-/* ── Genre grid ───────────────────────────────────────────── */
-.ns-genre-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-.ns-genre-tile {
-  border-radius:12px; padding:16px; text-decoration:none; color:#fff; font-weight:700;
-  font-size:14px; min-height:80px; display:flex; align-items:flex-end;
-  position:relative; overflow:hidden; transition:transform .22s;
-}
-.ns-genre-tile:hover { transform:scale(1.03); }
-.ns-genre-tile::before { content:''; position:absolute; inset:0; background:rgba(0,0,0,.25); }
-.ns-genre-emoji { position:absolute; right:12px; top:10px; font-size:28px; opacity:.7; }
-
-/* ── Mobile sidebar overlay ───────────────────────────────── */
-#ns-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:299; backdrop-filter:blur(4px); }
-
-/* ── Animations ───────────────────────────────────────────── */
-@keyframes ns-pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-@keyframes ns-fade-in { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
-.ns-sec { animation:ns-fade-in .4s ease both; }
-
-/* ── RESPONSIVE ───────────────────────────────────────────── */
-@media(max-width:1100px){
-  #ns-sidebar{width:200px}
-  #ns-main{margin-left:200px}
-  .ns-card{width:140px}
-  .ns-card-wide{width:190px}
-}
-@media(max-width:860px){
-  #ns-sidebar{transform:translateX(-100%);width:260px;z-index:500}
-  #ns-sidebar.open{transform:none}
-  #ns-main{margin-left:0}
-  #ns-overlay.open{display:block}
-  #ns-topbar{padding:0 16px}
-  #ns-hero{padding:20px 16px 0}
-  .ns-sec{padding:0 16px 28px}
-  .ns-hero-card{flex-direction:column;text-align:center;padding:22px}
-  .ns-hero-card .ns-hero-btns{justify-content:center}
-  .ns-hero-cover,.ns-hero-cover-ph{width:100%;height:200px;width:200px}
-  .ns-stats-row{grid-template-columns:repeat(2,1fr)}
-  .ns-genre-grid{grid-template-columns:1fr 1fr}
+.hero-banner-bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(40px) brightness(.3) saturate(1.5);transform:scale(1.2)}
+.hero-banner-cover{width:140px;height:140px;border-radius:12px;flex-shrink:0;object-fit:cover;position:relative;z-index:1;box-shadow:0 16px 40px rgba(0,0,0,.6)}
+.hero-banner-info{position:relative;z-index:1;flex:1;min-width:0}
+.hero-banner-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.6);margin-bottom:8px}
+.hero-banner-title{font-family:'Space Grotesk',sans-serif;font-size:clamp(18px,3vw,30px);font-weight:800;color:#fff;margin-bottom:6px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hero-banner-sub{font-size:13px;color:rgba(255,255,255,.5);margin-bottom:18px}
+.hero-banner-btns{display:flex;gap:10px;flex-wrap:wrap}
+@media(max-width:900px){
+  .quick-grid{grid-template-columns:repeat(2,1fr)}
+  .sp-sec,.hero-banner,.home-greeting,.quick-grid{padding-left:16px;padding-right:16px}
+  .hero-banner{margin-left:16px;margin-right:16px;flex-direction:column;text-align:center;padding:20px}
+  .hero-banner-cover{width:110px;height:110px}
+  .hero-banner-btns{justify-content:center}
 }
 @media(max-width:480px){
-  .ns-card{width:130px}
-  .ns-card-wide{width:170px}
-  .ns-stats-row{grid-template-columns:1fr 1fr;gap:8px}
-  .ns-genre-grid{grid-template-columns:1fr 1fr}
-  .ns-greeting{font-size:24px}
-  .ns-hero-cover,.ns-hero-cover-ph{width:160px;height:160px}
-  .ns-artist-av{width:76px;height:76px}
-  .ns-artist-card{width:90px}
-  #ns-topbar{height:56px}
-}
-@media(max-width:360px){
-  .ns-card{width:120px}
-  .ns-hero-card{padding:18px}
+  .quick-grid{grid-template-columns:1fr 1fr}
+  .hero-banner-cover{width:90px;height:90px}
 }
 </style>
 {% endblock %}
-
 {% block content %}
-<div style="display:flex;min-height:100vh;background:#07060f;">
 
-  <!-- ═══ SIDEBAR ═══════════════════════════════════════════════ -->
-  <aside id="ns-sidebar">
-    <!-- Logo -->
-    <a href="/" class="ns-logo">
-      {% if site_settings and site_settings.logo %}
-      <img src="{{ site_settings.logo.url }}" style="height:30px;width:auto;">
-      {% else %}
-      <span>{% if site_settings and site_settings.site_name %}{{ site_settings.site_name }}{% else %}NEXUS{% endif %}</span>
-      {% endif %}
-    </a>
+<div class="home-greeting" id="home-greet">
+  Good day{% if user.is_authenticated %}, {{ user.username }}{% endif %}
+</div>
+<script>
+(function(){const h=new Date().getHours(),g=document.getElementById('home-greet');
+if(g)g.textContent=(h<12?'Good morning':h<18?'Good afternoon':'Good evening')+'{% if user.is_authenticated %}, {{ user.username|escapejs }}{% endif %}'})();
+</script>
 
-    <div class="ns-section-label">Explore</div>
-    <a href="/" class="ns-nav-item active"><span class="ns-nav-icon">🏠</span>Home</a>
-    <a href="/music/" class="ns-nav-item"><span class="ns-nav-icon">🎵</span>Music</a>
-    <a href="/movies/" class="ns-nav-item"><span class="ns-nav-icon">🎬</span>Movies</a>
-    <a href="/images/" class="ns-nav-item"><span class="ns-nav-icon">🖼</span>Gallery</a>
-    <a href="/blog/" class="ns-nav-item"><span class="ns-nav-icon">📝</span>Blog</a>
-    <a href="/trending/" class="ns-nav-item"><span class="ns-nav-icon">🔥</span>Trending</a>
-    <a href="/music/discover/" class="ns-nav-item"><span class="ns-nav-icon">🧭</span>Discover</a>
-
-    {% if user.is_authenticated %}
-    <div class="ns-section-label">Library</div>
-    <a href="/music/playlists/" class="ns-nav-item"><span class="ns-nav-icon">📋</span>Playlists</a>
-    <a href="/dashboard/" class="ns-nav-item"><span class="ns-nav-icon">👤</span>My Account</a>
-    {% if user.role == 'creator' or user.role == 'admin' %}
-    <a href="/creator/" class="ns-nav-item"><span class="ns-nav-icon">✨</span>Creator Studio</a>
-    {% endif %}
-    {% if user.role == 'admin' %}
-    <a href="/admin-panel/" class="ns-nav-item"><span class="ns-nav-icon">⚙</span>Admin<span class="ns-badge">Admin</span></a>
-    {% endif %}
-    {% endif %}
-
-    <div class="ns-section-label">More</div>
-    <a href="/ai/studio/" class="ns-nav-item"><span class="ns-nav-icon">🤖</span>AI Studio</a>
-    <a href="/subscribe/" class="ns-nav-item"><span class="ns-nav-icon">💎</span>Go Premium</a>
-
-    <!-- User snippet at bottom -->
-    {% if user.is_authenticated %}
-    <div class="ns-user-bar">
-      <a href="/dashboard/" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:rgba(255,255,255,.65);padding:10px;border-radius:12px;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background=''">
-        <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#7c5cfc,#ff4d6d);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;">{{ user.username|slice:":1"|upper }}</div>
-        <div style="min-width:0;">
-          <div style="font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ user.username }}</div>
-          <div style="font-size:10px;color:rgba(255,255,255,.35);">{{ user.role|title }}</div>
-        </div>
-      </a>
-    </div>
-    {% else %}
-    <div class="ns-user-bar">
-      <a href="/auth/login/" class="ns-nav-item"><span class="ns-nav-icon">🔐</span>Log In</a>
-      <a href="/auth/register/" class="ns-nav-item" style="color:#a07cff;"><span class="ns-nav-icon">✨</span>Sign Up Free</a>
-    </div>
-    {% endif %}
-  </aside>
-
-  <!-- Sidebar overlay (mobile) -->
-  <div id="ns-overlay" onclick="nsSidebarClose()"></div>
-
-  <!-- ═══ MAIN ═══════════════════════════════════════════════════ -->
-  <div id="ns-main">
-
-    <!-- Top bar -->
-    <div id="ns-topbar">
-      <!-- Hamburger (mobile) -->
-      <button onclick="nsSidebarToggle()" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:20px;cursor:pointer;padding:4px;display:none;" id="ns-hamburger">☰</button>
-
-      <!-- Search -->
-      <div class="ns-search">
-        <span style="font-size:15px;color:rgba(255,255,255,.3);">🔍</span>
-        <input type="text" placeholder="Search songs, artists, movies…" id="ns-search-input" oninput="nsSearch(this.value)">
-      </div>
-
-      <!-- Right side -->
-      <div class="ns-topbar-r">
-        <a href="/trending/" class="ns-pill-btn ghost">🔥 Trending</a>
-        {% if user.is_authenticated %}
-          {% if user.role == 'admin' %}
-          <a href="/admin-panel/" class="ns-pill-btn ghost" style="font-size:12px;">⚙ Admin</a>
-          {% endif %}
-          <a href="/dashboard/" class="ns-avatar">{{ user.username|slice:":1"|upper }}</a>
-        {% else %}
-          <a href="/auth/login/" class="ns-pill-btn ghost">Log In</a>
-          <a href="/auth/register/" class="ns-pill-btn primary">Get Started</a>
-        {% endif %}
-      </div>
-    </div>
-
-    <!-- ─── CONTENT ───────────────────────────────────────── -->
-    <div style="padding-bottom:120px;">
-
-      <!-- Hero greeting -->
-      <div id="ns-hero">
-        <div class="ns-greeting">
-          {% if user.is_authenticated %}
-          <span id="ns-time-greet">Good day</span>,
-          <span class="accent">{{ user.username }}</span>.
-          {% else %}
-          Music that <span class="accent">moves you.</span>
-          {% endif %}
-        </div>
-        <div class="ns-greeting-sub">
-          {% if user.is_authenticated %}Discover new sounds. Your universe of entertainment, all in one place.
-          {% else %}Discover millions of tracks, movies, and stories. Stream, create, and connect.{% endif %}
-        </div>
-
-        <!-- Filter pills -->
-        <div class="ns-filter-row">
-          <span class="ns-filter-pill active" onclick="nsFilter(this,'all')">All</span>
-          <a href="/music/" class="ns-filter-pill">🎵 Music</a>
-          <a href="/movies/" class="ns-filter-pill">🎬 Movies</a>
-          <a href="/images/" class="ns-filter-pill">🖼 Images</a>
-          <a href="/blog/" class="ns-filter-pill">📝 Blog</a>
-          {% for cat in categories %}
-          <a href="/browse/?category={{ cat.slug }}" class="ns-filter-pill">{{ cat.name }}</a>
-          {% endfor %}
-        </div>
-      </div>
-
-      <!-- ─── SONG OF THE DAY HERO CARD ───────────────── -->
-      {% if song_of_day %}
-      <div class="ns-sec">
-        <div class="ns-hero-card" id="ns-hero-card">
-          <!-- Blurred bg -->
-          {% if song_of_day.cover_image %}
-          <div style="position:absolute;inset:0;background-image:url('{{ song_of_day.cover_image.url }}');background-size:cover;background-position:center;filter:blur(60px) brightness(.3) saturate(1.5);transform:scale(1.3);pointer-events:none;border-radius:20px;"></div>
-          {% endif %}
-
-          <!-- Cover -->
-          {% if song_of_day.cover_image %}
-          <img src="{{ song_of_day.cover_image.url }}" class="ns-hero-cover" alt="{{ song_of_day.title }}">
-          {% elif song_of_day.album and song_of_day.album.cover_image %}
-          <img src="{{ song_of_day.album.cover_image.url }}" class="ns-hero-cover" alt="{{ song_of_day.title }}">
-          {% else %}
-          <div class="ns-hero-cover-ph">🎵</div>
-          {% endif %}
-
-          <!-- Info -->
-          <div class="ns-hero-info">
-            <div class="ns-hero-label"><span class="dot"></span> Song of the Day</div>
-            <div class="ns-hero-title">{{ song_of_day.title }}</div>
-            <div class="ns-hero-artist">
-              <a href="/music/artist/{{ song_of_day.artist.slug }}/" style="color:#a07cff;text-decoration:none;">{{ song_of_day.artist.name }}</a>
-              {% if song_of_day.featured_artists.all %}· {% for fa in song_of_day.featured_artists.all %}{{ fa.name }}{% if not forloop.last %}, {% endif %}{% endfor %}{% endif %}
-            </div>
-            <div class="ns-hero-btns">
-              <button class="ns-play-btn" onclick="playTrack('{{ song_of_day.playable_url|default:'' }}','{{ song_of_day.title|escapejs }}','{{ song_of_day.artist.name|escapejs }}','{% if song_of_day.cover_image %}{{ song_of_day.cover_image.url }}{% elif song_of_day.album and song_of_day.album.cover_image %}{{ song_of_day.album.cover_image.url }}{% endif %}','/music/track/{{ song_of_day.slug }}/',{{ song_of_day.pk }})">
-                ▶ Play Now
-              </button>
-              <a href="/music/track/{{ song_of_day.slug }}/" class="ns-outline-btn">Details</a>
-              {% if song_of_day.has_audio %}
-              <button class="ns-outline-btn" onclick="if(typeof openLyrics==='function')openLyrics()">🎤 Lyrics</button>
-              {% endif %}
-            </div>
-          </div>
-        </div>
-      </div>
-      {% endif %}
-
-      <!-- ─── STATS ─────────────────────────────────────── -->
-      <div class="ns-sec">
-        <div class="ns-stats-row">
-          <div class="ns-stat"><div class="ns-stat-val">{{ stats.tracks|default:"—" }}</div><div class="ns-stat-label">Tracks</div></div>
-          <div class="ns-stat"><div class="ns-stat-val">{{ stats.artists|default:"—" }}</div><div class="ns-stat-label">Artists</div></div>
-          <div class="ns-stat"><div class="ns-stat-val">{{ stats.movies|default:"—" }}</div><div class="ns-stat-label">Movies</div></div>
-          <div class="ns-stat"><div class="ns-stat-val">{{ stats.users|default:"—" }}</div><div class="ns-stat-label">Members</div></div>
-        </div>
-      </div>
-
-      <!-- ─── RECENTLY PLAYED / MADE FOR YOU ──────────── -->
-      {% if recent_tracks %}
-      <div class="ns-sec">
-        <div class="ns-sec-head">
-          <div class="ns-sec-title">🎵 {% if user.is_authenticated %}Made For You{% else %}Top Tracks{% endif %}</div>
-          <a href="/music/" class="ns-sec-see">See all →</a>
-        </div>
-        <div class="ns-hscroll" id="made-for-you">
-          {% for track in recent_tracks %}
-          <div class="ns-card" onclick="playTrack('{{ track.playable_url|default:'' }}','{{ track.title|escapejs }}','{{ track.artist.name|escapejs }}','{% if track.cover_image %}{{ track.cover_image.url }}{% elif track.album and track.album.cover_image %}{{ track.album.cover_image.url }}{% endif %}','/music/track/{{ track.slug }}/',{{ track.pk }})">
-            <div class="ns-card-thumb">
-              {% if track.cover_image %}<img src="{{ track.cover_image.url }}" alt="{{ track.title }}" loading="lazy">
-              {% elif track.album and track.album.cover_image %}<img src="{{ track.album.cover_image.url }}" alt="{{ track.title }}" loading="lazy">
-              {% else %}<span>🎵</span>{% endif %}
-              <div class="ns-card-play">▶</div>
-            </div>
-            <div class="ns-card-body">
-              <div class="ns-card-title">{{ track.title }}</div>
-              <div class="ns-card-sub">{{ track.artist.name }}</div>
-            </div>
-          </div>
-          {% endfor %}
-        </div>
-      </div>
-      {% endif %}
-
-      <!-- ─── NEW MOVIES ────────────────────────────────── -->
-      {% if trending_movies %}
-      <div class="ns-sec">
-        <div class="ns-sec-head">
-          <div class="ns-sec-title">🎬 Latest Movies</div>
-          <a href="/movies/" class="ns-sec-see">See all →</a>
-        </div>
-        <div class="ns-hscroll">
-          {% for m in trending_movies %}
-          <a href="/movies/film/{{ m.slug }}/" class="ns-card-wide">
-            <div class="ns-card-thumb">
-              {% if m.thumbnail %}<img src="{{ m.thumbnail.url }}" alt="{{ m.title }}" loading="lazy">
-              {% else %}<span>🎬</span>{% endif %}
-              <div class="ns-card-play">▶</div>
-            </div>
-            <div class="ns-card-body">
-              <div class="ns-card-title">{{ m.title }}</div>
-              <div class="ns-card-sub">{{ m.release_year }}{% if m.quality %} · {{ m.quality }}{% endif %}</div>
-            </div>
-          </a>
-          {% endfor %}
-        </div>
-      </div>
-      {% endif %}
-
-      <!-- ─── TOP ARTISTS ───────────────────────────────── -->
-      {% if top_artists %}
-      <div class="ns-sec">
-        <div class="ns-sec-head">
-          <div class="ns-sec-title">🎤 Top Artists</div>
-          <a href="/music/artists/" class="ns-sec-see">See all →</a>
-        </div>
-        <div class="ns-hscroll">
-          {% for artist in top_artists %}
-          <a href="/music/artist/{{ artist.slug }}/" class="ns-artist-card">
-            <div class="ns-artist-av">
-              {% if artist.image %}<img src="{{ artist.image.url }}" alt="{{ artist.name }}">{% else %}🎤{% endif %}
-            </div>
-            <div class="ns-artist-name">{{ artist.name }}</div>
-          </a>
-          {% endfor %}
-        </div>
-      </div>
-      {% endif %}
-
-      <!-- ─── NEW ALBUMS ────────────────────────────────── -->
-      {% if new_albums %}
-      <div class="ns-sec">
-        <div class="ns-sec-head">
-          <div class="ns-sec-title">💿 New Albums</div>
-          <a href="/music/albums/" class="ns-sec-see">See all →</a>
-        </div>
-        <div class="ns-hscroll">
-          {% for album in new_albums %}
-          <a href="/music/album/{{ album.slug }}/" class="ns-card">
-            <div class="ns-card-thumb">
-              {% if album.cover_image %}<img src="{{ album.cover_image.url }}" alt="{{ album.title }}" loading="lazy">{% else %}<span>💿</span>{% endif %}
-              <div class="ns-card-play">▶</div>
-            </div>
-            <div class="ns-card-body">
-              <div class="ns-card-title">{{ album.title }}</div>
-              <div class="ns-card-sub">{{ album.artist.name }}</div>
-            </div>
-          </a>
-          {% endfor %}
-        </div>
-      </div>
-      {% endif %}
-
-      <!-- ─── CHART — TOP TRACKS ────────────────────────── -->
-      {% if chart_tracks %}
-      <div class="ns-sec">
-        <div class="ns-sec-head">
-          <div class="ns-sec-title">📈 Platform Chart</div>
-          <a href="/music/" class="ns-sec-see">Full chart →</a>
-        </div>
-        <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:16px;overflow:hidden;">
-          {% for track in chart_tracks %}
-          <div class="ns-track-row" onclick="playTrack('{{ track.playable_url|default:'' }}','{{ track.title|escapejs }}','{{ track.artist.name|escapejs }}','{% if track.cover_image %}{{ track.cover_image.url }}{% elif track.album and track.album.cover_image %}{{ track.album.cover_image.url }}{% endif %}','/music/track/{{ track.slug }}/',{{ track.pk }})">
-            <span class="ns-track-num">{{ forloop.counter }}</span>
-            <div class="ns-track-thumb">
-              {% if track.cover_image %}<img src="{{ track.cover_image.url }}" alt="{{ track.title }}" loading="lazy">
-              {% elif track.album and track.album.cover_image %}<img src="{{ track.album.cover_image.url }}" alt="{{ track.title }}" loading="lazy">
-              {% else %}🎵{% endif %}
-            </div>
-            <div class="ns-track-info">
-              <div class="ns-track-title">{{ track.title }}</div>
-              <div class="ns-track-artist">{{ track.artist.name }}</div>
-            </div>
-            <span class="ns-track-meta">{{ track.plays_count|default:0 }} plays</span>
-            <button class="ns-track-play-btn">▶</button>
-          </div>
-          {% endfor %}
-        </div>
-      </div>
-      {% endif %}
-
-      <!-- ─── GENRE EXPLORER ────────────────────────────── -->
-      {% if genres %}
-      <div class="ns-sec">
-        <div class="ns-sec-head">
-          <div class="ns-sec-title">🎸 Genres</div>
-          <a href="/music/" class="ns-sec-see">Explore →</a>
-        </div>
-        <div class="ns-genre-grid">
-          {% for g in genres %}
-          <a href="/music/genre/{{ g.slug }}/" class="ns-genre-tile"
-            style="background:{% cycle 'linear-gradient(135deg,#7c5cfc,#3a2fa0)' 'linear-gradient(135deg,#ff4d6d,#b02a45)' 'linear-gradient(135deg,#00d4aa,#0891b2)' 'linear-gradient(135deg,#f59e0b,#d97706)' 'linear-gradient(135deg,#ec4899,#9333ea)' 'linear-gradient(135deg,#22c55e,#166534)' %};">
-            <span class="ns-genre-emoji">{% if g.name == 'Hip Hop' %}🎤{% elif g.name == 'Pop' %}🌟{% elif g.name == 'R&B' %}🎶{% elif g.name == 'Afrobeats' %}🥁{% elif g.name == 'Gospel' %}🙏{% elif g.name == 'Jazz' %}🎷{% elif g.name == 'Rock' %}🎸{% else %}🎵{% endif %}</span>
-            <span style="position:relative;z-index:1;">{{ g.name }}</span>
-          </a>
-          {% endfor %}
-        </div>
-      </div>
-      {% endif %}
-
-      <!-- ─── FEATURED CONTENT ───────────────────────────── -->
-      {% if featured %}
-      <div class="ns-sec">
-        <div class="ns-sec-head">
-          <div class="ns-sec-title">⭐ Featured</div>
-          <a href="/browse/" class="ns-sec-see">See all →</a>
-        </div>
-        <div class="ns-hscroll">
-          {% for item in featured %}
-          <a href="/content/{{ item.pk }}/" class="ns-card-wide">
-            <div class="ns-card-thumb">
-              {% if item.thumbnail %}<img src="{{ item.thumbnail.url }}" alt="{{ item.title }}" loading="lazy">{% else %}<span>{% if item.content_type == 'image' %}🖼{% elif item.content_type == 'video' %}🎬{% elif item.content_type == 'music' %}🎵{% else %}📝{% endif %}</span>{% endif %}
-              <div class="ns-card-play">{% if item.content_type in 'video,music' %}▶{% else %}→{% endif %}</div>
-            </div>
-            <div class="ns-card-body">
-              <div class="ns-card-title">{{ item.title }}</div>
-              <div class="ns-card-sub">{{ item.get_content_type_display }} · {{ item.creator.username }}</div>
-            </div>
-          </a>
-          {% endfor %}
-        </div>
-      </div>
-      {% endif %}
-
-      <!-- ─── CTA (unauthenticated) ─────────────────────── -->
-      {% if not user.is_authenticated %}
-      <div class="ns-sec">
-        <div style="background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(255,77,109,.08));border:1px solid rgba(124,92,252,.2);border-radius:20px;padding:40px;text-align:center;">
-          <div style="font-size:42px;margin-bottom:16px;">🚀</div>
-          <div style="font-family:'Space Grotesk',sans-serif;font-size:clamp(20px,3vw,30px);font-weight:800;margin-bottom:10px;color:#fff;">Start Your Journey Free</div>
-          <div style="font-size:14px;color:rgba(255,255,255,.5);margin-bottom:24px;max-width:400px;margin-left:auto;margin-right:auto;">Join thousands of creators and listeners. Upload, stream, and earn — all in one platform.</div>
-          <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-            <a href="/auth/register/" class="ns-play-btn" style="text-decoration:none;">✨ Sign Up Free</a>
-            <a href="/auth/login/" class="ns-outline-btn" style="text-decoration:none;">Log In</a>
-          </div>
-        </div>
-      </div>
-      {% endif %}
-
-    </div><!-- /content -->
-  </div><!-- /ns-main -->
+{# Quick-access tiles (recently played / popular sections) #}
+<div class="quick-grid">
+  <a href="/music/" class="quick-tile"><div class="quick-tile-cover">🎵</div>Music</a>
+  <a href="/movies/" class="quick-tile"><div class="quick-tile-cover">🎬</div>Movies</a>
+  <a href="/images/" class="quick-tile"><div class="quick-tile-cover">🖼</div>Gallery</a>
+  <a href="/blog/" class="quick-tile"><div class="quick-tile-cover">📝</div>Blog</a>
+  <a href="/trending/" class="quick-tile"><div class="quick-tile-cover">🔥</div>Trending</a>
+  <a href="/music/discover/" class="quick-tile"><div class="quick-tile-cover">🎙</div>Discover</a>
 </div>
 
+{# Song of the Day hero #}
+{% if song_of_day %}
+<div class="hero-banner">
+  {% if song_of_day.cover_image %}<div class="hero-banner-bg" style="background-image:url('{{ song_of_day.cover_image.url }}')"></div>{% elif song_of_day.album and song_of_day.album.cover_image %}<div class="hero-banner-bg" style="background-image:url('{{ song_of_day.album.cover_image.url }}')"></div>{% endif %}
+  {% if song_of_day.cover_image %}<img src="{{ song_of_day.cover_image.url }}" class="hero-banner-cover" alt="{{ song_of_day.title }}">
+  {% elif song_of_day.album and song_of_day.album.cover_image %}<img src="{{ song_of_day.album.cover_image.url }}" class="hero-banner-cover" alt="{{ song_of_day.title }}">
+  {% else %}<div class="hero-banner-cover" style="display:flex;align-items:center;justify-content:center;font-size:52px;background:var(--bg3)">🎵</div>{% endif %}
+  <div class="hero-banner-info">
+    <div class="hero-banner-label">🔥 Song of the Day</div>
+    <div class="hero-banner-title">{{ song_of_day.title }}</div>
+    <div class="hero-banner-sub">{{ song_of_day.artist.name }}{% if song_of_day.genre %} · {{ song_of_day.genre.name }}{% endif %}</div>
+    <div class="hero-banner-btns">
+      <button class="btn btn-primary btn-lg" style="padding:12px 28px;font-size:14px;font-weight:800"
+        onclick="playTrack('{{ song_of_day.playable_url|default:'' }}','{{ song_of_day.title|escapejs }}','{{ song_of_day.artist.name|escapejs }}','{% if song_of_day.cover_image %}{{ song_of_day.cover_image.url }}{% elif song_of_day.album and song_of_day.album.cover_image %}{{ song_of_day.album.cover_image.url }}{% endif %}','/music/track/{{ song_of_day.slug }}/',{{ song_of_day.pk }})">▶ Play</button>
+      <a href="/music/track/{{ song_of_day.slug }}/" class="btn btn-outline" style="padding:12px 22px;font-size:14px">Details</a>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# Top Tracks section #}
+{% if recent_tracks %}
+<div class="sp-sec">
+  <div class="sp-section-head"><div class="sp-section-title">🎵 New Tracks</div><a href="/music/" class="sp-section-more">Show all</a></div>
+  <div class="sp-row">
+    {% for track in recent_tracks %}
+    <div class="sp-card" style="width:170px;flex-shrink:0"
+      onclick="playTrack('{{ track.playable_url|default:'' }}','{{ track.title|escapejs }}','{{ track.artist.name|escapejs }}','{% if track.cover_image %}{{ track.cover_image.url }}{% elif track.album and track.album.cover_image %}{{ track.album.cover_image.url }}{% endif %}','/music/track/{{ track.slug }}/',{{ track.pk }})">
+      <div class="sp-card-cover">
+        {% if track.cover_image %}<img src="{{ track.cover_image.url }}" alt="{{ track.title }}" loading="lazy">
+        {% elif track.album and track.album.cover_image %}<img src="{{ track.album.cover_image.url }}" alt="{{ track.title }}" loading="lazy">
+        {% else %}🎵{% endif %}
+        <button class="sp-card-play">▶</button>
+      </div>
+      <div class="sp-card-title">{{ track.title }}</div>
+      <div class="sp-card-sub">{{ track.artist.name }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{# Movies section #}
+{% if trending_movies %}
+<div class="sp-sec">
+  <div class="sp-section-head"><div class="sp-section-title">🎬 Movies & Series</div><a href="/movies/" class="sp-section-more">Show all</a></div>
+  <div class="sp-row">
+    {% for m in trending_movies %}
+    <a href="/movies/film/{{ m.slug }}/" class="sp-card-wide" style="flex-shrink:0">
+      <div class="sp-card-wide-cover">
+        {% if m.thumbnail %}<img src="{{ m.thumbnail.url }}" alt="{{ m.title }}" loading="lazy">{% else %}🎬{% endif %}
+        <button class="sp-card-play" style="position:absolute;bottom:8px;right:8px;width:38px;height:38px;border-radius:50%;background:var(--sp-green);border:none;color:#000;font-size:14px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s">▶</button>
+      </div>
+      <div class="sp-card-wide-body">
+        <div class="sp-card-title">{{ m.title }}</div>
+        <div class="sp-card-sub">{{ m.release_year }}{% if m.quality %} · {{ m.quality }}{% endif %}</div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{# Artists section #}
+{% if top_artists %}
+<div class="sp-sec">
+  <div class="sp-section-head"><div class="sp-section-title">🎤 Popular Artists</div><a href="/music/browse/" class="sp-section-more">Show all</a></div>
+  <div class="sp-row">
+    {% for artist in top_artists %}
+    <a href="/music/artist/{{ artist.slug }}/" style="flex-shrink:0;width:150px;text-align:center;text-decoration:none;color:inherit;display:block">
+      <div class="sp-card" style="width:150px;padding:14px;text-align:center">
+        <div style="width:100%;aspect-ratio:1;border-radius:50%;overflow:hidden;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:40px;margin-bottom:12px">
+          {% if artist.image %}<img src="{{ artist.image.url }}" alt="{{ artist.name }}" style="width:100%;height:100%;object-fit:cover">{% else %}🎤{% endif %}
+        </div>
+        <div class="sp-card-title" style="text-align:center">{{ artist.name }}</div>
+        <div class="sp-card-sub" style="text-align:center">Artist</div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{# Albums section #}
+{% if new_albums %}
+<div class="sp-sec">
+  <div class="sp-section-head"><div class="sp-section-title">💿 New Albums</div><a href="/music/browse/?sort=-plays_count" class="sp-section-more">Show all</a></div>
+  <div class="sp-row">
+    {% for album in new_albums %}
+    <a href="/music/album/{{ album.slug }}/" class="sp-card" style="width:170px;flex-shrink:0">
+      <div class="sp-card-cover">
+        {% if album.cover_image %}<img src="{{ album.cover_image.url }}" alt="{{ album.title }}" loading="lazy">{% else %}💿{% endif %}
+        <button class="sp-card-play">▶</button>
+      </div>
+      <div class="sp-card-title">{{ album.title }}</div>
+      <div class="sp-card-sub">{{ album.artist.name }}</div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{# Chart - top 10 tracks #}
+{% if chart_tracks %}
+<div class="sp-sec">
+  <div class="sp-section-head"><div class="sp-section-title">📈 Top Chart</div><a href="/music/" class="sp-section-more">Full chart</a></div>
+  <div class="sp-tracklist">
+    {% for track in chart_tracks %}
+    <div class="sp-track-row" onclick="playTrack('{{ track.playable_url|default:'' }}','{{ track.title|escapejs }}','{{ track.artist.name|escapejs }}','{% if track.cover_image %}{{ track.cover_image.url }}{% elif track.album and track.album.cover_image %}{{ track.album.cover_image.url }}{% endif %}','/music/track/{{ track.slug }}/',{{ track.pk }})">
+      <span class="sp-track-num">{{ forloop.counter }}</span>
+      <div class="sp-track-thumb">
+        {% if track.cover_image %}<img src="{{ track.cover_image.url }}" alt="{{ track.title }}" loading="lazy">
+        {% elif track.album and track.album.cover_image %}<img src="{{ track.album.cover_image.url }}" loading="lazy">
+        {% else %}🎵{% endif %}
+      </div>
+      <div class="sp-track-info"><div class="sp-track-title">{{ track.title }}</div><div class="sp-track-artist">{{ track.artist.name }}</div></div>
+      <div class="sp-track-plays">{{ track.plays_count|default:0 }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{# Genres #}
+{% if genres %}
+<div class="sp-sec">
+  <div class="sp-section-head"><div class="sp-section-title">🎸 Browse by Genre</div><a href="/music/" class="sp-section-more">All genres</a></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px">
+    {% for g in genres %}
+    <a href="/music/genre/{{ g.slug }}/" style="border-radius:var(--r2);padding:18px 16px;text-decoration:none;color:#fff;font-weight:700;font-size:15px;min-height:100px;display:flex;align-items:flex-end;position:relative;overflow:hidden;transition:transform .2s;background:{% cycle '#3d0c7b' '#7b0c4a' '#0c5a7b' '#7b4a0c' '#0c7b3d' '#4a0c7b' %}" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform=''">
+      <span style="position:relative;z-index:1">{{ g.name }}</span>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{# Featured content #}
+{% if featured %}
+<div class="sp-sec">
+  <div class="sp-section-head"><div class="sp-section-title">⭐ Featured</div><a href="/browse/" class="sp-section-more">Show all</a></div>
+  <div class="sp-row">
+    {% for item in featured %}
+    <a href="/content/{{ item.pk }}/" class="sp-card-wide" style="flex-shrink:0">
+      <div class="sp-card-wide-cover">
+        {% if item.thumbnail %}<img src="{{ item.thumbnail.url }}" alt="{{ item.title }}" loading="lazy">
+        {% else %}{% if item.content_type == 'video' %}🎬{% elif item.content_type == 'music' %}🎵{% elif item.content_type == 'image' %}🖼{% else %}📝{% endif %}{% endif %}
+      </div>
+      <div class="sp-card-wide-body"><div class="sp-card-title">{{ item.title }}</div><div class="sp-card-sub">{{ item.get_content_type_display }} · {{ item.creator.username }}</div></div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{# Blog posts #}
+{% if blog_list %}
+<div class="sp-sec">
+  <div class="sp-section-head"><div class="sp-section-title">📝 Latest Articles</div><a href="/blog/" class="sp-section-more">Read more</a></div>
+  <div class="sp-row">
+    {% for post in blog_list %}
+    <a href="/blog/{{ post.slug }}/" class="sp-card" style="width:200px;flex-shrink:0">
+      <div class="sp-card-cover" style="aspect-ratio:16/9;border-radius:var(--r)">
+        {% if post.cover_image %}<img src="{{ post.cover_image.url }}" alt="{{ post.title }}" loading="lazy">{% else %}📝{% endif %}
+      </div>
+      <div class="sp-card-title">{{ post.title }}</div>
+      <div class="sp-card-sub">{{ post.author.username }} · {{ post.created_at|date:"M d" }}</div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{# CTA for guests #}
+{% if not user.is_authenticated %}
+<div class="sp-sec">
+  <div style="background:linear-gradient(135deg,rgba(29,185,84,.12),rgba(124,92,252,.1));border:1px solid rgba(29,185,84,.2);border-radius:14px;padding:40px 32px;text-align:center">
+    <div style="font-size:40px;margin-bottom:14px">🚀</div>
+    <h2 style="font-family:'Space Grotesk',sans-serif;font-size:clamp(18px,3vw,26px);font-weight:800;margin-bottom:8px">Start listening for free</h2>
+    <p style="font-size:14px;color:var(--tx2);margin-bottom:24px;max-width:380px;margin-left:auto;margin-right:auto">Millions of tracks, movies, and stories. Upload, stream, and earn — all in one platform.</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <a href="/auth/register/" class="btn btn-primary btn-lg">Sign up free</a>
+      <a href="/auth/login/" class="btn btn-outline" style="padding:14px 36px;font-size:16px;border-radius:50px">Log in</a>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <script>
-// ── playTrack: bridge to base.html mini-player ──────────────
-function playTrack(url, title, artist, cover, detail, pk) {
-  if (!url) {
-    if (typeof showToast === 'function') showToast('Track not available for streaming');
-    return;
-  }
-  // Add to queue and play
-  setPlayerQueue([{url, title, artist, cover, detail, pk}]);
-  if (typeof playMiniTrack === 'function') {
-    playMiniTrack(url, title, artist, cover, detail, pk);
-  }
-}
-
-// ── Time-based greeting ────────────────────────────────────
-(function(){
-  const el = document.getElementById('ns-time-greet');
-  if (!el) return;
-  const h = new Date().getHours();
-  el.textContent = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
-})();
-
-// ── Sidebar toggle (mobile) ──────────────────────────────────
-function nsSidebarToggle(){
-  const sb = document.getElementById('ns-sidebar');
-  const ov = document.getElementById('ns-overlay');
-  sb.classList.toggle('open');
-  ov.classList.toggle('open');
-}
-function nsSidebarClose(){
-  document.getElementById('ns-sidebar').classList.remove('open');
-  document.getElementById('ns-overlay').classList.remove('open');
-}
-
-// Show hamburger on mobile
-(function(){
-  const btn = document.getElementById('ns-hamburger');
-  function check(){ if(btn) btn.style.display = window.innerWidth < 860 ? 'block' : 'none'; }
-  check(); window.addEventListener('resize', check);
-})();
-
-// ── Search (debounced redirect) ──────────────────────────────
-let _nsSearchTimer;
-function nsSearch(v){
-  clearTimeout(_nsSearchTimer);
-  if (v.trim().length < 2) return;
-  _nsSearchTimer = setTimeout(() => { window.location = '/search/?q=' + encodeURIComponent(v.trim()); }, 600);
-}
-document.getElementById('ns-search-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') { window.location = '/search/?q=' + encodeURIComponent(e.target.value.trim()); }
-});
-
-// ── Filter pills (just visual, links handle navigation) ──────
-function nsFilter(el, type){
-  document.querySelectorAll('.ns-filter-pill').forEach(p => p.classList.remove('active'));
-  el.classList.add('active');
-}
-
-// ── Keyboard shortcut: Cmd/Ctrl+K opens search ──────────────
-document.addEventListener('keydown', e => {
-  if ((e.metaKey || e.ctrlKey) && e.key === 'k'){
-    e.preventDefault();
-    document.getElementById('ns-search-input').focus();
-  }
-});
+// Set queue from top chart
+const homeQueue=[{% for t in recent_tracks %}{url:'{{ t.playable_url|default:'' }}',title:'{{ t.title|escapejs }}',artist:'{{ t.artist.name|escapejs }}',cover:'{% if t.cover_image %}{{ t.cover_image.url }}{% elif t.album and t.album.cover_image %}{{ t.album.cover_image.url }}{% endif %}',detail:'/music/track/{{ t.slug }}/',pk:{{ t.pk }}}{% if not forloop.last %},{% endif %}{% endfor %}];
+if(typeof setPlayerQueue==='function'&&homeQueue.length)setPlayerQueue(homeQueue);
 </script>
 {% endblock %}
