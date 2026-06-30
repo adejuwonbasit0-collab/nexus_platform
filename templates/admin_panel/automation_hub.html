@@ -105,7 +105,7 @@
   <div class="panel-body">
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
       {% for a in wf.actions.all %}
-      <div style="background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.2);border-radius:6px;padding:5px 10px;font-size:12px;">
+      <div style="background:rgba(29,185,84,.1);border:1px solid rgba(29,185,84,.2);border-radius:6px;padding:5px 10px;font-size:12px;">
         Step {{ a.order }}: {{ a.get_action_type_display }}
         <form method="post" style="display:inline;"><input type="hidden" name="_action" value="wf_delete_action"><input type="hidden" name="action_pk" value="{{ a.pk }">{% csrf_token %}<button style="background:none;border:none;color:var(--red);cursor:pointer;font-size:11px;margin-left:4px;">×</button></form>
       </div>

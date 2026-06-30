@@ -224,7 +224,7 @@
 // Latency chart
 const latencyCtx = document.getElementById('latencyChart');
 if (latencyCtx) {
-  const latencyData = { labels: [], datasets: [{ label:'DB Latency (ms)', data: [], borderColor:'#7c5cfc', backgroundColor:'rgba(124,92,252,.1)', fill:true, tension:.4, pointRadius:2 }] };
+  const latencyData = { labels: [], datasets: [{ label:'DB Latency (ms)', data: [], borderColor:'#1db954', backgroundColor:'rgba(29,185,84,.1)', fill:true, tension:.4, pointRadius:2 }] };
   const latencyChart = new Chart(latencyCtx, { type:'line', data: latencyData, options: { responsive:true, plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:'#8888aa',font:{size:10}},grid:{color:'rgba(255,255,255,.05)'}}, y:{ticks:{color:'#8888aa',font:{size:10}},grid:{color:'rgba(255,255,255,.05)'}} } } });
 
   async function refreshHealth() {

@@ -7,7 +7,7 @@
 /* ── Stat cards ───────────────────────────────────────── */
 .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
 .sc{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:18px 20px;position:relative;overflow:hidden;transition:border-color .2s,transform .2s}
-.sc:hover{border-color:rgba(124,92,252,.3);transform:translateY(-2px)}
+.sc:hover{border-color:rgba(29,185,84,.3);transform:translateY(-2px)}
 .sc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:14px 14px 0 0;background:linear-gradient(90deg,var(--accent),var(--accent2))}
 .sc.green::before{background:linear-gradient(90deg,#22c55e,#16a34a)}
 .sc.yellow::before{background:linear-gradient(90deg,#f59e0b,#d97706)}
@@ -30,15 +30,15 @@
 /* ── Quick action cards ───────────────────────────────── */
 .qa-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .qa-card{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px;padding:14px 16px;text-decoration:none;color:var(--text);transition:all .18s;cursor:pointer}
-.qa-card:hover{background:rgba(124,92,252,.08);border-color:rgba(124,92,252,.3);transform:translateY(-2px)}
-.qa-icon{font-size:22px;width:36px;height:36px;background:rgba(124,92,252,.1);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.qa-card:hover{background:rgba(29,185,84,.08);border-color:rgba(29,185,84,.3);transform:translateY(-2px)}
+.qa-icon{font-size:22px;width:36px;height:36px;background:rgba(29,185,84,.1);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .qa-label{font-size:13px;font-weight:600}
 .qa-sub{font-size:11px;color:var(--text2)}
 
 /* ── Module tiles ─────────────────────────────────────── */
 .mod-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
 .mod-tile{text-align:center;padding:18px 12px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px;text-decoration:none;color:var(--text);transition:all .18s;display:block}
-.mod-tile:hover{background:rgba(124,92,252,.08);border-color:rgba(124,92,252,.3)}
+.mod-tile:hover{background:rgba(29,185,84,.08);border-color:rgba(29,185,84,.3)}
 .mod-icon{font-size:28px;margin-bottom:7px}
 .mod-val{font-size:22px;font-weight:800;font-family:'Space Grotesk',sans-serif}
 .mod-label{font-size:11px;color:var(--text2);margin-top:3px}
@@ -368,8 +368,8 @@ const chartDefaults = {
   borderRadius:4, borderWidth:0,
   backgroundColor: ctx => {
     const g = ctx.chart.ctx.createLinearGradient(0,0,0,120);
-    g.addColorStop(0,'rgba(124,92,252,.55)');
-    g.addColorStop(1,'rgba(124,92,252,.04)');
+    g.addColorStop(0,'rgba(29,185,84,.55)');
+    g.addColorStop(1,'rgba(29,185,84,.04)');
     return g;
   }
 };

@@ -115,7 +115,7 @@ const userGrowth   = {{ user_growth|safe }};
 const revenueData  = {{ revenue_data|safe }};
 const contentTypes = {{ content_by_type|safe }};
 
-const ACCENT = '#7c5cfc', ACCENT2 = '#ff4d6d', ACCENT3 = '#00d4aa';
+const ACCENT = '#1db954', ACCENT2 = '#ff4d6d', ACCENT3 = '#00d4aa';
 const gridColor = 'rgba(255,255,255,0.06)';
 const textColor = '#7777aa';
 Chart.defaults.color = textColor;
@@ -129,7 +129,7 @@ new Chart(document.getElementById('userChart'), {
     datasets:[{
       label:'New Users',
       data: userGrowth.map(d => d.count),
-      borderColor: ACCENT, backgroundColor: 'rgba(124,92,252,0.1)',
+      borderColor: ACCENT, backgroundColor: 'rgba(29,185,84,0.1)',
       fill: true, tension: 0.4, pointRadius: 2, pointHoverRadius: 5,
     }]
   },

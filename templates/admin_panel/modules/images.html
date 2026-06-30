@@ -37,7 +37,7 @@
       <td>
         {% if img.image_file %}<img src="{{ img.image_file.url }}" style="width:76px;height:52px;object-fit:cover;border-radius:6px;cursor:pointer;" onclick="window.open('{{ img.image_file.url }}','_blank')">
         {% elif img.thumbnail %}<img src="{{ img.thumbnail.url }}" style="width:76px;height:52px;object-fit:cover;border-radius:6px;">
-        {% else %}<div style="width:76px;height:52px;background:rgba(124,92,252,.08);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:22px;">🖼</div>{% endif %}
+        {% else %}<div style="width:76px;height:52px;background:rgba(29,185,84,.08);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:22px;">🖼</div>{% endif %}
       </td>
       <td>
         <div style="font-weight:600;font-size:13px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ img.title }}</div>

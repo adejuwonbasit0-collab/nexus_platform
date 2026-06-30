@@ -5,7 +5,7 @@
 .cd-hero{background:linear-gradient(180deg,rgba(29,185,84,.18) 0%,transparent 60%);padding:40px 32px 24px}
 .cd-title{font-family:'Space Grotesk',sans-serif;font-size:clamp(24px,4vw,38px);font-weight:900;color:#fff;margin-bottom:8px}
 .cd-sub{font-size:14px;color:var(--tx2)}
-.cd-stat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;padding:0 32px;margin-bottom:32px}
+.cd-stat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;padding:0 32px;margin-bottom:28px}
 .cd-stat{background:var(--bg2);border-radius:var(--r2);padding:18px 20px;border:1px solid rgba(255,255,255,.04)}
 .cd-stat-val{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:800;color:#fff}
 .cd-stat-label{font-size:11px;color:var(--tx2);margin-top:4px;text-transform:uppercase;letter-spacing:.05em}
@@ -13,9 +13,33 @@
 .cd-stat.yellow .cd-stat-val{color:#f59e0b}
 .cd-stat.red .cd-stat-val{color:#ef4444}
 .cd-actions{display:flex;gap:12px;padding:0 32px 32px;flex-wrap:wrap}
+
+/* ── Premium content-type tab bar (app-style section switcher) ── */
+.cd-type-bar{
+  display:flex;gap:6px;padding:6px;margin:0 32px 24px;
+  background:var(--bg2);border-radius:50px;border:1px solid rgba(255,255,255,.06);
+  overflow-x:auto;scrollbar-width:none
+}
+.cd-type-bar::-webkit-scrollbar{display:none}
+.cd-type-tab{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:7px;
+  padding:11px 16px;border-radius:50px;border:none;background:none;cursor:pointer;
+  font-size:13px;font-weight:700;color:var(--tx2);transition:all .2s;white-space:nowrap
+}
+.cd-type-tab.on{background:var(--sp-green);color:#000;box-shadow:0 4px 14px rgba(29,185,84,.3)}
+.cd-type-tab:hover:not(.on){background:rgba(255,255,255,.06);color:#fff}
+.cd-type-count{font-size:10px;background:rgba(255,255,255,.15);padding:1px 7px;border-radius:10px}
+.cd-type-tab.on .cd-type-count{background:rgba(0,0,0,.2)}
+.cd-type-panel{display:none;padding:0 32px 40px}
+.cd-type-panel.on{display:block}
 @media(max-width:900px){
   .cd-stat-grid{grid-template-columns:repeat(2,1fr);padding:0 16px}
-  .cd-hero,.cd-actions{padding-left:16px;padding-right:16px}
+  .cd-hero,.cd-actions,.cd-type-panel{padding-left:16px;padding-right:16px}
+  .cd-type-bar{margin-left:16px;margin-right:16px}
+  .cd-type-tab{font-size:12px;padding:10px 12px}
+}
+@media(max-width:600px){
+  .cd-type-tab span.cd-type-label{display:none}
 }
 </style>
 {% endblock %}
@@ -56,20 +80,22 @@
 </div>
 {% endif %}
 
-<div class="sp-sec">
-  <div class="sp-section-head"><div class="sp-section-title">📦 My Content</div><a href="#" onclick="document.getElementById('cd-all').scrollIntoView({behavior:'smooth'});return false" class="sp-section-more">View all ({{ all_content.count }})</a></div>
+<div class="cd-type-bar">
+  <button class="cd-type-tab on" onclick="cdSwitchType('all',this)"><span>📦</span><span class="cd-type-label">All</span><span class="cd-type-count">{{ stats.total_uploads }}</span></button>
+  <button class="cd-type-tab" onclick="cdSwitchType('video',this)"><span>🎬</span><span class="cd-type-label">Movies</span><span class="cd-type-count">{{ type_counts.video }}</span></button>
+  <button class="cd-type-tab" onclick="cdSwitchType('music',this)"><span>🎵</span><span class="cd-type-label">Music</span><span class="cd-type-count">{{ type_counts.music }}</span></button>
+  <button class="cd-type-tab" onclick="cdSwitchType('image',this)"><span>🖼</span><span class="cd-type-label">Images</span><span class="cd-type-count">{{ type_counts.image }}</span></button>
+  <button class="cd-type-tab" onclick="cdSwitchType('blog',this)"><span>📝</span><span class="cd-type-label">Blog</span><span class="cd-type-count">{{ type_counts.blog }}</span></button>
+</div>
+
+<div class="cd-type-panel on" id="cd-panel-all">
   {% if content %}
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:16px">
-    {% for c in content %}
+    {% for c in all_content|slice:":24" %}
     <a href="/creator/edit/{{ c.pk }}/" class="sp-card">
-      <div class="sp-card-cover">
-        {% if c.thumbnail %}<img src="{{ c.thumbnail.url }}" loading="lazy">{% else %}{% if c.content_type == 'video' %}🎬{% elif c.content_type == 'music' %}🎵{% elif c.content_type == 'image' %}🖼{% else %}📝{% endif %}{% endif %}
-      </div>
+      <div class="sp-card-cover">{% if c.thumbnail %}<img src="{{ c.thumbnail.url }}" loading="lazy">{% else %}{% if c.content_type == 'video' %}🎬{% elif c.content_type == 'music' %}🎵{% elif c.content_type == 'image' %}🖼{% else %}📝{% endif %}{% endif %}</div>
       <div class="sp-card-title">{{ c.title }}</div>
-      <div class="sp-card-sub">
-        <span class="badge {% if c.status == 'approved' %}badge-green{% elif c.status == 'pending' %}badge-gold{% else %}badge-red{% endif %}">{{ c.get_status_display }}</span>
-        {{ c.views|default:0 }} views
-      </div>
+      <div class="sp-card-sub"><span class="badge {% if c.status == 'approved' %}badge-green{% elif c.status == 'pending' %}badge-gold{% else %}badge-red{% endif %}">{{ c.get_status_display }}</span> {{ c.views|default:0 }} views</div>
     </a>
     {% endfor %}
   </div>
@@ -78,7 +104,70 @@
   {% endif %}
 </div>
 
-<div class="sp-sec" id="cd-all">
+<div class="cd-type-panel" id="cd-panel-video">
+  {% if video_content %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:16px">
+    {% for c in video_content %}
+    <a href="/creator/edit/{{ c.pk }}/" class="sp-card">
+      <div class="sp-card-cover" style="aspect-ratio:16/9">{% if c.thumbnail %}<img src="{{ c.thumbnail.url }}" loading="lazy">{% else %}🎬{% endif %}</div>
+      <div class="sp-card-title">{{ c.title }}</div>
+      <div class="sp-card-sub"><span class="badge {% if c.status == 'approved' %}badge-green{% elif c.status == 'pending' %}badge-gold{% else %}badge-red{% endif %}">{{ c.get_status_display }}</span> {{ c.views|default:0 }} views</div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty"><div class="empty-icon">🎬</div><h3>No movies or videos yet</h3><a href="/creator/upload/" class="btn btn-primary" style="margin-top:16px">Upload a Video</a></div>
+  {% endif %}
+</div>
+
+<div class="cd-type-panel" id="cd-panel-music">
+  {% if music_content %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:16px">
+    {% for c in music_content %}
+    <a href="/creator/edit/{{ c.pk }}/" class="sp-card">
+      <div class="sp-card-cover">{% if c.thumbnail %}<img src="{{ c.thumbnail.url }}" loading="lazy">{% else %}🎵{% endif %}</div>
+      <div class="sp-card-title">{{ c.title }}</div>
+      <div class="sp-card-sub"><span class="badge {% if c.status == 'approved' %}badge-green{% elif c.status == 'pending' %}badge-gold{% else %}badge-red{% endif %}">{{ c.get_status_display }}</span> {{ c.views|default:0 }} plays</div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty"><div class="empty-icon">🎵</div><h3>No music yet</h3><a href="/creator/upload/" class="btn btn-primary" style="margin-top:16px">Upload a Track</a></div>
+  {% endif %}
+</div>
+
+<div class="cd-type-panel" id="cd-panel-image">
+  {% if image_content %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px">
+    {% for c in image_content %}
+    <a href="/creator/edit/{{ c.pk }}/" style="border-radius:var(--r2);overflow:hidden;position:relative;background:var(--bg2);display:block">
+      <div style="aspect-ratio:1">{% if c.thumbnail %}<img src="{{ c.thumbnail.url }}" loading="lazy" style="width:100%;height:100%;object-fit:cover">{% else %}<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:30px;background:var(--bg3)">🖼</div>{% endif %}</div>
+      <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 50%,rgba(0,0,0,.85) 100%);display:flex;align-items:flex-end;padding:10px"><div style="font-size:11px;color:#fff;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%">{{ c.title }}</div></div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty"><div class="empty-icon">🖼</div><h3>No images yet</h3><a href="/creator/upload/" class="btn btn-primary" style="margin-top:16px">Upload an Image</a></div>
+  {% endif %}
+</div>
+
+<div class="cd-type-panel" id="cd-panel-blog">
+  {% if blog_content %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px">
+    {% for c in blog_content %}
+    <a href="/creator/edit/{{ c.pk }}/" class="sp-card">
+      <div class="sp-card-cover" style="aspect-ratio:16/9">{% if c.thumbnail %}<img src="{{ c.thumbnail.url }}" loading="lazy">{% else %}📝{% endif %}</div>
+      <div class="sp-card-title">{{ c.title }}</div>
+      <div class="sp-card-sub"><span class="badge {% if c.status == 'approved' %}badge-green{% elif c.status == 'pending' %}badge-gold{% else %}badge-red{% endif %}">{{ c.get_status_display }}</span> {{ c.views|default:0 }} reads</div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty"><div class="empty-icon">📝</div><h3>No blog posts yet</h3><a href="/creator/write/" class="btn btn-primary" style="margin-top:16px">Write a Post</a></div>
+  {% endif %}
+</div>
+
+<div class="sp-sec">
   <div class="sp-section-head"><div class="sp-section-title">All Uploads</div></div>
   <div class="panel">
     <div style="overflow-x:auto">
@@ -107,4 +196,13 @@
     </div>
   </div>
 </div>
+
+<script>
+function cdSwitchType(type, btn){
+  document.querySelectorAll('.cd-type-tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.cd-type-panel').forEach(p=>p.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('cd-panel-'+type).classList.add('on');
+}
+</script>
 {% endblock %}

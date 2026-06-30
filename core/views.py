@@ -889,9 +889,24 @@ def creator_dashboard(request):
     except Exception:
         pass
 
+    # Break out content by type so the dashboard can show tabbed sections
+    # (Movies/Video, Music, Images, Blog) just like the platform's own pages.
+    by_type = {
+        'video': content.filter(content_type='video'),
+        'music': content.filter(content_type='music'),
+        'image': content.filter(content_type='image'),
+        'blog':  content.filter(content_type='blog'),
+    }
+    type_counts = {k: v.count() for k, v in by_type.items()}
+
     return render(request, 'creator/dashboard.html', {
         'content': content[:5],
         'all_content': content,
+        'video_content': by_type['video'][:12],
+        'music_content': by_type['music'][:12],
+        'image_content': by_type['image'][:12],
+        'blog_content':  by_type['blog'][:12],
+        'type_counts': type_counts,
         'stats': stats,
         'wallet': wallet,
         'recent_earnings': recent_earnings,

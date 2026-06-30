@@ -42,7 +42,7 @@
     <tr>
       <td>
         {% if track.cover_image %}<img src="{{ track.cover_image.url }}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;">
-        {% else %}<div style="width:40px;height:40px;background:rgba(124,92,252,.1);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:18px;">🎵</div>{% endif %}
+        {% else %}<div style="width:40px;height:40px;background:rgba(29,185,84,.1);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:18px;">🎵</div>{% endif %}
       </td>
       <td>
         <div style="font-weight:600;font-size:13px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ track.title }}</div>
@@ -118,7 +118,7 @@
     <tr>
       <td>
         {% if a.photo %}<img src="{{ a.photo.url }}" style="width:40px;height:40px;object-fit:cover;border-radius:50%;">
-        {% else %}<div style="width:40px;height:40px;background:rgba(124,92,252,.1);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;">👤</div>{% endif %}
+        {% else %}<div style="width:40px;height:40px;background:rgba(29,185,84,.1);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;">👤</div>{% endif %}
       </td>
       <td>
         <div style="font-weight:600;font-size:13px;">{{ a.name }}</div>
@@ -199,7 +199,7 @@
     <tr>
       <td>
         {% if album.cover_image %}<img src="{{ album.cover_image.url }}" style="width:46px;height:46px;object-fit:cover;border-radius:8px;">
-        {% else %}<div style="width:46px;height:46px;background:rgba(124,92,252,.1);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;">💿</div>{% endif %}
+        {% else %}<div style="width:46px;height:46px;background:rgba(29,185,84,.1);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;">💿</div>{% endif %}
       </td>
       <td>
         <div style="font-weight:600;font-size:13px;">{{ album.title }}</div>
@@ -511,7 +511,7 @@ function selectArtist(pk, name, resultsId, hiddenId) {
     featArtistPks.push(pk);
     const chips = document.getElementById('feat-artist-chips');
     const chip = document.createElement('div');
-    chip.style.cssText = 'display:inline-flex;align-items:center;gap:5px;background:rgba(124,92,252,.15);border:1px solid rgba(124,92,252,.3);border-radius:20px;padding:3px 10px;font-size:12px;';
+    chip.style.cssText = 'display:inline-flex;align-items:center;gap:5px;background:rgba(29,185,84,.15);border:1px solid rgba(29,185,84,.3);border-radius:20px;padding:3px 10px;font-size:12px;';
     chip.innerHTML = `<input type="hidden" name="featured_artist_pks" value="${pk}">${name}<span onclick="this.parentElement.remove();featArtistPks=featArtistPks.filter(x=>x!=${pk})" style="cursor:pointer;font-size:14px;line-height:1;">×</span>`;
     chips.appendChild(chip);
     document.getElementById('feat-artist-input').value = '';
@@ -583,7 +583,7 @@ document.addEventListener('click', () => {
 .tab-btn.active{background:var(--accent);color:#fff}
 .tab-panel{display:none}.tab-panel.active{display:block}
 .finput{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:13px;outline:none;transition:border-color .15s}
-.finput:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,92,252,.12)}
+.finput:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(29,185,84,.12)}
 .fg{margin-bottom:12px}
 .fg label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);margin-bottom:5px}
 .fcheck{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text2)}
