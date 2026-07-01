@@ -1358,6 +1358,9 @@ def admin_movies(request):
             m.release_year = int(request.POST.get('release_year', m.release_year) or m.release_year)
             m.quality = request.POST.get('quality', m.quality)
             m.trailer_url = request.POST.get('trailer_url', m.trailer_url)
+            video_url = request.POST.get('video_url', '').strip()
+            if video_url:
+                m.video_url = video_url
             m.is_premium = request.POST.get('is_premium') == 'on'
             m.is_published = request.POST.get('is_published') == 'on'
             if 'thumbnail' in request.FILES:
@@ -1380,6 +1383,7 @@ def admin_movies(request):
                     is_published=request.POST.get('is_published') == 'on',
                     uploaded_by=request.user,
                     trailer_url=request.POST.get('trailer_url', ''),
+                    video_url=request.POST.get('video_url', '').strip(),
                 )
                 if 'thumbnail' in request.FILES:
                     m.thumbnail = request.FILES['thumbnail']
@@ -1582,6 +1586,7 @@ def admin_music(request):
                     is_published=request.POST.get('is_published') == 'on',
                     is_featured=request.POST.get('is_featured') == 'on',
                     uploaded_by=request.user,
+                    audio_url=request.POST.get('audio_url', '').strip(),
                 )
                 if 'audio_file' in request.FILES:
                     track.audio_file = request.FILES['audio_file']

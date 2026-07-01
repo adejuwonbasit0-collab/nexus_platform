@@ -44,8 +44,6 @@
 {% endblock %}
 {% block scripts %}
 <script>
-function playTrack(url, title, artist, thumb) {
-  if (!url) { showToast('No audio file available', 'e'); return; }
   if (typeof playMiniTrack === 'function') playMiniTrack(url, title, artist, thumb);
   showToast('Now playing: ' + title);
 }

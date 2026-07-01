@@ -100,21 +100,55 @@
 {# ─── ADD MOVIE ─── #}
 <div class="tab-panel {% if request.GET.tab == 'add' %}active{% endif %}" data-group="mv" data-id="add">
 <div class="panel"><div class="panel-head"><span class="panel-title">🎬 Add Movie</span></div><div class="panel-body">
-<form method="post" enctype="multipart/form-data"><input type="hidden" name="action" value="create">{% csrf_token %}
+<form method="post" enctype="multipart/form-data" id="add-movie-form"><input type="hidden" name="action" value="create">{% csrf_token %}
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
     <div class="fg"><label>Title *</label><input class="finput" name="title" required placeholder="Movie title"></div>
     <div class="fg"><label>Release Year</label><input class="finput" type="number" name="release_year" value="2024" min="1900" max="2030"></div>
     <div class="fg"><label>Quality</label><select class="finput" name="quality">{% for q_val in qualities %}<option value="{{ q_val.0 }}">{{ q_val.1 }}</option>{% endfor %}</select></div>
-    <div class="fg"><label>Trailer URL</label><input class="finput" type="url" name="trailer_url" placeholder="https://youtube.com/..."></div>
+    <div class="fg"><label>Trailer URL <span class="hint" style="font-weight:400;text-transform:none;letter-spacing:0">(YouTube preview, optional)</span></label><input class="finput" type="url" name="trailer_url" placeholder="https://youtube.com/..."></div>
+  </div>
+
+  {# ── Source: File vs URL toggle ── #}
+  <div class="fg" style="margin-top:14px">
+    <label>Movie Source</label>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button type="button" class="btn btn-sm" id="mv-mode-file" onclick="mvSetMode('file')" style="flex:1;background:var(--accent);color:#000;border:none">📁 Upload File</button>
+      <button type="button" class="btn btn-sm btn-outline" id="mv-mode-url" onclick="mvSetMode('url')" style="flex:1">🔗 Use URL / Link</button>
+    </div>
+    <div id="mv-file-section">
+      <input class="finput" type="file" name="video_file" accept="video/*">
+      <div class="hint" style="margin-top:4px">MP4, WebM, MOV — max 500 MB</div>
+    </div>
+    <div id="mv-url-section" style="display:none">
+      <input class="finput" type="url" name="video_url" placeholder="https://example.com/movie.mp4 or YouTube/Vimeo link">
+      <div class="hint" style="margin-top:4px">Paste a direct video file link, or a YouTube/Vimeo URL — no storage used.</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;">
     <div class="fg"><label>Thumbnail / Poster</label><input class="finput" type="file" name="thumbnail" accept="image/*"></div>
-    <div class="fg"><label>Video File</label><input class="finput" type="file" name="video_file" accept="video/*"></div>
-    <div class="fg" style="display:flex;flex-direction:column;gap:10px;"><label class="fcheck"><input type="checkbox" name="is_published" checked> Published</label><label class="fcheck"><input type="checkbox" name="is_premium"> Premium</label></div>
+    <div class="fg" style="display:flex;flex-direction:column;gap:10px;justify-content:center"><label class="fcheck"><input type="checkbox" name="is_published" checked> Published</label><label class="fcheck"><input type="checkbox" name="is_premium"> Premium</label></div>
     <div class="fg" style="grid-column:span 2;"><label>Description</label><textarea class="finput" name="description" rows="4" placeholder="Movie synopsis…"></textarea></div>
   </div>
   <button type="submit" class="btn btn-primary" style="margin-top:8px;">🎬 Add Movie</button>
 </form>
 </div></div>
 </div>
+<script>
+function mvSetMode(mode){
+  const fileBtn=document.getElementById('mv-mode-file'), urlBtn=document.getElementById('mv-mode-url');
+  const fileSec=document.getElementById('mv-file-section'), urlSec=document.getElementById('mv-url-section');
+  if(mode==='url'){
+    fileSec.style.display='none'; urlSec.style.display='block';
+    urlBtn.style.background='var(--accent)'; urlBtn.style.color='#000'; urlBtn.style.border='none'; urlBtn.classList.remove('btn-outline');
+    fileBtn.style.background='transparent'; fileBtn.style.color='var(--text)'; fileBtn.classList.add('btn-outline');
+  }else{
+    urlSec.style.display='none'; fileSec.style.display='block';
+    fileBtn.style.background='var(--accent)'; fileBtn.style.color='#000'; fileBtn.style.border='none'; fileBtn.classList.remove('btn-outline');
+    urlBtn.style.background='transparent'; urlBtn.style.color='var(--text)'; urlBtn.classList.add('btn-outline');
+  }
+}
+</script>
 
 {# ─── CREATE SERIES ─── #}
 <div class="tab-panel {% if request.GET.tab == 'add_series' %}active{% endif %}" data-group="mv" data-id="add_series">
@@ -147,6 +181,7 @@
         <div class="fg"><label>Release Year</label><input class="finput" type="number" name="release_year" id="em-year"></div>
         <div class="fg"><label>Quality</label><select class="finput" name="quality" id="em-quality">{% for q_val in qualities %}<option value="{{ q_val.0 }}">{{ q_val.1 }}</option>{% endfor %}</select></div>
         <div class="fg"><label>Trailer URL</label><input class="finput" type="url" name="trailer_url" id="em-trailer"></div>
+        <div class="fg"><label>Video URL <span class="hint" style="font-weight:400;text-transform:none;letter-spacing:0">(replaces file if set)</span></label><input class="finput" type="url" name="video_url" id="em-video-url" placeholder="https://example.com/movie.mp4"></div>
         <div class="fg"><label>New Thumbnail</label><input class="finput" type="file" name="thumbnail" accept="image/*"></div>
         <div class="fg"><label>New Video File</label><input class="finput" type="file" name="video_file" accept="video/*"></div>
         <div class="fg" style="display:flex;flex-direction:column;gap:8px;"><label class="fcheck"><input type="checkbox" name="is_published" id="em-published"> Published</label><label class="fcheck"><input type="checkbox" name="is_premium" id="em-premium"> Premium</label></div>

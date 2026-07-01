@@ -261,7 +261,26 @@
       <div id="feat-artist-results" style="display:none;position:absolute;z-index:100;background:var(--bg3);border:1px solid var(--border);border-radius:8px;max-height:160px;overflow-y:auto;width:280px;"></div>
       <div id="feat-artist-chips" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;"></div>
     </div>
-    <div class="fg"><label>Audio File * <span style="color:var(--text2);font-weight:400;font-size:10px;">MP3, WAV, FLAC, AAC</span></label><input class="finput" type="file" name="audio_file" accept="audio/*" required></div>
+  </div>
+
+  {# ── Source: File vs URL toggle ── #}
+  <div class="fg" style="margin-top:4px">
+    <label>Audio Source *</label>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button type="button" class="btn btn-sm" id="tk-mode-file" onclick="tkSetMode('file')" style="flex:1;background:var(--accent);color:#000;border:none">📁 Upload File</button>
+      <button type="button" class="btn btn-sm btn-outline" id="tk-mode-url" onclick="tkSetMode('url')" style="flex:1">🔗 Use URL / Link</button>
+    </div>
+    <div id="tk-file-section">
+      <input class="finput" type="file" name="audio_file" accept="audio/*" id="tk-audio-file">
+      <div class="hint" style="margin-top:4px">MP3, WAV, FLAC, AAC — max 100 MB</div>
+    </div>
+    <div id="tk-url-section" style="display:none">
+      <input class="finput" type="url" name="audio_url" placeholder="https://example.com/track.mp3 or SoundCloud/direct link">
+      <div class="hint" style="margin-top:4px">Paste a direct audio file link — no storage used.</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;">
     <div class="fg"><label>Cover Image</label><input class="finput" type="file" name="cover_image" accept="image/*"></div>
     <div class="fg"><label>Produced By</label><input class="finput" name="produced_by" placeholder="Producer name"></div>
     <div class="fg"><label>Written By</label><input class="finput" name="written_by" placeholder="Songwriter(s)"></div>
@@ -275,6 +294,22 @@
   </div>
   <button type="submit" class="btn btn-primary" style="margin-top:12px;">🎵 Add Track</button>
 </form>
+<script>
+function tkSetMode(mode){
+  const fileBtn=document.getElementById('tk-mode-file'), urlBtn=document.getElementById('tk-mode-url');
+  const fileSec=document.getElementById('tk-file-section'), urlSec=document.getElementById('tk-url-section');
+  const fileInput=document.getElementById('tk-audio-file');
+  if(mode==='url'){
+    fileSec.style.display='none'; urlSec.style.display='block'; fileInput.required=false;
+    urlBtn.style.background='var(--accent)'; urlBtn.style.color='#000'; urlBtn.style.border='none'; urlBtn.classList.remove('btn-outline');
+    fileBtn.style.background='transparent'; fileBtn.style.color='var(--text)'; fileBtn.classList.add('btn-outline');
+  }else{
+    urlSec.style.display='none'; fileSec.style.display='block';
+    fileBtn.style.background='var(--accent)'; fileBtn.style.color='#000'; fileBtn.style.border='none'; fileBtn.classList.remove('btn-outline');
+    urlBtn.style.background='transparent'; urlBtn.style.color='var(--text)'; urlBtn.classList.add('btn-outline');
+  }
+}
+</script>
 </div></div>
 </div>
 

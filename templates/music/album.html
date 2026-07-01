@@ -1,5 +1,12 @@
 {% extends 'base.html' %}
-{% block title %}{{ album.title }} — {{ album.artist.name }}{% endblock %}
+{% block title %}{{ album.title }} — {{ album.artist.name }}
+<script>
+const albumQueue = [{% for t in tracks %}
+  {url:'{% if t.has_audio %}{{ t.playable_url }}{% endif %}',title:'{{ t.title|escapejs }}',artist:'{{ t.artist.name|escapejs }}',cover:'{% if t.cover_image %}{{ t.cover_image.url }}{% elif t.album and t.album.cover_image %}{{ t.album.cover_image.url }}{% endif %}',detail:'/music/track/{{ t.slug }}/',pk:{{ t.pk }}}{% if not forloop.last %},{% endif %}
+{% endfor %}];
+if(typeof setPlayerQueue==='function' && albumQueue.length) setPlayerQueue(albumQueue);
+</script>
+{% endblock %}
 {% block head %}<style>body{background:#0a0d12;}.track-row{display:flex;align-items:center;gap:12px;padding:10px 14px;background:#111;border-radius:8px;cursor:pointer;transition:background 0.18s;}.track-row:hover{background:#171717;}@media(max-width:860px){.album-body{grid-template-columns:1fr!important}}
 </style>{% endblock %}
 {% block content %}
@@ -39,7 +46,7 @@
     <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.96rem;color:#fff;margin-bottom:16px;">Tracks</div>
     <div style="display:flex;flex-direction:column;gap:6px;">
       {% for t in tracks %}
-      <div class="track-row" onclick="playTrack('{% if t.has_audio %}{{ t.playable_url }}{% endif %}','{{ t.title|escapejs }}','{{ t.artist.name|escapejs }}','{% if t.cover_image %}{{ t.cover_image.url }}{% elif t.album and t.album.cover_image %}{{ t.album.cover_image.url }}{% endif %}',{{ t.pk }},'/music/track/{{ t.slug }}/')">
+      <div class="track-row" onclick="playTrack('{% if t.has_audio %}{{ t.playable_url }}{% endif %}','{{ t.title|escapejs }}','{{ t.artist.name|escapejs }}','{% if t.cover_image %}{{ t.cover_image.url }}{% elif t.album and t.album.cover_image %}{{ t.album.cover_image.url }}{% endif %}','/music/track/{{ t.slug }}/',{{ t.pk }})">
         <span style="width:24px;text-align:right;font-size:0.8rem;color:rgba(255,255,255,0.3);flex-shrink:0;">{{ forloop.counter }}</span>
         <div style="flex:1;min-width:0;">
           <div style="font-weight:500;font-size:0.86rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ t.title }}{% if t.featured_artists.all %} <span style="color:rgba(255,255,255,0.35);font-size:0.7rem;">ft. {% for fa in t.featured_artists.all %}{{ fa.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>{% endif %}</div>
@@ -83,8 +90,6 @@
 {% endblock %}
 {% block scripts %}
 <script>
-function playTrack(url,title,artist,cover,pk,detailUrl){
-  if(!url){showToast('No audio file','e');return;}
   if (typeof playMiniTrack === 'function') playMiniTrack(url, title, artist, cover, detailUrl||null, pk||null);
   showToast('▶ '+title);
 }
