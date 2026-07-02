@@ -2,6 +2,7 @@ from django.urls import path
 from core import views
 
 urlpatterns = [
+    path('bulk-upload/',              views.creator_bulk_upload,    name='creator_bulk_upload'),
     path('',                          views.creator_dashboard,      name='creator_dashboard'),
     path('upload/',                   views.creator_upload,         name='creator_upload'),
     path('write-blog/',               views.creator_write_blog,     name='creator_write_blog'),

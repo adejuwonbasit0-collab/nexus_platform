@@ -864,6 +864,68 @@ def notifications_count(request):
 # ── Creator Dashboard ─────────────────────────────────────────────────────────
 
 @_creator_required
+
+
+@require_POST
+def creator_bulk_upload(request):
+    """Bulk upload endpoint — creates Content items as drafts immediately
+    so the creator can name and edit them before publishing.
+    Accepts: action=bulk_create (generic content) or action=bulk_episode (series episode).
+    Returns JSON {ok, pk, title} or {ok:false, error}.
+    """
+    from django.http import JsonResponse
+    from django.core.files.storage import default_storage
+
+    action = request.POST.get('action', 'bulk_create')
+
+    # ── Bulk episode upload ────────────────────────────────────────────────
+    if action == 'bulk_episode':
+        try:
+            from movies.models import Series, Season, Episode
+            series = Series.objects.get(pk=request.POST.get('series_pk'))
+            season_num = int(request.POST.get('season_number', 1))
+            season, _ = Season.objects.get_or_create(series=series, number=season_num)
+            ep_num = season.episodes.count() + 1
+            ep = Episode(
+                season=season,
+                number=ep_num,
+                title=request.POST.get('title', f'Episode {ep_num}'),
+                description='',
+                is_free=True,
+            )
+            if 'video_file' in request.FILES:
+                ep.video_file = request.FILES['video_file']
+            ep.save()
+            return JsonResponse({'ok': True, 'pk': ep.pk, 'title': ep.title})
+        except Exception as ex:
+            return JsonResponse({'ok': False, 'error': str(ex)})
+
+    # ── Bulk generic content upload ────────────────────────────────────────
+    content_type = request.POST.get('content_type', 'video')
+    title = request.POST.get('title', 'Untitled').strip() or 'Untitled'
+    try:
+        c = Content(
+            creator=request.user,
+            title=title,
+            content_type=content_type,
+            status='draft',
+            tier='free',
+            description='',
+        )
+        file_fields = {'music': 'audio_file', 'image': 'image_file', 'video': 'video_file'}
+        field = file_fields.get(content_type, 'file')
+        uploaded = request.FILES.get(field) or request.FILES.get('file')
+        if uploaded:
+            c.file = uploaded
+        # For images, also set as thumbnail for preview
+        if content_type == 'image' and uploaded:
+            c.thumbnail = uploaded
+        c.save()
+        return JsonResponse({'ok': True, 'pk': c.pk, 'title': c.title})
+    except Exception as ex:
+        return JsonResponse({'ok': False, 'error': str(ex)})
+
+
 def creator_dashboard(request):
     user    = request.user
     content = Content.objects.filter(creator=user).order_by('-created_at')
@@ -872,6 +934,7 @@ def creator_dashboard(request):
         'total_uploads': content.count(),
         'approved':      content.filter(status='approved').count(),
         'pending':       content.filter(status='pending').count(),
+        'draft':         content.filter(status='draft').count(),
         'rejected':      content.filter(status='rejected').count(),
         'total_views':   content.aggregate(t=Sum('views'))['t'] or 0,
     }
@@ -899,6 +962,20 @@ def creator_dashboard(request):
     }
     type_counts = {k: v.count() for k, v in by_type.items()}
 
+    # Series list for episode bulk upload
+    series_list = []
+    try:
+        from movies.models import Series
+        series_list = list(Series.objects.filter(
+            seasons__episodes__isnull=False
+        ).distinct().prefetch_related('seasons__episodes').order_by('title'))
+        # Also include series with no episodes yet
+        all_series = list(Series.objects.order_by('title'))
+        pks_seen = {s.pk for s in series_list}
+        series_list += [s for s in all_series if s.pk not in pks_seen]
+    except Exception:
+        pass
+
     return render(request, 'creator/dashboard.html', {
         'content': content[:5],
         'all_content': content,
@@ -908,7 +985,7 @@ def creator_dashboard(request):
         'blog_content':  by_type['blog'][:12],
         'type_counts': type_counts,
         'stats': stats,
-        'wallet': wallet,
+        'series_list': series_list,
         'recent_earnings': recent_earnings,
     })
 

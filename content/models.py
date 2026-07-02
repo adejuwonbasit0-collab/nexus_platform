@@ -33,7 +33,7 @@ MAX_THUMB_SIZE_MB  = 10
 
 class Content(models.Model):
     TYPE_CHOICES   = [('image', 'Image'), ('video', 'Video'), ('music', 'Music'), ('blog', 'Blog')]
-    STATUS_CHOICES = [('pending', 'Pending'), ('approved', 'Approved'), ('rejected', 'Rejected')]
+    STATUS_CHOICES = [('draft', 'Draft'), ('pending', 'Pending Review'), ('approved', 'Approved'), ('rejected', 'Rejected')]
     TIER_CHOICES   = [('free', 'Free'), ('premium', 'Premium')]
 
     creator      = models.ForeignKey(

@@ -199,6 +199,8 @@ input,select,textarea,button{font-family:inherit;font-size:inherit}
   transition:background .15s;flex-shrink:0;
 }
 .sp-back-btn:hover{background:rgba(255,255,255,.15)}
+/* Hamburger: hidden on desktop where sidebar is always visible */
+.sp-hamburger-btn{display:none}
 .sp-search-bar{
   display:flex;align-items:center;gap:8px;
   background:var(--bg3);border-radius:20px;
@@ -514,6 +516,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.6}
   .sp-sidebar-overlay.open{display:block}
   .sp-topbar{padding:12px 16px}
   .sp-search-bar{max-width:100%}
+  .sp-hamburger-btn{display:flex!important}
 }
 @media(max-width:600px){
   :root{--player-h:80px}
@@ -525,10 +528,69 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.6}
   .sp-pl-right{max-width:10%}
   .sp-pl-cover{width:48px;height:48px}
 }
+@media(max-width:480px){
+  .sp-pl-lyrics-btn span.lyr-label{display:none}
+  .sp-section-title{font-size:17px}
+  .sp-card{min-width:0}
+}
 @media(max-width:400px){
   .sp-pl-controls{gap:10px}
   .sp-pl-btn{font-size:18px}
 }
+
+/* ── Desktop (1200px+): wider sidebar ───────────────────────── */
+@media(min-width:1200px){
+  :root{--sidebar-w:260px}
+  .sp-search-bar{max-width:480px}
+}
+/* ── Large desktop (1440px+): even more space ───────────────── */
+@media(min-width:1440px){
+  :root{--sidebar-w:280px}
+  .sp-main-body .wrap,.sp-main-body .container{max-width:1200px}
+}
+
+/* ── Tablet portrait (600–860px): compact sidebar via overlay ── */
+@media(min-width:601px) and (max-width:860px){
+  .sp-topbar .sp-back-btn:not(.sp-hamburger-btn){display:none} /* hide history nav on tablet */
+  .sp-search-bar{max-width:320px}
+  .sp-pl-lyrics-btn{font-size:11px;padding:5px 10px}
+}
+
+/* ── Universal: prevent horizontal overflow ─────────────────── */
+*,*::before,*::after{box-sizing:border-box}
+html,body{max-width:100%;overflow-x:hidden}
+img,video,iframe,embed{max-width:100%;display:block}
+table{width:100%;word-break:break-word}
+input,select,textarea{max-width:100%;font-size:16px} /* prevent iOS zoom */
+
+/* ── Horizontal scroll rows don't cause overflow ────────────── */
+.sp-row{-webkit-overflow-scrolling:touch}
+
+/* ── Footer responsive ───────────────────────────────────────── */
+@media(max-width:860px){
+  .footer-grid{grid-template-columns:1fr 1fr;gap:24px}
+}
+@media(max-width:600px){
+  .footer-grid{grid-template-columns:1fr;gap:18px}
+  .footer-bottom{flex-direction:column;gap:10px;text-align:center}
+  .footer{padding:36px 0 calc(var(--player-h) + 16px)}
+}
+
+/* ── Content grids ───────────────────────────────────────────── */
+@media(max-width:600px){
+  div[style*="grid-template-columns:repeat(auto-fill,minmax(170px"]{grid-template-columns:repeat(2,1fr)!important}
+  div[style*="grid-template-columns:repeat(auto-fill,minmax(220px"]{grid-template-columns:repeat(2,1fr)!important}
+  div[style*="grid-template-columns:repeat(auto-fill,minmax(240px"]{grid-template-columns:repeat(2,1fr)!important}
+  div[style*="grid-template-columns:repeat(auto-fill,minmax(260px"]{grid-template-columns:1fr!important}
+  div[style*="grid-template-columns:1fr 320px"]{grid-template-columns:1fr!important}
+  div[style*="grid-template-columns:1fr 300px"]{grid-template-columns:1fr!important}
+  div[style*="grid-template-columns:1fr 1fr 1fr"]{grid-template-columns:1fr 1fr!important}
+}
+@media(max-width:400px){
+  div[style*="grid-template-columns:repeat(auto-fill,minmax(150px"]{grid-template-columns:repeat(2,1fr)!important}
+  div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
+}
+
 
 /* ── Legacy class aliases ─────────────────────────────────── */
 .wrap,.container{width:100%;max-width:1360px;margin:0 auto;padding:0 24px}
@@ -575,7 +637,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.6}
 
 <div class="sp-layout">
 
-  {# ── SIDEBAR ──────────────────────────────────────────── #}
+  
   <aside class="sp-sidebar" id="sp-sidebar">
     <div class="sp-sidebar-top">
       <a href="/" class="sp-logo">
@@ -661,12 +723,12 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.6}
   </aside>
   <div class="sp-sidebar-overlay" id="sp-overlay" onclick="spSidebarClose()"></div>
 
-  {# ── MAIN ────────────────────────────────────────────────── #}
+  
   <main class="sp-main" id="sp-main">
 
-    {# Top bar #}
+    
     <div class="sp-topbar">
-      <button class="sp-back-btn" id="sp-hamburger" onclick="spSidebarToggle()" aria-label="Menu" style="display:none">☰</button>
+      <button class="sp-back-btn sp-hamburger-btn" id="sp-hamburger" onclick="spSidebarToggle()" aria-label="Menu">☰</button>
       <button class="sp-back-btn" onclick="history.back()" aria-label="Back">‹</button>
       <button class="sp-back-btn" onclick="history.forward()" aria-label="Forward">›</button>
       <div class="sp-search-bar">
@@ -702,7 +764,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.6}
     {% block content %}{% endblock %}
     </div>
 
-    {# Footer #}
+    
     <footer class="footer">
       <div class="wrap">
         <div class="footer-grid">
@@ -728,9 +790,9 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.6}
     </footer>
   </main>
 
-  {# ── BOTTOM PLAYER ───────────────────────────────────────── #}
+  
   <div class="sp-player" id="sp-player" style="display:none">
-    {# Seek bar at very top of player #}
+    
     <div id="sp-seek-global" onclick="spSeekClick(event)" style="position:absolute;top:0;left:0;right:0;height:4px;cursor:pointer;z-index:2;">
       <div style="height:100%;background:rgba(255,255,255,.15);position:relative;">
         <div id="sp-seek-global-fill" style="height:100%;background:var(--sp-green);width:0%;transition:width .25s linear;position:relative;">
@@ -739,7 +801,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.6}
       </div>
     </div>
 
-    {# Left: track info #}
+    
     <div class="sp-pl-left">
       <div class="sp-pl-cover" id="sp-pl-cover" onclick="spExpandPlayer()">🎵</div>
       <div class="sp-pl-info">
@@ -752,7 +814,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.6}
       <button class="sp-pl-like" id="sp-pl-like" onclick="spToggleLike()" title="Save">♡</button>
     </div>
 
-    {# Center: controls + seek #}
+    
     <div class="sp-pl-center">
       <div class="sp-pl-controls">
         <button class="sp-pl-btn" id="sp-shuffle-btn" onclick="spToggleShuffle()" title="Shuffle">⇄</button>
@@ -774,7 +836,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.6}
       </div>
     </div>
 
-    {# Right: volume + extras #}
+    
     <div class="sp-pl-right">
       <button class="sp-pl-extra-btn sp-lyrics-btn" id="sp-lyrics-btn" onclick="spOpenLyrics()" title="Lyrics">📝 Lyrics</button>
       <div class="sp-pl-vol-wrap">
@@ -793,25 +855,25 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.6}
   </div>
 </div>
 
-{# ── EXPANDED PLAYER (full-screen) ───────────────────────── #}
+
 <div id="sp-expanded" style="display:none;position:fixed;inset:0;z-index:9000;background:var(--sp-black);overflow:hidden;flex-direction:column">
   <div id="sp-exp-bg" style="position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(90px) brightness(.22) saturate(1.6);transform:scale(1.3);transition:background-image .7s"></div>
   <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.45) 0%,rgba(0,0,0,.3) 45%,rgba(0,0,0,.82) 100%)"></div>
   <div style="position:relative;z-index:2;display:flex;flex-direction:column;height:100%;max-width:430px;margin:0 auto;padding:env(safe-area-inset-top,20px) 28px max(20px,env(safe-area-inset-bottom)) 28px">
 
-    {# Header #}
+    
     <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;flex-shrink:0">
       <button onclick="spCollapsePlayer()" style="background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.8);font-size:20px;cursor:pointer;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%">⌄</button>
       <div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.45)">Now Playing</div>
       <a id="sp-exp-link" href="#" style="background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.8);font-size:15px;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;text-decoration:none">⋯</a>
     </div>
 
-    {# Cover art #}
+    
     <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:20px 0;min-height:0">
       <div id="sp-exp-cover" style="width:min(78vw,310px);height:min(78vw,310px);border-radius:14px;overflow:hidden;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:70px;box-shadow:0 30px 76px rgba(0,0,0,.7)">🎵</div>
     </div>
 
-    {# Info + like #}
+    
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;flex-shrink:0;gap:14px">
       <div style="min-width:0;flex:1">
         <div id="sp-exp-title" style="font-size:20px;font-weight:800;font-family:'Space Grotesk',sans-serif;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
@@ -820,7 +882,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.6}
       <button id="sp-exp-like" onclick="spToggleLike()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:26px;cursor:pointer;transition:all .2s;flex-shrink:0">♡</button>
     </div>
 
-    {# Seek #}
+    
     <div style="flex-shrink:0;margin-bottom:18px">
       <div id="sp-exp-seek" onclick="spExpSeekClick(event)" style="height:4px;background:rgba(255,255,255,.2);border-radius:3px;cursor:pointer;position:relative;margin-bottom:8px">
         <div id="sp-exp-fill" style="height:100%;background:var(--tx);border-radius:3px;width:0%;position:relative;transition:background .2s">
@@ -832,7 +894,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.6}
       </div>
     </div>
 
-    {# Controls #}
+    
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;flex-shrink:0">
       <button id="sp-exp-shuffle" onclick="spToggleShuffle()" style="background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:20px;transition:color .2s">⇄</button>
       <button onclick="spPrev()" style="background:none;border:none;color:rgba(255,255,255,.85);cursor:pointer;font-size:28px">⏮</button>
@@ -841,7 +903,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.6}
       <button id="sp-exp-repeat" onclick="spToggleRepeat()" style="background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:20px;transition:color .2s">↺</button>
     </div>
 
-    {# Volume #}
+    
     <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;margin-bottom:18px">
       <button onclick="spToggleMute()" id="sp-exp-vol-icon" style="background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:14px">🔈</button>
       <div id="sp-exp-vol-bar" onclick="spExpVolClick(event)" style="flex:1;height:4px;background:rgba(255,255,255,.2);border-radius:2px;cursor:pointer;position:relative">
@@ -850,25 +912,19 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.6}
       <button style="background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:14px">🔊</button>
     </div>
 
-    {# Dedicated Lyrics button — opens the separate full lyrics layer #}
+    
     <button onclick="spOpenLyrics()" style="width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:13px;color:rgba(255,255,255,.75);cursor:pointer;font-size:14px;font-weight:700;transition:all .18s;flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:8px" onmouseover="this.style.background='rgba(29,185,84,.15)';this.style.borderColor='rgba(29,185,84,.3)';this.style.color='#1db954'" onmouseout="this.style.background='rgba(255,255,255,.08)';this.style.borderColor='rgba(255,255,255,.12)';this.style.color='rgba(255,255,255,.75)'">
       📝 Show Lyrics
     </button>
   </div>
 </div>
 
-{# ══════════════════════════════════════════════════════════════
-   LYRICS — its own dedicated full-screen layer (separate from the
-   Now Playing screen, sits above it). Driven entirely by the
-   player engine's own state (_currentPk / _currentDetail), so it
-   works no matter where playback was started from — Home, Search,
-   Discover, or the track page itself.
-══════════════════════════════════════════════════════════════ #}
+
 <div id="lyr-layer" style="display:none;position:fixed;inset:0;z-index:9600;background:#0a0a0a;overflow:hidden;flex-direction:column">
   <div id="lyr-bg" style="position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(100px) brightness(.16) saturate(1.7);transform:scale(1.35);transition:background-image .8s"></div>
   <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.55) 0%,rgba(0,0,0,.25) 40%,rgba(0,0,0,.88) 100%);pointer-events:none"></div>
 
-  {# Header #}
+  
   <div style="position:relative;z-index:5;display:flex;align-items:center;justify-content:space-between;padding:max(16px,env(safe-area-inset-top)) 22px 12px;flex-shrink:0">
     <button onclick="spCloseLyrics()" style="background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.8);font-size:20px;cursor:pointer;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%">⌄</button>
     <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;justify-content:center">
@@ -881,10 +937,10 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.6}
     <button id="lyr-caption-btn" onclick="lyrToggleCaption()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.6);cursor:pointer;font-size:10.5px;padding:6px 13px;border-radius:20px;transition:all .2s;white-space:nowrap;flex-shrink:0">🎙 Live</button>
   </div>
 
-  {# Source badge #}
+  
   <div id="lyr-badge" style="display:none;position:relative;z-index:5;text-align:center;font-size:10.5px;color:rgba(120,230,150,.85);background:rgba(29,185,84,.1);border:1px solid rgba(29,185,84,.2);border-radius:20px;padding:4px 14px;margin:0 auto 6px;width:fit-content;flex-shrink:0"></div>
 
-  {# Scrollable karaoke lyrics — the real, dedicated layer #}
+  
   <div id="lyr-scroll" style="position:relative;z-index:5;flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;mask-image:linear-gradient(180deg,transparent 0%,#fff 10%,#fff 85%,transparent 100%);-webkit-mask-image:linear-gradient(180deg,transparent 0%,#fff 10%,#fff 85%,transparent 100%)">
     <div id="lyr-inner" style="max-width:580px;margin:0 auto;padding:26vh 28px 26vh">
       <div id="lyr-loading" style="text-align:center;padding:60px 0;color:rgba(255,255,255,.3)">
@@ -916,7 +972,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.6}
     </div>
   </div>
 
-  {# Mini transport bar at the very bottom — same player, same state #}
+  
   <div style="position:relative;z-index:5;flex-shrink:0;background:rgba(10,10,10,.92);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,.08);padding:12px 22px max(14px,env(safe-area-inset-bottom))">
     <div id="lyr-bar-seek" onclick="spExpSeekClick(event)" style="height:3px;background:rgba(255,255,255,.18);border-radius:2px;cursor:pointer;margin-bottom:10px;position:relative">
       <div id="lyr-bar-seek-fill" style="height:100%;background:var(--sp-green);border-radius:2px;width:0%;transition:width .2s linear"></div>
@@ -929,7 +985,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.6}
   </div>
 </div>
 
-{# ── JS ──────────────────────────────────────────────────── #}
+
 <script>
 /* ═══════════════════════════════════════════════════════════
    NEXUS · SPOTIFY-STYLE PLAYER ENGINE
@@ -1101,11 +1157,6 @@ function spSidebarClose(){
   document.getElementById('sp-sidebar').classList.remove('open');
   document.getElementById('sp-overlay').classList.remove('open');
 }
-(function(){
-  const h=document.getElementById('sp-hamburger');
-  function ck(){if(h)h.style.display=window.innerWidth<=860?'flex':'none'}
-  ck();window.addEventListener('resize',ck);
-})();
 
 // ── Search debounce ──────────────────────────────────────
 let _st;
@@ -1140,7 +1191,7 @@ document.addEventListener('keydown',e=>{
 });
 </script>
 
-{# ── KARAOKE LYRICS PANEL (global, overlays everything) ── #}
+
 
 <style>
 /* Karaoke line styles */

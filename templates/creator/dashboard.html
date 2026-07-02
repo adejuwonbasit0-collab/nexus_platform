@@ -2,207 +2,531 @@
 {% block title %}Creator Studio — NEXUS{% endblock %}
 {% block head %}
 <style>
+/* ── Hero ── */
 .cd-hero{background:linear-gradient(180deg,rgba(29,185,84,.18) 0%,transparent 60%);padding:40px 32px 24px}
-.cd-title{font-family:'Space Grotesk',sans-serif;font-size:clamp(24px,4vw,38px);font-weight:900;color:#fff;margin-bottom:8px}
-.cd-sub{font-size:14px;color:var(--tx2)}
-.cd-stat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;padding:0 32px;margin-bottom:28px}
-.cd-stat{background:var(--bg2);border-radius:var(--r2);padding:18px 20px;border:1px solid rgba(255,255,255,.04)}
-.cd-stat-val{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:800;color:#fff}
-.cd-stat-label{font-size:11px;color:var(--tx2);margin-top:4px;text-transform:uppercase;letter-spacing:.05em}
-.cd-stat.green .cd-stat-val{color:var(--sp-green)}
-.cd-stat.yellow .cd-stat-val{color:#f59e0b}
-.cd-stat.red .cd-stat-val{color:#ef4444}
-.cd-actions{display:flex;gap:12px;padding:0 32px 32px;flex-wrap:wrap}
+.cd-title{font-family:'Space Grotesk',sans-serif;font-size:clamp(22px,4vw,36px);font-weight:900;color:#fff;margin-bottom:6px}
+.cd-stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:0 32px;margin-bottom:24px}
+.cd-stat{background:var(--bg2);border-radius:var(--r2);padding:16px 18px;border:1px solid rgba(255,255,255,.04)}
+.cd-stat-val{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:800;color:#fff}
+.cd-stat-label{font-size:10px;color:var(--tx2);margin-top:3px;text-transform:uppercase;letter-spacing:.05em}
+.cd-stat.g .cd-stat-val{color:var(--sp-green)}
+.cd-stat.y .cd-stat-val{color:#f59e0b}
+.cd-stat.r .cd-stat-val{color:#ef4444}
+.cd-actions{display:flex;gap:10px;padding:0 32px 24px;flex-wrap:wrap}
 
-/* ── Premium content-type tab bar (app-style section switcher) ── */
-.cd-type-bar{
-  display:flex;gap:6px;padding:6px;margin:0 32px 24px;
-  background:var(--bg2);border-radius:50px;border:1px solid rgba(255,255,255,.06);
-  overflow-x:auto;scrollbar-width:none
+/* ── Bottom app-style tab nav (the key missing piece) ── */
+.cd-bottom-nav{
+  position:fixed;bottom:var(--player-h);left:0;right:0;
+  background:rgba(10,10,10,.96);backdrop-filter:blur(20px);
+  border-top:1px solid rgba(255,255,255,.08);
+  display:flex;z-index:150;
+  padding-bottom:env(safe-area-inset-bottom,0);
 }
-.cd-type-bar::-webkit-scrollbar{display:none}
-.cd-type-tab{
-  flex:1;display:flex;align-items:center;justify-content:center;gap:7px;
-  padding:11px 16px;border-radius:50px;border:none;background:none;cursor:pointer;
-  font-size:13px;font-weight:700;color:var(--tx2);transition:all .2s;white-space:nowrap
+.cd-nav-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:4px;padding:10px 4px;border:none;background:none;
+  color:var(--tx2);cursor:pointer;font-size:10px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.04em;transition:color .15s;
+  text-decoration:none;
 }
-.cd-type-tab.on{background:var(--sp-green);color:#000;box-shadow:0 4px 14px rgba(29,185,84,.3)}
-.cd-type-tab:hover:not(.on){background:rgba(255,255,255,.06);color:#fff}
-.cd-type-count{font-size:10px;background:rgba(255,255,255,.15);padding:1px 7px;border-radius:10px}
-.cd-type-tab.on .cd-type-count{background:rgba(0,0,0,.2)}
-.cd-type-panel{display:none;padding:0 32px 40px}
-.cd-type-panel.on{display:block}
-@media(max-width:900px){
-  .cd-stat-grid{grid-template-columns:repeat(2,1fr);padding:0 16px}
-  .cd-hero,.cd-actions,.cd-type-panel{padding-left:16px;padding-right:16px}
-  .cd-type-bar{margin-left:16px;margin-right:16px}
-  .cd-type-tab{font-size:12px;padding:10px 12px}
+.cd-nav-btn.on,.cd-nav-btn:hover{color:var(--sp-green)}
+.cd-nav-btn .icon{font-size:20px;line-height:1}
+/* Push page content above bottom nav */
+.cd-page{padding-bottom:calc(var(--player-h) + 68px)}
+
+/* ── Content panels ── */
+.cd-panel{display:none;padding:0 32px}
+.cd-panel.on{display:block}
+.cd-card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px}
+
+/* ── Bulk upload drop zone ── */
+.bulk-zone{
+  border:2px dashed rgba(29,185,84,.3);border-radius:14px;
+  padding:36px 20px;text-align:center;cursor:pointer;
+  transition:all .2s;background:rgba(29,185,84,.04);margin-bottom:20px;
 }
-@media(max-width:600px){
-  .cd-type-tab span.cd-type-label{display:none}
+.bulk-zone:hover,.bulk-zone.drag{border-color:var(--sp-green);background:rgba(29,185,84,.1)}
+.bulk-zone input[type=file]{display:none}
+.bulk-zone-icon{font-size:44px;margin-bottom:10px;opacity:.6}
+.bulk-zone-label{font-size:15px;font-weight:700;color:#fff;margin-bottom:4px}
+.bulk-zone-sub{font-size:12px;color:var(--tx2)}
+
+/* ── Upload queue items ── */
+.bulk-item{
+  display:flex;align-items:center;gap:12px;
+  background:var(--bg2);border:1px solid rgba(255,255,255,.06);
+  border-radius:var(--r2);padding:12px 16px;margin-bottom:8px;
+  transition:border-color .15s;
+}
+.bulk-item:focus-within{border-color:rgba(29,185,84,.4)}
+.bulk-item-thumb{
+  width:52px;height:52px;border-radius:8px;
+  background:var(--bg3);flex-shrink:0;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+}
+.bulk-item-thumb img{width:100%;height:100%;object-fit:cover}
+.bulk-item-name{
+  flex:1;min-width:0;background:transparent;border:none;
+  font-size:14px;font-weight:600;color:#fff;
+  padding:4px 8px;border-radius:6px;
+  border-bottom:1px solid rgba(255,255,255,.1);
+  outline:none;transition:border-color .15s;
+}
+.bulk-item-name:focus{border-color:var(--sp-green)}
+.bulk-item-name::placeholder{color:var(--tx3)}
+.bulk-item-status{
+  font-size:10px;font-weight:700;padding:3px 9px;
+  border-radius:20px;flex-shrink:0;text-transform:uppercase;
+}
+.bulk-item-status.draft{background:rgba(255,255,255,.08);color:var(--tx2)}
+.bulk-item-status.uploading{background:rgba(245,158,11,.15);color:#f59e0b}
+.bulk-item-status.done{background:rgba(29,185,84,.15);color:var(--sp-green)}
+.bulk-item-status.error{background:rgba(239,68,68,.15);color:#ef4444}
+.bulk-item-remove{background:none;border:none;color:var(--tx3);cursor:pointer;font-size:18px;padding:4px;flex-shrink:0}
+.bulk-item-remove:hover{color:#ef4444}
+
+/* ── Draft card ── */
+.draft-card{position:relative}
+.draft-badge{
+  position:absolute;top:8px;left:8px;z-index:2;
+  font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;
+  background:rgba(245,158,11,.9);color:#000;
+}
+
+/* ── Status badge helpers ── */
+.sb-draft{background:rgba(255,255,255,.08);color:var(--tx2)}
+.sb-pending{background:rgba(245,158,11,.15);color:#f59e0b}
+.sb-approved{background:rgba(29,185,84,.15);color:var(--sp-green)}
+.sb-rejected{background:rgba(239,68,68,.15);color:#ef4444}
+
+@media(max-width:860px){
+  .cd-stat-row{grid-template-columns:repeat(2,1fr);padding:0 16px}
+  .cd-hero,.cd-actions,.cd-panel{padding-left:16px;padding-right:16px}
+  .cd-card-grid{grid-template-columns:repeat(2,1fr);gap:10px}
+}
+@media(max-width:480px){
+  .cd-stat-row{grid-template-columns:1fr 1fr;gap:8px}
+  .cd-nav-btn span.cd-lbl{display:none}
 }
 </style>
 {% endblock %}
-{% block content %}
 
+{% block content %}
+<div class="cd-page">
+
+{# Hero #}
 <div class="cd-hero">
   <div class="cd-title">✨ Creator Studio</div>
-  <div class="cd-sub">Upload, manage, and earn from your content.</div>
+  <div style="font-size:13px;color:var(--tx2)">Upload, manage, and publish your content.</div>
 </div>
 
-<div class="cd-stat-grid">
-  <div class="cd-stat"><div class="cd-stat-val">{{ stats.total_uploads }}</div><div class="cd-stat-label">Total Uploads</div></div>
-  <div class="cd-stat green"><div class="cd-stat-val">{{ stats.approved }}</div><div class="cd-stat-label">Approved</div></div>
-  <div class="cd-stat yellow"><div class="cd-stat-val">{{ stats.pending }}</div><div class="cd-stat-label">Pending</div></div>
-  <div class="cd-stat red"><div class="cd-stat-val">{{ stats.rejected }}</div><div class="cd-stat-label">Rejected</div></div>
-  <div class="cd-stat"><div class="cd-stat-val">{{ stats.total_views }}</div><div class="cd-stat-label">Total Views</div></div>
+{# Stats #}
+<div class="cd-stat-row">
+  <div class="cd-stat"><div class="cd-stat-val">{{ stats.total_uploads }}</div><div class="cd-stat-label">Total</div></div>
+  <div class="cd-stat g"><div class="cd-stat-val">{{ stats.approved }}</div><div class="cd-stat-label">Live</div></div>
+  <div class="cd-stat y"><div class="cd-stat-val">{{ stats.pending }}</div><div class="cd-stat-label">Pending</div></div>
+  <div class="cd-stat"><div class="cd-stat-val">{{ stats.draft|default:0 }}</div><div class="cd-stat-label">Draft</div></div>
+  <div class="cd-stat r"><div class="cd-stat-val">{{ stats.rejected }}</div><div class="cd-stat-label">Rejected</div></div>
 </div>
 
 <div class="cd-actions">
-  <a href="/creator/upload/" class="btn btn-primary btn-lg" style="padding:13px 28px;font-size:14px">⬆ Upload Content</a>
-  <a href="/creator/write/" class="btn btn-outline" style="padding:13px 24px">📝 Write Blog Post</a>
-  {% if wallet %}<a href="/monetization/wallet/" class="btn btn-outline" style="padding:13px 24px">💰 Wallet — ₦{{ wallet.balance|default:0 }}</a>{% endif %}
+  <a href="/creator/upload/" class="btn btn-primary">⬆ Single Upload</a>
+  <a href="/creator/write/" class="btn btn-outline">📝 Write Blog</a>
 </div>
 
-{% if recent_earnings %}
-<div class="sp-sec">
-  <div class="sp-section-head"><div class="sp-section-title">💰 Recent Earnings</div></div>
-  <div class="panel">
-    <div class="panel-body" style="padding:8px">
-      {% for e in recent_earnings %}
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--bd)">
-        <div><div style="font-size:13px;font-weight:600">{{ e.description|default:e.get_source_display }}</div><div style="font-size:11px;color:var(--tx2)">{{ e.created_at|date:"M d, Y" }}</div></div>
-        <div style="font-size:14px;font-weight:700;color:var(--sp-green)">+₦{{ e.amount }}</div>
+{# ── CONTENT TYPE PANELS ── #}
+
+{# MUSIC panel #}
+<div class="cd-panel on" id="panel-music">
+  <div class="sp-section-head"><div class="sp-section-title">🎵 Music — {{ type_counts.music }} tracks</div></div>
+
+  {# Bulk upload zone #}
+  <div class="bulk-zone" id="music-zone" onclick="document.getElementById('music-files').click()"
+    ondragover="e=>{e.preventDefault();this.classList.add('drag')}" ondragleave="this.classList.remove('drag')"
+    ondrop="bulkDrop(event,'music','music-queue')">
+    <input type="file" id="music-files" multiple accept="audio/*" onchange="bulkAdd(this.files,'music','music-queue')">
+    <div class="bulk-zone-icon">🎵</div>
+    <div class="bulk-zone-label">Drop audio files here or click to select</div>
+    <div class="bulk-zone-sub">MP3 · WAV · FLAC · AAC — all go to Draft first so you can name and edit before publishing</div>
+  </div>
+  <div id="music-queue"></div>
+  <button id="music-upload-btn" onclick="bulkSubmit('music','music-queue')" class="btn btn-primary" style="display:none;width:100%;justify-content:center;margin-bottom:24px">⬆ Upload All as Drafts</button>
+
+  {# Existing music content #}
+  <div class="cd-card-grid">
+    {% for c in music_content %}
+    <div class="sp-card draft-card">
+      {% if c.status == 'draft' %}<span class="draft-badge">Draft</span>{% endif %}
+      <a href="/creator/edit/{{ c.pk }}/" style="text-decoration:none;color:inherit">
+        <div class="sp-card-cover">
+          {% if c.thumbnail %}<img src="{{ c.thumbnail.url }}" loading="lazy">{% else %}🎵{% endif %}
+        </div>
+        <div class="sp-card-title">{{ c.title }}</div>
+        <div class="sp-card-sub">
+          <span class="badge sb-{{ c.status }}">{{ c.get_status_display }}</span>
+          {{ c.views|default:0 }} plays
+        </div>
+      </a>
+    </div>
+    {% empty %}
+    <div class="empty" style="grid-column:1/-1;padding:32px">
+      <div class="empty-icon">🎵</div><h3>No music yet</h3>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{# MOVIES panel #}
+<div class="cd-panel" id="panel-video">
+  <div class="sp-section-head"><div class="sp-section-title">🎬 Movies & Videos — {{ type_counts.video }} items</div></div>
+
+  <div class="bulk-zone" id="video-zone" onclick="document.getElementById('video-files').click()"
+    ondragover="e=>{e.preventDefault();this.classList.add('drag')}" ondragleave="this.classList.remove('drag')"
+    ondrop="bulkDrop(event,'video','video-queue')">
+    <input type="file" id="video-files" multiple accept="video/*" onchange="bulkAdd(this.files,'video','video-queue')">
+    <div class="bulk-zone-icon">🎬</div>
+    <div class="bulk-zone-label">Drop video files here or click to select</div>
+    <div class="bulk-zone-sub">MP4 · WebM · MOV — name each one, then upload as Drafts to edit later</div>
+  </div>
+  <div id="video-queue"></div>
+  <button id="video-upload-btn" onclick="bulkSubmit('video','video-queue')" class="btn btn-primary" style="display:none;width:100%;justify-content:center;margin-bottom:24px">⬆ Upload All as Drafts</button>
+
+  <div class="cd-card-grid">
+    {% for c in video_content %}
+    <div class="sp-card draft-card">
+      {% if c.status == 'draft' %}<span class="draft-badge">Draft</span>{% endif %}
+      <a href="/creator/edit/{{ c.pk }}/" style="text-decoration:none;color:inherit">
+        <div class="sp-card-cover" style="aspect-ratio:16/9">
+          {% if c.thumbnail %}<img src="{{ c.thumbnail.url }}" loading="lazy">{% else %}🎬{% endif %}
+        </div>
+        <div class="sp-card-title">{{ c.title }}</div>
+        <div class="sp-card-sub"><span class="badge sb-{{ c.status }}">{{ c.get_status_display }}</span></div>
+      </a>
+    </div>
+    {% empty %}
+    <div class="empty" style="grid-column:1/-1;padding:32px"><div class="empty-icon">🎬</div><h3>No videos yet</h3></div>
+    {% endfor %}
+  </div>
+</div>
+
+{# IMAGES panel #}
+<div class="cd-panel" id="panel-image">
+  <div class="sp-section-head"><div class="sp-section-title">🖼 Images — {{ type_counts.image }} items</div></div>
+
+  <div class="bulk-zone" id="image-zone" onclick="document.getElementById('image-files').click()"
+    ondragover="e=>{e.preventDefault();this.classList.add('drag')}" ondragleave="this.classList.remove('drag')"
+    ondrop="bulkDrop(event,'image','image-queue')">
+    <input type="file" id="image-files" multiple accept="image/*" onchange="bulkAdd(this.files,'image','image-queue',true)">
+    <div class="bulk-zone-icon">🖼</div>
+    <div class="bulk-zone-label">Drop images here or click to select</div>
+    <div class="bulk-zone-sub">JPG · PNG · WebP · GIF — preview shown, name before uploading</div>
+  </div>
+  <div id="image-queue"></div>
+  <button id="image-upload-btn" onclick="bulkSubmit('image','image-queue')" class="btn btn-primary" style="display:none;width:100%;justify-content:center;margin-bottom:24px">⬆ Upload All as Drafts</button>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px">
+    {% for c in image_content %}
+    <a href="/creator/edit/{{ c.pk }}/" style="border-radius:var(--r2);overflow:hidden;position:relative;background:var(--bg2);display:block">
+      <div style="aspect-ratio:1">
+        {% if c.thumbnail %}<img src="{{ c.thumbnail.url }}" loading="lazy" style="width:100%;height:100%;object-fit:cover">
+        {% else %}<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:28px;background:var(--bg3)">🖼</div>{% endif %}
       </div>
+      {% if c.status == 'draft' %}<span class="draft-badge">Draft</span>{% endif %}
+      <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(0,0,0,.85) 100%);display:flex;align-items:flex-end;padding:8px">
+        <div style="font-size:11px;color:#fff;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%">{{ c.title }}</div>
+      </div>
+    </a>
+    {% empty %}
+    <div class="empty" style="grid-column:1/-1;padding:32px"><div class="empty-icon">🖼</div><h3>No images yet</h3></div>
+    {% endfor %}
+  </div>
+</div>
+
+{# BLOG panel #}
+<div class="cd-panel" id="panel-blog">
+  <div class="sp-section-head">
+    <div class="sp-section-title">📝 Blog Posts — {{ type_counts.blog }} posts</div>
+    <a href="/creator/write/" class="sp-section-more">+ New Post</a>
+  </div>
+  <div class="cd-card-grid">
+    {% for c in blog_content %}
+    <div class="sp-card draft-card">
+      {% if c.status == 'draft' %}<span class="draft-badge">Draft</span>{% endif %}
+      <a href="/creator/edit/{{ c.pk }}/" style="text-decoration:none;color:inherit">
+        <div class="sp-card-cover" style="aspect-ratio:16/9">
+          {% if c.thumbnail %}<img src="{{ c.thumbnail.url }}" loading="lazy">{% else %}📝{% endif %}
+        </div>
+        <div class="sp-card-title">{{ c.title }}</div>
+        <div class="sp-card-sub"><span class="badge sb-{{ c.status }}">{{ c.get_status_display }}</span> {{ c.views|default:0 }} reads</div>
+      </a>
+    </div>
+    {% empty %}
+    <div class="empty" style="grid-column:1/-1;padding:32px"><div class="empty-icon">📝</div><h3>No blog posts yet</h3><a href="/creator/write/" class="btn btn-primary" style="margin-top:12px">Write your first post</a></div>
+    {% endfor %}
+  </div>
+</div>
+
+{# SERIES panel #}
+<div class="cd-panel" id="panel-series">
+  <div class="sp-section-head">
+    <div class="sp-section-title">📺 Series & Episodes</div>
+    <a href="/creator/series/new/" class="sp-section-more">+ New Series</a>
+  </div>
+
+  {# Bulk episode upload for existing series #}
+  {% if series_list %}
+  <div style="background:var(--bg2);border:1px solid rgba(255,255,255,.06);border-radius:var(--r2);padding:16px;margin-bottom:20px">
+    <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:12px">⬆ Bulk Episode Upload</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <div class="fg">
+        <label>Series</label>
+        <select class="finput" id="ep-series-select">
+          {% for s in series_list %}<option value="{{ s.pk }}">{{ s.title }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="fg">
+        <label>Season</label>
+        <input class="finput" type="number" id="ep-season" value="1" min="1">
+      </div>
+    </div>
+    <div class="bulk-zone" onclick="document.getElementById('ep-files').click()"
+      ondragover="e=>{e.preventDefault();this.classList.add('drag')}" ondragleave="this.classList.remove('drag')"
+      ondrop="bulkDrop(event,'episode','ep-queue')">
+      <input type="file" id="ep-files" multiple accept="video/*" onchange="bulkAdd(this.files,'episode','ep-queue')">
+      <div class="bulk-zone-icon">📺</div>
+      <div class="bulk-zone-label">Drop episode files here</div>
+      <div class="bulk-zone-sub">Name each episode before uploading</div>
+    </div>
+    <div id="ep-queue"></div>
+    <button onclick="bulkSubmitEpisodes()" class="btn btn-primary" id="ep-upload-btn" style="display:none;width:100%;justify-content:center;margin-top:12px">⬆ Upload Episodes as Drafts</button>
+  </div>
+  {% endif %}
+
+  {% for s in series_list %}
+  <div class="panel" style="margin-bottom:12px">
+    <div class="panel-head">
+      <div style="display:flex;align-items:center;gap:10px">
+        {% if s.thumbnail %}<img src="{{ s.thumbnail.url }}" style="width:36px;height:36px;border-radius:6px;object-fit:cover">{% else %}<div style="width:36px;height:36px;border-radius:6px;background:var(--bg3);display:flex;align-items:center;justify-content:center">📺</div>{% endif %}
+        <span class="panel-title">{{ s.title }}</span>
+        <span style="font-size:12px;color:var(--tx2)">{{ s.seasons.count }} season{{ s.seasons.count|pluralize }}</span>
+      </div>
+      <a href="/creator/series/{{ s.pk }}/edit/" class="btn btn-ghost btn-sm">Edit</a>
+    </div>
+    <div class="panel-body" style="padding:8px">
+      {% for season in s.seasons.all %}
+      <div style="font-size:11px;font-weight:700;color:var(--tx2);text-transform:uppercase;padding:6px 8px 4px">Season {{ season.number }}</div>
+      {% for ep in season.episodes.all %}
+      <div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:var(--r);transition:background .12s" onmouseover="this.style.background='rgba(255,255,255,.05)'" onmouseout="this.style.background=''">
+        <span style="font-size:12px;color:var(--tx2);width:24px;text-align:right">{{ ep.number }}</span>
+        <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ ep.title }}</div></div>
+        {% if not ep.video_file and not ep.source_url %}<span style="font-size:10px;color:#f59e0b">No video</span>{% endif %}
+        <a href="/creator/episode/{{ ep.pk }}/edit/" class="btn btn-ghost btn-xs">Edit</a>
+      </div>
+      {% endfor %}
       {% endfor %}
     </div>
   </div>
-</div>
-{% endif %}
-
-<div class="cd-type-bar">
-  <button class="cd-type-tab on" onclick="cdSwitchType('all',this)"><span>📦</span><span class="cd-type-label">All</span><span class="cd-type-count">{{ stats.total_uploads }}</span></button>
-  <button class="cd-type-tab" onclick="cdSwitchType('video',this)"><span>🎬</span><span class="cd-type-label">Movies</span><span class="cd-type-count">{{ type_counts.video }}</span></button>
-  <button class="cd-type-tab" onclick="cdSwitchType('music',this)"><span>🎵</span><span class="cd-type-label">Music</span><span class="cd-type-count">{{ type_counts.music }}</span></button>
-  <button class="cd-type-tab" onclick="cdSwitchType('image',this)"><span>🖼</span><span class="cd-type-label">Images</span><span class="cd-type-count">{{ type_counts.image }}</span></button>
-  <button class="cd-type-tab" onclick="cdSwitchType('blog',this)"><span>📝</span><span class="cd-type-label">Blog</span><span class="cd-type-count">{{ type_counts.blog }}</span></button>
+  {% empty %}
+  <div class="empty" style="padding:32px"><div class="empty-icon">📺</div><h3>No series yet</h3><a href="/creator/series/new/" class="btn btn-primary" style="margin-top:12px">Create First Series</a></div>
+  {% endfor %}
 </div>
 
-<div class="cd-type-panel on" id="cd-panel-all">
-  {% if content %}
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:16px">
-    {% for c in all_content|slice:":24" %}
-    <a href="/creator/edit/{{ c.pk }}/" class="sp-card">
-      <div class="sp-card-cover">{% if c.thumbnail %}<img src="{{ c.thumbnail.url }}" loading="lazy">{% else %}{% if c.content_type == 'video' %}🎬{% elif c.content_type == 'music' %}🎵{% elif c.content_type == 'image' %}🖼{% else %}📝{% endif %}{% endif %}</div>
-      <div class="sp-card-title">{{ c.title }}</div>
-      <div class="sp-card-sub"><span class="badge {% if c.status == 'approved' %}badge-green{% elif c.status == 'pending' %}badge-gold{% else %}badge-red{% endif %}">{{ c.get_status_display }}</span> {{ c.views|default:0 }} views</div>
-    </a>
-    {% endfor %}
+{# ALL panel #}
+<div class="cd-panel" id="panel-all">
+  <div class="sp-section-head"><div class="sp-section-title">All Content</div></div>
+  <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;min-width:520px">
+      <thead><tr style="border-bottom:1px solid var(--bd)">
+        <th style="text-align:left;padding:9px 14px;font-size:10px;color:var(--tx2);text-transform:uppercase">Title</th>
+        <th style="text-align:left;padding:9px 14px;font-size:10px;color:var(--tx2);text-transform:uppercase">Type</th>
+        <th style="text-align:left;padding:9px 14px;font-size:10px;color:var(--tx2);text-transform:uppercase">Status</th>
+        <th style="text-align:right;padding:9px 14px;font-size:10px;color:var(--tx2);text-transform:uppercase">Views</th>
+      </tr></thead>
+      <tbody>
+      {% for c in all_content %}
+      <tr style="border-bottom:1px solid rgba(255,255,255,.04)" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background=''">
+        <td style="padding:9px 14px;font-size:13px;font-weight:500"><a href="/creator/edit/{{ c.pk }}/" style="color:#fff;text-decoration:none">{{ c.title }}</a></td>
+        <td style="padding:9px 14px;font-size:12px;color:var(--tx2)">{{ c.get_content_type_display }}</td>
+        <td style="padding:9px 14px"><span class="badge sb-{{ c.status }}">{{ c.get_status_display }}</span></td>
+        <td style="padding:9px 14px;text-align:right;font-size:13px">{{ c.views|default:0 }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4" style="text-align:center;padding:28px;color:var(--tx2)">No content yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
   </div>
-  {% else %}
-  <div class="empty"><div class="empty-icon">📤</div><h3>No content yet</h3><p>Start uploading to grow your audience and earnings.</p><a href="/creator/upload/" class="btn btn-primary" style="margin-top:16px">Upload Your First Content</a></div>
-  {% endif %}
 </div>
 
-<div class="cd-type-panel" id="cd-panel-video">
-  {% if video_content %}
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:16px">
-    {% for c in video_content %}
-    <a href="/creator/edit/{{ c.pk }}/" class="sp-card">
-      <div class="sp-card-cover" style="aspect-ratio:16/9">{% if c.thumbnail %}<img src="{{ c.thumbnail.url }}" loading="lazy">{% else %}🎬{% endif %}</div>
-      <div class="sp-card-title">{{ c.title }}</div>
-      <div class="sp-card-sub"><span class="badge {% if c.status == 'approved' %}badge-green{% elif c.status == 'pending' %}badge-gold{% else %}badge-red{% endif %}">{{ c.get_status_display }}</span> {{ c.views|default:0 }} views</div>
-    </a>
-    {% endfor %}
-  </div>
-  {% else %}
-  <div class="empty"><div class="empty-icon">🎬</div><h3>No movies or videos yet</h3><a href="/creator/upload/" class="btn btn-primary" style="margin-top:16px">Upload a Video</a></div>
-  {% endif %}
-</div>
+</div>{# end cd-page #}
 
-<div class="cd-type-panel" id="cd-panel-music">
-  {% if music_content %}
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:16px">
-    {% for c in music_content %}
-    <a href="/creator/edit/{{ c.pk }}/" class="sp-card">
-      <div class="sp-card-cover">{% if c.thumbnail %}<img src="{{ c.thumbnail.url }}" loading="lazy">{% else %}🎵{% endif %}</div>
-      <div class="sp-card-title">{{ c.title }}</div>
-      <div class="sp-card-sub"><span class="badge {% if c.status == 'approved' %}badge-green{% elif c.status == 'pending' %}badge-gold{% else %}badge-red{% endif %}">{{ c.get_status_display }}</span> {{ c.views|default:0 }} plays</div>
-    </a>
-    {% endfor %}
-  </div>
-  {% else %}
-  <div class="empty"><div class="empty-icon">🎵</div><h3>No music yet</h3><a href="/creator/upload/" class="btn btn-primary" style="margin-top:16px">Upload a Track</a></div>
-  {% endif %}
-</div>
-
-<div class="cd-type-panel" id="cd-panel-image">
-  {% if image_content %}
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px">
-    {% for c in image_content %}
-    <a href="/creator/edit/{{ c.pk }}/" style="border-radius:var(--r2);overflow:hidden;position:relative;background:var(--bg2);display:block">
-      <div style="aspect-ratio:1">{% if c.thumbnail %}<img src="{{ c.thumbnail.url }}" loading="lazy" style="width:100%;height:100%;object-fit:cover">{% else %}<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:30px;background:var(--bg3)">🖼</div>{% endif %}</div>
-      <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 50%,rgba(0,0,0,.85) 100%);display:flex;align-items:flex-end;padding:10px"><div style="font-size:11px;color:#fff;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%">{{ c.title }}</div></div>
-    </a>
-    {% endfor %}
-  </div>
-  {% else %}
-  <div class="empty"><div class="empty-icon">🖼</div><h3>No images yet</h3><a href="/creator/upload/" class="btn btn-primary" style="margin-top:16px">Upload an Image</a></div>
-  {% endif %}
-</div>
-
-<div class="cd-type-panel" id="cd-panel-blog">
-  {% if blog_content %}
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px">
-    {% for c in blog_content %}
-    <a href="/creator/edit/{{ c.pk }}/" class="sp-card">
-      <div class="sp-card-cover" style="aspect-ratio:16/9">{% if c.thumbnail %}<img src="{{ c.thumbnail.url }}" loading="lazy">{% else %}📝{% endif %}</div>
-      <div class="sp-card-title">{{ c.title }}</div>
-      <div class="sp-card-sub"><span class="badge {% if c.status == 'approved' %}badge-green{% elif c.status == 'pending' %}badge-gold{% else %}badge-red{% endif %}">{{ c.get_status_display }}</span> {{ c.views|default:0 }} reads</div>
-    </a>
-    {% endfor %}
-  </div>
-  {% else %}
-  <div class="empty"><div class="empty-icon">📝</div><h3>No blog posts yet</h3><a href="/creator/write/" class="btn btn-primary" style="margin-top:16px">Write a Post</a></div>
-  {% endif %}
-</div>
-
-<div class="sp-sec">
-  <div class="sp-section-head"><div class="sp-section-title">All Uploads</div></div>
-  <div class="panel">
-    <div style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;min-width:560px">
-        <thead><tr style="border-bottom:1px solid var(--bd)">
-          <th style="text-align:left;padding:10px 16px;font-size:11px;color:var(--tx2);text-transform:uppercase">Title</th>
-          <th style="text-align:left;padding:10px 16px;font-size:11px;color:var(--tx2);text-transform:uppercase">Type</th>
-          <th style="text-align:left;padding:10px 16px;font-size:11px;color:var(--tx2);text-transform:uppercase">Status</th>
-          <th style="text-align:right;padding:10px 16px;font-size:11px;color:var(--tx2);text-transform:uppercase">Views</th>
-          <th style="text-align:right;padding:10px 16px;font-size:11px;color:var(--tx2);text-transform:uppercase">Date</th>
-        </tr></thead>
-        <tbody>
-        {% for c in all_content %}
-        <tr style="border-bottom:1px solid rgba(255,255,255,.04)" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background=''">
-          <td style="padding:10px 16px;font-size:13px;font-weight:500"><a href="/creator/edit/{{ c.pk }}/" style="color:#fff;text-decoration:none">{{ c.title }}</a></td>
-          <td style="padding:10px 16px;font-size:12px;color:var(--tx2)">{{ c.get_content_type_display }}</td>
-          <td style="padding:10px 16px"><span class="badge {% if c.status == 'approved' %}badge-green{% elif c.status == 'pending' %}badge-gold{% else %}badge-red{% endif %}">{{ c.get_status_display }}</span></td>
-          <td style="padding:10px 16px;text-align:right;font-size:13px">{{ c.views|default:0 }}</td>
-          <td style="padding:10px 16px;text-align:right;font-size:12px;color:var(--tx2)">{{ c.created_at|date:"M d" }}</td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="5" style="text-align:center;padding:32px;color:var(--tx2)">No content yet.</td></tr>
-        {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
+{# ── BOTTOM APP NAV ── #}
+<div class="cd-bottom-nav">
+  <button class="cd-nav-btn on" id="nav-music" onclick="cdNav('music',this)">
+    <span class="icon">🎵</span><span class="cd-lbl">Music</span>
+    {% if type_counts.music %}<span style="font-size:9px;color:var(--tx3)">{{ type_counts.music }}</span>{% endif %}
+  </button>
+  <button class="cd-nav-btn" id="nav-video" onclick="cdNav('video',this)">
+    <span class="icon">🎬</span><span class="cd-lbl">Movies</span>
+    {% if type_counts.video %}<span style="font-size:9px;color:var(--tx3)">{{ type_counts.video }}</span>{% endif %}
+  </button>
+  <button class="cd-nav-btn" id="nav-image" onclick="cdNav('image',this)">
+    <span class="icon">🖼</span><span class="cd-lbl">Images</span>
+    {% if type_counts.image %}<span style="font-size:9px;color:var(--tx3)">{{ type_counts.image }}</span>{% endif %}
+  </button>
+  <button class="cd-nav-btn" id="nav-blog" onclick="cdNav('blog',this)">
+    <span class="icon">📝</span><span class="cd-lbl">Blog</span>
+    {% if type_counts.blog %}<span style="font-size:9px;color:var(--tx3)">{{ type_counts.blog }}</span>{% endif %}
+  </button>
+  <button class="cd-nav-btn" id="nav-series" onclick="cdNav('series',this)">
+    <span class="icon">📺</span><span class="cd-lbl">Series</span>
+  </button>
+  <button class="cd-nav-btn" id="nav-all" onclick="cdNav('all',this)">
+    <span class="icon">📦</span><span class="cd-lbl">All</span>
+  </button>
 </div>
 
 <script>
-function cdSwitchType(type, btn){
-  document.querySelectorAll('.cd-type-tab').forEach(t=>t.classList.remove('on'));
-  document.querySelectorAll('.cd-type-panel').forEach(p=>p.classList.remove('on'));
+const CSRF = '{{ csrf_token }}';
+
+/* ── Bottom nav tab switch ── */
+function cdNav(type, btn){
+  document.querySelectorAll('.cd-nav-btn').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.cd-panel').forEach(p=>p.classList.remove('on'));
   btn.classList.add('on');
-  document.getElementById('cd-panel-'+type).classList.add('on');
+  document.getElementById('panel-'+type).classList.add('on');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ── Bulk file add to queue ── */
+function bulkAdd(files, type, queueId, preview=false){
+  const queue = document.getElementById(queueId);
+  const btn = document.getElementById(type+'-upload-btn') || document.getElementById('ep-upload-btn');
+  Array.from(files).forEach(file=>{
+    const id = 'bi-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+    const div = document.createElement('div');
+    div.className = 'bulk-item';
+    div.id = id;
+
+    // Thumbnail preview for images, icon for others
+    let thumb = '';
+    if(preview && file.type.startsWith('image/')){
+      const url = URL.createObjectURL(file);
+      thumb = `<div class="bulk-item-thumb"><img src="${url}"></div>`;
+    } else {
+      const icons = {audio:'🎵',video:'🎬',image:'🖼'};
+      const icon = icons[file.type.split('/')[0]]||'📄';
+      thumb = `<div class="bulk-item-thumb">${icon}</div>`;
+    }
+
+    // Editable name field (strip extension as default name)
+    const defaultName = file.name.replace(/\.[^.]+$/, '');
+    div.innerHTML = `
+      ${thumb}
+      <div style="flex:1;min-width:0">
+        <input class="bulk-item-name" placeholder="Enter title…" value="${defaultName}" data-file-index="${id}">
+        <div style="font-size:10px;color:var(--tx3);margin-top:3px">${(file.size/1048576).toFixed(1)} MB</div>
+      </div>
+      <span class="bulk-item-status draft">Draft</span>
+      <button class="bulk-item-remove" onclick="document.getElementById('${id}').remove();checkQueue('${queueId}','${type}')">×</button>
+    `;
+    div._file = file;
+    div._type = type;
+    queue.appendChild(div);
+  });
+  if(btn) btn.style.display = queue.children.length ? 'flex' : 'none';
+}
+
+function bulkDrop(e, type, queueId){
+  e.preventDefault();
+  const zone = e.currentTarget;
+  zone.classList.remove('drag');
+  const isImg = type==='image';
+  bulkAdd(e.dataTransfer.files, type, queueId, isImg);
+}
+
+function checkQueue(queueId, type){
+  const queue = document.getElementById(queueId);
+  const btn = document.getElementById(type+'-upload-btn');
+  if(btn) btn.style.display = queue.children.length ? 'flex' : 'none';
+}
+
+/* ── Bulk submit — upload all queued items as Drafts ── */
+async function bulkSubmit(type, queueId){
+  const queue = document.getElementById(queueId);
+  const items = Array.from(queue.children);
+  if(!items.length) return;
+
+  const btn = document.getElementById(type+'-upload-btn');
+  if(btn){ btn.disabled=true; btn.textContent='Uploading…'; }
+
+  for(const item of items){
+    const nameInput = item.querySelector('.bulk-item-name');
+    const statusEl = item.querySelector('.bulk-item-status');
+    const title = nameInput ? nameInput.value.trim() : 'Untitled';
+    statusEl.textContent='Uploading…'; statusEl.className='bulk-item-status uploading';
+
+    const fd = new FormData();
+    fd.append('csrfmiddlewaretoken', CSRF);
+    fd.append('action', 'bulk_create');
+    fd.append('content_type', type);
+    fd.append('title', title||'Untitled');
+    fd.append('status', 'draft');
+    if(item._file){
+      const fieldName = type==='music'?'audio_file':type==='image'?'image_file':'video_file';
+      fd.append(fieldName, item._file);
+    }
+    try{
+      const r = await fetch('/creator/bulk-upload/', {method:'POST', body:fd});
+      const d = await r.json();
+      if(d.ok){
+        statusEl.textContent='✓ Saved as Draft'; statusEl.className='bulk-item-status done';
+      } else {
+        statusEl.textContent='Error: '+(d.error||'failed'); statusEl.className='bulk-item-status error';
+      }
+    }catch(err){
+      statusEl.textContent='Network error'; statusEl.className='bulk-item-status error';
+    }
+  }
+
+  if(btn){ btn.disabled=false; btn.textContent='⬆ Upload All as Drafts'; }
+  if(typeof showToast==='function') showToast('Drafts saved! Click any item to edit and publish.','s');
+}
+
+/* ── Episode bulk submit ── */
+async function bulkSubmitEpisodes(){
+  const seriesPk = document.getElementById('ep-series-select').value;
+  const seasonNum = document.getElementById('ep-season').value||1;
+  const queue = document.getElementById('ep-queue');
+  const items = Array.from(queue.children);
+  if(!items.length) return;
+
+  const btn = document.getElementById('ep-upload-btn');
+  if(btn){ btn.disabled=true; btn.textContent='Uploading…'; }
+
+  for(const item of items){
+    const nameInput = item.querySelector('.bulk-item-name');
+    const statusEl = item.querySelector('.bulk-item-status');
+    const title = nameInput ? nameInput.value.trim() : 'Untitled Episode';
+    statusEl.textContent='Uploading…'; statusEl.className='bulk-item-status uploading';
+
+    const fd = new FormData();
+    fd.append('csrfmiddlewaretoken', CSRF);
+    fd.append('action', 'bulk_episode');
+    fd.append('series_pk', seriesPk);
+    fd.append('season_number', seasonNum);
+    fd.append('title', title||'Untitled Episode');
+    if(item._file) fd.append('video_file', item._file);
+    try{
+      const r = await fetch('/creator/bulk-upload/', {method:'POST', body:fd});
+      const d = await r.json();
+      statusEl.textContent = d.ok ? '✓ Draft' : 'Error';
+      statusEl.className = 'bulk-item-status '+(d.ok?'done':'error');
+    }catch(e){
+      statusEl.textContent='Error'; statusEl.className='bulk-item-status error';
+    }
+  }
+  if(btn){ btn.disabled=false; btn.textContent='⬆ Upload Episodes'; }
 }
 </script>
 {% endblock %}

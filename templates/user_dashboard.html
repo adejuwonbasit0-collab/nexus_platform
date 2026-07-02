@@ -3,28 +3,34 @@
 {% block head %}
 <style>
 .dash-hero{
-  background:linear-gradient(180deg,rgba(124,92,252,.3) 0%,rgba(124,92,252,.05) 60%,transparent 100%);
+  background:linear-gradient(180deg,rgba(29,185,84,.18) 0%,transparent 60%);
   padding:48px 32px 32px;display:flex;align-items:flex-end;gap:24px
 }
-.dash-avatar{width:160px;height:160px;border-radius:50%;background:linear-gradient(135deg,var(--ac),var(--ac2));display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-size:56px;font-weight:800;flex-shrink:0;box-shadow:0 20px 50px rgba(0,0,0,.5);overflow:hidden}
+.dash-avatar{
+  width:160px;height:160px;border-radius:50%;
+  background:linear-gradient(135deg,var(--sp-green),#0a8a3a);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Space Grotesk',sans-serif;font-size:56px;font-weight:800;
+  flex-shrink:0;box-shadow:0 20px 50px rgba(0,0,0,.5);overflow:hidden
+}
 .dash-avatar img{width:100%;height:100%;object-fit:cover}
-.dash-label{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
-.dash-name{font-family:'Space Grotesk',sans-serif;font-size:clamp(28px,5vw,56px);font-weight:900;color:#fff;line-height:1.05;margin-bottom:10px}
-.dash-meta{font-size:13px;color:rgba(255,255,255,.7)}
-.dash-tabs{display:flex;gap:4px;padding:0 32px;border-bottom:1px solid var(--bd);overflow-x:auto}
-.dash-tab{padding:14px 18px;font-size:13px;font-weight:700;color:var(--tx2);background:none;border:none;cursor:pointer;white-space:nowrap;position:relative;transition:color .15s}
+.dash-name{font-family:'Space Grotesk',sans-serif;font-size:clamp(28px,5vw,52px);font-weight:900;color:#fff;line-height:1.05;margin-bottom:8px}
+.dash-meta{font-size:13px;color:rgba(255,255,255,.6)}
+.dash-tabs{display:flex;gap:4px;padding:0 32px;border-bottom:1px solid var(--bd);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.dash-tabs::-webkit-scrollbar{display:none}
+.dash-tab{padding:14px 18px;font-size:13px;font-weight:700;color:var(--tx2);background:none;border:none;cursor:pointer;white-space:nowrap;position:relative;transition:color .15s;flex-shrink:0}
 .dash-tab:hover{color:#fff}
 .dash-tab.on{color:#fff}
 .dash-tab.on::after{content:'';position:absolute;bottom:-1px;left:18px;right:18px;height:3px;background:var(--sp-green);border-radius:2px 2px 0 0}
-.dash-panel{display:none;padding:28px 32px 80px}
+.dash-panel{display:none;padding:28px 32px 100px}
 .dash-panel.on{display:block}
-.dash-stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px}
+.dash-stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:28px}
 .dash-stat{background:var(--bg2);border-radius:var(--r2);padding:18px 20px}
 .dash-stat-val{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:800;color:#fff}
 .dash-stat-label{font-size:11px;color:var(--tx2);margin-top:4px;text-transform:uppercase;letter-spacing:.05em}
 @media(max-width:760px){
   .dash-hero{flex-direction:column;align-items:center;text-align:center;padding:32px 16px}
-  .dash-avatar{width:120px;height:120px;font-size:40px}
+  .dash-avatar{width:110px;height:110px;font-size:38px}
   .dash-tabs,.dash-panel{padding-left:16px;padding-right:16px}
   .dash-stat-grid{grid-template-columns:1fr 1fr}
 }
@@ -32,119 +38,137 @@
 {% endblock %}
 {% block content %}
 
+{# Hero #}
 <div class="dash-hero">
-  <div class="dash-avatar">{% if user.avatar %}<img src="{{ user.avatar.url }}">{% else %}{{ user.username|slice:":1"|upper }}{% endif %}</div>
+  <div class="dash-avatar">
+    {% if user.avatar %}<img src="{{ user.avatar.url }}" alt="{{ user.username }}">
+    {% else %}{{ user.username|slice:":1"|upper }}{% endif %}
+  </div>
   <div>
-    <div class="dash-label">Profile</div>
+    <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.45);margin-bottom:8px">Profile</div>
     <div class="dash-name">{{ user.first_name|default:user.username }}</div>
-    <div class="dash-meta">{{ user.email }} · <span style="text-transform:capitalize">{{ user.role|default:'Member' }}</span>{% if sub %} · <span style="color:var(--sp-green);font-weight:700">{{ sub.plan.name }}</span> subscriber{% endif %}</div>
-    <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">
-      <a href="/auth/profile/" class="btn btn-outline btn-sm">Edit Profile</a>
-      {% if user.is_creator or user.is_admin %}<a href="/creator/" class="btn btn-primary btn-sm">✨ Creator Studio</a>{% endif %}
+    <div class="dash-meta">
+      {{ user.email }}
+      {% if sub %} · <span style="color:var(--sp-green);font-weight:700">{{ sub.plan.name }}</span>{% endif %}
     </div>
   </div>
 </div>
 
+{# Tabs: Overview / Liked Songs / Subscriptions only #}
 <div class="dash-tabs">
-  <button class="dash-tab on" onclick="switchDashTab('overview',this)">Overview</button>
-  <button class="dash-tab" onclick="switchDashTab('liked',this)">💚 Liked Songs</button>
-  <button class="dash-tab" onclick="switchDashTab('content',this)">My Content</button>
-  <button class="dash-tab" onclick="switchDashTab('subscription',this)">Subscription</button>
-  {% if wallet %}<button class="dash-tab" onclick="switchDashTab('wallet',this)">Wallet</button>{% endif %}
+  <button class="dash-tab on" onclick="switchTab('overview',this)">Overview</button>
+  <button class="dash-tab" onclick="switchTab('liked',this)">💚 Liked Songs</button>
+  <button class="dash-tab" onclick="switchTab('subscription',this)">Subscription</button>
 </div>
 
-{# Overview #}
-<div class="dash-panel on" id="dash-overview">
+{# OVERVIEW #}
+<div class="dash-panel on" id="tab-overview">
   <div class="dash-stat-grid">
-    <div class="dash-stat"><div class="dash-stat-val">{{ my_content|length }}</div><div class="dash-stat-label">My Content</div></div>
-    <div class="dash-stat"><div class="dash-stat-val">{{ liked_tracks|length }}</div><div class="dash-stat-label">Liked Songs</div></div>
-    <div class="dash-stat"><div class="dash-stat-val">{% if sub %}{{ sub.plan.name }}{% else %}Free{% endif %}</div><div class="dash-stat-label">Plan</div></div>
-    <div class="dash-stat"><div class="dash-stat-val">{% if wallet %}₦{{ wallet.balance|default:0 }}{% else %}—{% endif %}</div><div class="dash-stat-label">Wallet Balance</div></div>
+    <div class="dash-stat">
+      <div class="dash-stat-val">{{ liked_tracks|length }}</div>
+      <div class="dash-stat-label">Liked Songs</div>
+    </div>
+    <div class="dash-stat">
+      <div class="dash-stat-val">{% if sub %}{{ sub.plan.name }}{% else %}Free{% endif %}</div>
+      <div class="dash-stat-label">Plan</div>
+    </div>
+    <div class="dash-stat">
+      <div class="dash-stat-val">{{ user.date_joined|date:"Y" }}</div>
+      <div class="dash-stat-label">Member Since</div>
+    </div>
   </div>
+
   {% if liked_tracks %}
-  <div class="sp-section-head"><div class="sp-section-title">💚 Recently Liked</div><a href="#" onclick="switchDashTab('liked',document.querySelectorAll('.dash-tab')[1]);return false" class="sp-section-more">See all</a></div>
+  <div class="sp-section-head">
+    <div class="sp-section-title">💚 Recently Liked</div>
+    <a href="#" onclick="switchTab('liked',document.querySelectorAll('.dash-tab')[1]);return false" class="sp-section-more">See all</a>
+  </div>
   <div class="sp-row">
-    {% for like in liked_tracks|slice:":8" %}
-    <div class="sp-card" style="width:160px;flex-shrink:0" onclick="playTrack('{{ like.track.playable_url|default:'' }}','{{ like.track.title|escapejs }}','{{ like.track.artist.name|escapejs }}','{% if like.track.cover_image %}{{ like.track.cover_image.url }}{% endif %}','/music/track/{{ like.track.slug }}/',{{ like.track.pk }})">
-      <div class="sp-card-cover">{% if like.track.cover_image %}<img src="{{ like.track.cover_image.url }}" loading="lazy">{% else %}🎵{% endif %}<button class="sp-card-play">▶</button></div>
-      <div class="sp-card-title">{{ like.track.title }}</div><div class="sp-card-sub">{{ like.track.artist.name }}</div>
+    {% for like in liked_tracks|slice:":10" %}
+    <div class="sp-card" style="width:160px;flex-shrink:0"
+      onclick="playTrack('{{ like.track.playable_url|default:'' }}','{{ like.track.title|escapejs }}','{{ like.track.artist.name|escapejs }}','{% if like.track.cover_image %}{{ like.track.cover_image.url }}{% endif %}','/music/track/{{ like.track.slug }}/',{{ like.track.pk }})">
+      <div class="sp-card-cover">
+        {% if like.track.cover_image %}<img src="{{ like.track.cover_image.url }}" loading="lazy">{% else %}🎵{% endif %}
+        <button class="sp-card-play">▶</button>
+      </div>
+      <div class="sp-card-title">{{ like.track.title }}</div>
+      <div class="sp-card-sub">{{ like.track.artist.name }}</div>
     </div>
     {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty" style="margin-top:32px">
+    <div class="empty-icon">💚</div>
+    <h3>No liked songs yet</h3>
+    <p>Tap ♡ on any track while it's playing to save it here.</p>
+    <a href="/music/" class="btn btn-primary" style="margin-top:16px">Browse Music</a>
   </div>
   {% endif %}
 </div>
 
-{# Liked Songs (Spotify-style full list) #}
-<div class="dash-panel" id="dash-liked">
+{# LIKED SONGS — full Spotify-style track list #}
+<div class="dash-panel" id="tab-liked">
   {% if liked_tracks %}
   <div class="sp-tracklist">
     {% for like in liked_tracks %}
-    <div class="sp-track-row" onclick="playTrack('{{ like.track.playable_url|default:'' }}','{{ like.track.title|escapejs }}','{{ like.track.artist.name|escapejs }}','{% if like.track.cover_image %}{{ like.track.cover_image.url }}{% endif %}','/music/track/{{ like.track.slug }}/',{{ like.track.pk }})">
+    <div class="sp-track-row"
+      onclick="playTrack('{{ like.track.playable_url|default:'' }}','{{ like.track.title|escapejs }}','{{ like.track.artist.name|escapejs }}','{% if like.track.cover_image %}{{ like.track.cover_image.url }}{% endif %}','/music/track/{{ like.track.slug }}/',{{ like.track.pk }})">
       <span class="sp-track-num">{{ forloop.counter }}</span>
-      <div class="sp-track-thumb">{% if like.track.cover_image %}<img src="{{ like.track.cover_image.url }}" loading="lazy">{% else %}🎵{% endif %}</div>
-      <div class="sp-track-info"><div class="sp-track-title">{{ like.track.title }}</div><div class="sp-track-artist">{{ like.track.artist.name }}</div></div>
+      <div class="sp-track-thumb">
+        {% if like.track.cover_image %}<img src="{{ like.track.cover_image.url }}" loading="lazy">{% else %}🎵{% endif %}
+      </div>
+      <div class="sp-track-info">
+        <div class="sp-track-title">{{ like.track.title }}</div>
+        <div class="sp-track-artist">{{ like.track.artist.name }}</div>
+      </div>
       <span class="sp-track-dur">{{ like.track.duration_str|default:"—" }}</span>
     </div>
     {% endfor %}
   </div>
   {% else %}
-  <div class="empty"><div class="empty-icon">💚</div><h3>Songs you like will appear here</h3><p>Save songs by tapping the heart icon while listening.</p><a href="/music/" class="btn btn-primary" style="margin-top:16px">Browse Music</a></div>
-  {% endif %}
-</div>
-
-{# My Content #}
-<div class="dash-panel" id="dash-content">
-  {% if my_content %}
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:16px">
-    {% for c in my_content %}
-    <a href="/content/{{ c.pk }}/" class="sp-card">
-      <div class="sp-card-cover">{% if c.thumbnail %}<img src="{{ c.thumbnail.url }}" loading="lazy">{% else %}{% if c.content_type == 'video' %}🎬{% elif c.content_type == 'music' %}🎵{% elif c.content_type == 'image' %}🖼{% else %}📝{% endif %}{% endif %}</div>
-      <div class="sp-card-title">{{ c.title }}</div>
-      <div class="sp-card-sub">{{ c.get_status_display }} · {{ c.views|default:0 }} views</div>
-    </a>
-    {% endfor %}
+  <div class="empty">
+    <div class="empty-icon">💚</div>
+    <h3>Songs you like will appear here</h3>
+    <p>Save songs by tapping the heart icon while listening.</p>
+    <a href="/music/" class="btn btn-primary" style="margin-top:16px">Browse Music</a>
   </div>
-  {% else %}
-  <div class="empty"><div class="empty-icon">📤</div><h3>No content yet</h3><p>Become a creator to start uploading.</p>{% if not user.is_creator %}<a href="/auth/register/?role=creator" class="btn btn-primary" style="margin-top:16px">Become a Creator</a>{% endif %}</div>
   {% endif %}
 </div>
 
-{# Subscription #}
-<div class="dash-panel" id="dash-subscription">
+{# SUBSCRIPTION #}
+<div class="dash-panel" id="tab-subscription">
   {% if sub %}
-  <div class="panel">
+  <div class="panel" style="max-width:480px">
     <div class="panel-body">
       <div style="display:flex;align-items:center;gap:16px;margin-bottom:18px">
         <div style="font-size:36px">💎</div>
-        <div><div style="font-size:18px;font-weight:800">{{ sub.plan.name }}</div><div style="font-size:13px;color:var(--tx2)">Active · Renews {{ sub.expires_at|date:"M d, Y" }}</div></div>
+        <div>
+          <div style="font-size:18px;font-weight:800">{{ sub.plan.name }}</div>
+          <div style="font-size:13px;color:var(--tx2)">Active · Renews {{ sub.expires_at|date:"M d, Y" }}</div>
+        </div>
       </div>
       <a href="/subscriptions/" class="btn btn-outline">Manage Subscription</a>
     </div>
   </div>
   {% else %}
-  <div class="empty"><div class="empty-icon">💎</div><h3>You're on the Free plan</h3><p>Upgrade for premium tracks, movies, and ad-free streaming.</p><a href="/subscribe/" class="btn btn-primary" style="margin-top:16px">View Plans</a></div>
+  <div class="empty">
+    <div class="empty-icon">💎</div>
+    <h3>You're on the Free plan</h3>
+    <p>Upgrade for premium tracks, movies, and ad-free streaming.</p>
+    <a href="/subscribe/" class="btn btn-primary" style="margin-top:16px">View Plans</a>
+  </div>
   {% endif %}
 </div>
 
-{% if wallet %}
-<div class="dash-panel" id="dash-wallet">
-  <div class="dash-stat-grid" style="grid-template-columns:repeat(3,1fr)">
-    <div class="dash-stat"><div class="dash-stat-val">₦{{ wallet.balance|default:0 }}</div><div class="dash-stat-label">Balance</div></div>
-    <div class="dash-stat"><div class="dash-stat-val">₦{{ wallet.total_earned|default:0 }}</div><div class="dash-stat-label">Total Earned</div></div>
-    <div class="dash-stat"><div class="dash-stat-val">₦{{ wallet.total_withdrawn|default:0 }}</div><div class="dash-stat-label">Withdrawn</div></div>
-  </div>
-  <a href="/monetization/wallet/" class="btn btn-primary">Go to Wallet →</a>
-</div>
-{% endif %}
-
 <script>
-function switchDashTab(name, btn){
+function switchTab(name, btn){
   document.querySelectorAll('.dash-tab').forEach(t=>t.classList.remove('on'));
   document.querySelectorAll('.dash-panel').forEach(p=>p.classList.remove('on'));
   btn.classList.add('on');
-  document.getElementById('dash-'+name).classList.add('on');
+  document.getElementById('tab-'+name).classList.add('on');
 }
-const dashQueue=[{% for like in liked_tracks %}{url:'{{ like.track.playable_url|default:"" }}',title:'{{ like.track.title|escapejs }}',artist:'{{ like.track.artist.name|escapejs }}',cover:'{% if like.track.cover_image %}{{ like.track.cover_image.url }}{% endif %}',detail:'/music/track/{{ like.track.slug }}/',pk:{{ like.track.pk }}}{% if not forloop.last %},{% endif %}{% endfor %}];
-if(typeof setPlayerQueue==='function'&&dashQueue.length)setPlayerQueue(dashQueue);
+// Set liked songs as playback queue
+const likedQueue=[{% for like in liked_tracks %}{url:'{{ like.track.playable_url|default:"" }}',title:'{{ like.track.title|escapejs }}',artist:'{{ like.track.artist.name|escapejs }}',cover:'{% if like.track.cover_image %}{{ like.track.cover_image.url }}{% endif %}',detail:'/music/track/{{ like.track.slug }}/',pk:{{ like.track.pk }}}{% if not forloop.last %},{% endif %}{% endfor %}];
+if(typeof setPlayerQueue==='function'&&likedQueue.length)setPlayerQueue(likedQueue);
 </script>
 {% endblock %}
