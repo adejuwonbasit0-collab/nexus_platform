@@ -22,21 +22,34 @@ def _mime_from_file(file_obj):
 
 
 def youtube_embed_url(url):
-    """Convert a YouTube watch/share URL into an embeddable URL.
-    Falls back to the original URL for non-YouTube links (e.g. Vimeo)."""
+    """Convert a YouTube watch/share/shorts/live URL into an embeddable
+    /embed/ URL. Falls back to the original URL for non-YouTube links
+    (e.g. Vimeo, or a direct video file) so those keep working unchanged."""
+    import re
     if not url:
         return ''
     url = url.strip()
-    video_id = ''
-    if 'youtu.be/' in url:
-        video_id = url.split('youtu.be/')[-1].split('?')[0].split('&')[0]
-    elif 'watch?v=' in url:
-        video_id = url.split('watch?v=')[-1].split('&')[0]
-    elif '/embed/' in url:
-        return url
-    if video_id:
-        return f'https://www.youtube.com/embed/{video_id}'
-    return url
+    if 'youtube.com' not in url and 'youtu.be' not in url:
+        return url  # not a YouTube link at all — leave it alone
+
+    if '/embed/' in url:
+        return url  # already an embed URL
+
+    # Covers: watch?v=ID, youtu.be/ID, /shorts/ID, /live/ID, /v/ID,
+    # with any query string or extra path after the ID.
+    patterns = [
+        r'(?:v=|youtu\.be/|/shorts/|/live/|/v/)([A-Za-z0-9_-]{11})',
+    ]
+    for pat in patterns:
+        m = re.search(pat, url)
+        if m:
+            return f'https://www.youtube.com/embed/{m.group(1)}'
+
+    # Bare 11-character video ID with nothing else recognizable.
+    if re.fullmatch(r'[A-Za-z0-9_-]{11}', url):
+        return f'https://www.youtube.com/embed/{url}'
+
+    return url  # couldn't parse — return as-is rather than break the page
 
 
 def validate_source_url(url):

@@ -1,0 +1,114 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Fetch Images{% endblock %}
+{% block topbar_title %}🖼 Fetch Images{% endblock %}
+{% block content %}
+
+<div class="panel" style="margin-bottom:16px;">
+  <div class="panel-body" style="padding:14px 16px;font-size:13px;color:var(--text2);">
+    Applying to: <strong>{{ target_label }}</strong>
+    {% if target == 'site' %}— this is the fallback image used anywhere a track has no banner, artist photo, or album cover.{% endif %}
+  </div>
+</div>
+
+<div class="tab-bar" style="display:flex;gap:4px;margin-bottom:16px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:4px;flex-wrap:wrap;">
+  <a class="tab-btn {% if tab == 'stock' %}active{% endif %}" href="?tab=stock&target={{ target }}&pk={{ pk }}" style="text-decoration:none;">📷 Stock Photos</a>
+  <a class="tab-btn {% if tab == 'ai' %}active{% endif %}" href="?tab=ai&target={{ target }}&pk={{ pk }}" style="text-decoration:none;">✨ AI Generate</a>
+</div>
+
+{% if tab == 'stock' %}
+  {% if not pexels_configured %}
+  <div class="panel" style="margin-bottom:16px;border-color:#f59e0b;">
+    <div class="panel-body" style="padding:16px;">
+      <div style="font-weight:700;margin-bottom:6px;">🔑 Connect Pexels to search stock photos</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px;">
+        Free, high-quality stock photos — get a free API key at
+        <a href="https://www.pexels.com/api/" target="_blank" style="color:var(--accent);">pexels.com/api</a>.
+      </div>
+      <form method="post" style="display:flex;gap:10px;">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="save_pexels_key">
+        <input class="finput" name="pexels_api_key" placeholder="Pexels API key" style="flex:1;">
+        <button type="submit" class="btn btn-primary btn-sm">Save Key</button>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <div class="panel" style="margin-bottom:16px;">
+    <div class="panel-body" style="padding:14px 16px;">
+      <form method="get" style="display:flex;gap:10px;">
+        <input type="hidden" name="tab" value="stock">
+        <input type="hidden" name="target" value="{{ target }}">
+        <input type="hidden" name="pk" value="{{ pk }}">
+        <input class="finput" name="q" value="{{ q }}" placeholder="e.g. concert lights, city skyline, abstract music" style="flex:1;">
+        <button type="submit" class="btn btn-primary btn-sm">Search</button>
+      </form>
+    </div>
+  </div>
+
+  <form method="post" action="/admin-panel/fetch/images/apply/">
+    {% csrf_token %}
+    <input type="hidden" name="target" value="{{ target }}">
+    <input type="hidden" name="pk" value="{{ pk }}">
+    <input type="hidden" name="image_url" id="chosen-image-url">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;">
+      {% for r in results %}
+      <div class="panel" style="padding:10px;">
+        <img src="{{ r.thumb }}" style="width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:8px;margin-bottom:8px;" loading="lazy">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:8px;">by {{ r.photographer }}</div>
+        <button type="submit" class="btn btn-primary btn-sm" style="width:100%;" onclick="document.getElementById('chosen-image-url').value='{{ r.full|escapejs }}'">Use this image</button>
+      </div>
+      {% empty %}
+      <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text2);">
+        {% if not q %}Search for something above.{% else %}No results — try a different search.{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </form>
+  {% endif %}
+
+{% else %}
+  <div class="panel">
+    <div class="panel-body" style="padding:16px;">
+      <div class="fg" style="margin-bottom:12px;">
+        <label>Describe the image you want</label>
+        <input class="finput" id="ai-prompt" placeholder="e.g. moody purple concert stage with smoke and lights" style="width:100%;">
+      </div>
+      <button type="button" class="btn btn-primary btn-sm" onclick="aiGenerate()" id="ai-btn">✨ Generate</button>
+      <div id="ai-result" style="margin-top:18px;display:none;">
+        <img id="ai-result-img" style="width:100%;max-width:480px;border-radius:10px;margin-bottom:12px;display:block;">
+        <form method="post" action="/admin-panel/fetch/images/apply/">
+          {% csrf_token %}
+          <input type="hidden" name="target" value="{{ target }}">
+          <input type="hidden" name="pk" value="{{ pk }}">
+          <input type="hidden" name="image_url" id="ai-image-url">
+          <button type="submit" class="btn btn-primary btn-sm">Use this image</button>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+<script>
+async function aiGenerate(){
+  const prompt = document.getElementById('ai-prompt').value.trim();
+  if(!prompt){ alert('Describe the image first.'); return; }
+  const btn = document.getElementById('ai-btn');
+  btn.disabled = true; btn.textContent = 'Generating…';
+  try{
+    const fd = new FormData();
+    fd.append('prompt', prompt);
+    fd.append('csrfmiddlewaretoken', getCsrf());
+    const r = await fetch('/ai/generate/', {method:'POST', body:fd});
+    const d = await r.json();
+    if(d.error){ alert(d.error); }
+    else{
+      document.getElementById('ai-result-img').src = d.image_url;
+      document.getElementById('ai-image-url').value = d.image_url;
+      document.getElementById('ai-result').style.display = 'block';
+      if(d.demo) alert(d.message || 'Demo mode — configure an AI provider key in Admin → AI Settings for real generation.');
+    }
+  }catch(e){ alert('Something went wrong generating the image.'); }
+  finally{ btn.disabled = false; btn.textContent = '✨ Generate'; }
+}
+</script>
+{% endblock %}

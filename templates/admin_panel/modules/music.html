@@ -471,7 +471,11 @@ function tkSetMode(mode){
         </div>
         <div class="fg"><label>New Audio File</label><input class="finput" type="file" name="audio_file" accept="audio/*"></div>
         <div class="fg"><label>New Cover Image</label><input class="finput" type="file" name="cover_image" accept="image/*"></div>
-        <div class="fg"><label>New Banner Image</label><input class="finput" type="file" name="banner_image" accept="image/*"></div>
+        <div class="fg">
+          <label>New Banner Image</label>
+          <input class="finput" type="file" name="banner_image" accept="image/*">
+          <a id="et-stock-link" href="#" target="_blank" style="font-size:11px;color:var(--accent);display:inline-block;margin-top:5px;">🖼 Or search stock/AI images for this track →</a>
+        </div>
         <div class="fg" style="display:flex;flex-direction:column;gap:8px;">
           <label class="fcheck"><input type="checkbox" name="is_published" id="et-published"> Published</label>
           <label class="fcheck"><input type="checkbox" name="is_premium" id="et-premium"> Premium</label>
@@ -612,6 +616,8 @@ function openEditTrack(pk, title, artistPk, artistName) {
   document.getElementById('et-title').value = title;
   const sel = document.getElementById('et-artist');
   if (sel) { for (let o of sel.options) { if (o.value == artistPk) { o.selected = true; break; } } }
+  const stockLink = document.getElementById('et-stock-link');
+  if (stockLink) stockLink.href = `/admin-panel/fetch/images/?target=track&pk=${pk}`;
   document.getElementById('edit-track-modal').style.display = 'flex';
 }
 

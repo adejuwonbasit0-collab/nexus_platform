@@ -229,6 +229,93 @@ def fetch_movies_import(request):
 # ── Bulk approve / reject / delete for fetched (pending) items ──────────────
 
 @_admin_required
+def fetch_images(request):
+    """Search Pexels stock photos or generate an AI image, then apply the
+    result as the site-wide default player banner, or as the banner/thumbnail
+    for a specific track or movie (pass ?target=track&pk=5 or
+    ?target=movie&pk=5 to open it pre-scoped to that item)."""
+    tab = request.GET.get('tab', 'stock')
+    q = request.GET.get('q', '').strip()
+    target = request.GET.get('target', 'site')  # site | track | movie
+    pk = request.GET.get('pk', '')
+
+    if request.method == 'POST' and request.POST.get('action') == 'save_pexels_key':
+        from core.models import SiteSettings
+        key = request.POST.get('pexels_api_key', '').strip()
+        obj, _c = SiteSettings.objects.get_or_create(key='pexels_api_key', defaults={'label': 'Pexels API Key', 'group': 'integrations'})
+        obj.value = key
+        obj.save()
+        messages.success(request, 'Pexels API key saved.')
+        return redirect(request.path + f'?tab=stock&target={target}&pk={pk}')
+
+    configured = ext.pexels_configured()
+    results = []
+    if tab == 'stock' and configured and q:
+        results = ext.pexels_search(q, per_page=18)
+
+    target_label = 'Site-wide default banner'
+    target_obj = None
+    if target == 'track' and pk:
+        from music.models import Track
+        target_obj = Track.objects.filter(pk=pk).first()
+        if target_obj:
+            target_label = f'Banner for "{target_obj.title}"'
+    elif target == 'movie' and pk:
+        from movies.models import Movie
+        target_obj = Movie.objects.filter(pk=pk).first()
+        if target_obj:
+            target_label = f'Thumbnail for "{target_obj.title}"'
+
+    return render(request, 'admin_panel/modules/fetch_images.html', {
+        'tab': tab, 'q': q, 'results': results, 'pexels_configured': configured,
+        'target': target, 'pk': pk, 'target_label': target_label,
+    })
+
+
+@_admin_required
+@require_POST
+def fetch_images_apply(request):
+    """Download the chosen stock/AI image URL and attach it to whichever
+    target was selected (site default banner, a track's banner, or a
+    movie's thumbnail)."""
+    image_url = request.POST.get('image_url', '').strip()
+    target = request.POST.get('target', 'site')
+    pk = request.POST.get('pk', '')
+
+    if not image_url:
+        messages.error(request, 'No image selected.')
+        return redirect('/admin-panel/fetch/images/')
+
+    if target == 'track' and pk:
+        from music.models import Track
+        obj = get_object_or_404(Track, pk=pk)
+        ok = ext.download_image_into(obj, 'banner_image', image_url, filename_hint=f'{obj.title}-banner.jpg')
+        field_label = 'banner'
+    elif target == 'movie' and pk:
+        from movies.models import Movie
+        obj = get_object_or_404(Movie, pk=pk)
+        ok = ext.download_image_into(obj, 'thumbnail', image_url, filename_hint=f'{obj.title}-thumb.jpg')
+        field_label = 'thumbnail'
+    else:
+        from cms.models import BrandingConfig
+        obj = BrandingConfig.get()
+        ok = ext.download_image_into(obj, 'default_player_banner', image_url, filename_hint='default-banner.jpg')
+        field_label = 'site default banner'
+
+    if ok:
+        obj.save()
+        messages.success(request, f'Image applied as the {field_label}.')
+    else:
+        messages.error(request, 'Could not download that image — try a different one.')
+
+    if target == 'track' and pk:
+        return redirect('/admin-panel/music/?tab=tracks')
+    elif target == 'movie' and pk:
+        return redirect('/admin-panel/movies/')
+    return redirect('/admin-panel/fetch/images/')
+
+
+@_admin_required
 @require_POST
 def fetch_bulk_action(request):
     """Shared bulk endpoint for both Tracks and Movies tables. Expects

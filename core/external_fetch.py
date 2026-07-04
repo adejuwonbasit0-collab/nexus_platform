@@ -231,3 +231,39 @@ def tmdb_trailer_url(tmdb_id):
         if v.get('site') == 'YouTube' and v.get('type') == 'Trailer':
             return f"https://www.youtube.com/watch?v={v['key']}"
     return ''
+
+
+# ── Stock images: Pexels ─────────────────────────────────────────────────────
+
+def _pexels_key():
+    try:
+        from core.models import SiteSettings
+        obj = SiteSettings.objects.filter(key='pexels_api_key').first()
+        return obj.value.strip() if obj and obj.value else ''
+    except Exception:
+        return ''
+
+
+def pexels_configured():
+    return bool(_pexels_key())
+
+
+def pexels_search(query, per_page=15):
+    key = _pexels_key()
+    if not key or not query.strip():
+        return []
+    q = urllib.parse.urlencode({'query': query.strip(), 'per_page': per_page, 'orientation': 'landscape'})
+    data = _get_json(f'https://api.pexels.com/v1/search?{q}', headers={'Authorization': key})
+    if not data:
+        return []
+    out = []
+    for p in data.get('photos', []):
+        out.append({
+            'source': 'Pexels',
+            'external_id': str(p.get('id', '')),
+            'thumb': p.get('src', {}).get('medium', ''),
+            'full': p.get('src', {}).get('large2x') or p.get('src', {}).get('large', ''),
+            'photographer': p.get('photographer', ''),
+            'page_url': p.get('url', ''),
+        })
+    return out
