@@ -1,0 +1,90 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Fetch Music{% endblock %}
+{% block topbar_title %}📥 Fetch Music{% endblock %}
+{% block content %}
+
+<div class="panel" style="margin-bottom:16px;">
+  <div class="panel-body" style="padding:14px 16px;font-size:13px;color:var(--text2);">
+    Search, browse trending, latest, or any genre from iTunes' public catalogue and import tracks
+    straight into your library. Imported tracks are tagged with your name as uploader.
+    {% if pending_count %}<a href="/admin-panel/music/?tab=tracks" style="color:var(--accent);margin-left:6px;">{{ pending_count }} fetched track{{ pending_count|pluralize }} awaiting approval →</a>{% endif %}
+  </div>
+</div>
+
+<div class="tab-bar" style="display:flex;gap:4px;margin-bottom:16px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:4px;flex-wrap:wrap;">
+  <a class="tab-btn {% if tab == 'search' %}active{% endif %}" href="?tab=search" style="text-decoration:none;">🔎 Search</a>
+  <a class="tab-btn {% if tab == 'trending' %}active{% endif %}" href="?tab=trending" style="text-decoration:none;">🔥 Trending</a>
+  <a class="tab-btn {% if tab == 'latest' %}active{% endif %}" href="?tab=latest" style="text-decoration:none;">✨ Latest</a>
+  <a class="tab-btn {% if tab == 'genre' %}active{% endif %}" href="?tab=genre" style="text-decoration:none;">🏷 By Genre</a>
+</div>
+
+<div class="panel" style="margin-bottom:16px;">
+  <div class="panel-body" style="padding:14px 16px;">
+    <form method="get" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+      <input type="hidden" name="tab" value="{{ tab }}">
+      {% if tab == 'search' %}
+      <div style="flex:1;min-width:220px;"><label style="font-size:11px;color:var(--text2);">Song, artist, or album</label><input class="finput" name="q" value="{{ q }}" placeholder="e.g. Seyi Vibez" style="width:100%;"></div>
+      {% endif %}
+      {% if tab != 'search' %}
+      <div style="min-width:220px;">
+        <label style="font-size:11px;color:var(--text2);">Genre {% if tab != 'genre' %}(optional filter){% endif %}</label>
+        <select name="genre" class="finput" style="width:100%;">
+          <option value="">All genres</option>
+          {% for gid, gname in genres %}<option value="{{ gid }}" {% if gid == genre_id %}selected{% endif %}>{{ gname }}</option>{% endfor %}
+        </select>
+      </div>
+      {% endif %}
+      <button type="submit" class="btn btn-primary btn-sm">{% if tab == 'search' %}Search{% else %}Load{% endif %}</button>
+    </form>
+  </div>
+</div>
+
+<form id="import-form" method="post" action="/admin-panel/fetch/music/import/">
+  {% csrf_token %}
+  <input type="hidden" name="items" id="import-items">
+  <input type="hidden" name="approve" id="import-approve" value="0">
+
+  <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+    <label style="font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px;">
+      <input type="checkbox" id="select-all" onclick="fmToggleAll(this)"> Select all ({{ results|length }})
+    </label>
+    <button type="button" class="btn btn-secondary btn-sm" onclick="fmSubmit(false)">➕ Import Selected as Pending</button>
+    <button type="button" class="btn btn-primary btn-sm" onclick="fmSubmit(true)">✅ Import & Approve Selected</button>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;">
+    {% for r in results %}
+    <label class="panel" style="padding:10px;cursor:pointer;display:block;{% if r.already_imported %}opacity:.5;{% endif %}">
+      <input type="checkbox" class="fm-check" style="position:absolute;margin:6px;" {% if r.already_imported %}disabled{% endif %}
+        data-payload="{{ r.title|escapejs }}|||{{ r.artist|escapejs }}|||{{ r.album|escapejs }}|||{{ r.cover|escapejs }}|||{{ r.preview_url|escapejs }}|||{{ r.genre|escapejs }}|||{{ r.release_year|escapejs }}|||{{ r.source|escapejs }}">
+      {% if r.cover %}<img src="{{ r.cover }}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;margin-bottom:8px;" loading="lazy">
+      {% else %}<div style="width:100%;aspect-ratio:1;background:rgba(29,185,84,.08);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:8px;">🎵</div>{% endif %}
+      <div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ r.title }}</div>
+      <div style="font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ r.artist }}</div>
+      {% if r.already_imported %}<span class="badge badge-green" style="font-size:9px;margin-top:4px;display:inline-block;">Already imported</span>{% endif %}
+    </label>
+    {% empty %}
+    <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text2);">
+      {% if tab == 'search' and not q %}Type something to search.{% else %}No results yet — try a different search or genre.{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</form>
+
+<script>
+function fmToggleAll(box){
+  document.querySelectorAll('.fm-check:not(:disabled)').forEach(c=>c.checked=box.checked);
+}
+function fmSubmit(approve){
+  const items=[];
+  document.querySelectorAll('.fm-check:checked').forEach(c=>{
+    const p = c.dataset.payload.split('|||');
+    items.push({title:p[0],artist:p[1],album:p[2],cover:p[3],preview_url:p[4],genre:p[5],release_year:p[6],source:p[7]});
+  });
+  if(!items.length){ alert('Select at least one track first.'); return; }
+  document.getElementById('import-items').value = JSON.stringify(items);
+  document.getElementById('import-approve').value = approve ? '1' : '0';
+  document.getElementById('import-form').submit();
+}
+</script>
+{% endblock %}
