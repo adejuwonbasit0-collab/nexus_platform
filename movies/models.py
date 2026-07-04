@@ -55,6 +55,8 @@ class Movie(models.Model):
     rating       = models.DecimalField(max_digits=3, decimal_places=1, default=0)
     uploaded_by  = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     is_published = models.BooleanField(default=False)
+    is_fetched   = models.BooleanField(default=False, help_text='True if this movie was imported via the admin Fetch tool rather than uploaded directly.')
+    fetch_source = models.CharField(max_length=50, blank=True, help_text='Where a fetched movie came from, e.g. "TMDB".')
     created_at   = models.DateTimeField(auto_now_add=True)
 
     class Meta:

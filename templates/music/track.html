@@ -49,7 +49,7 @@
 </div>
 
 <div class="tk-action-bar">
-  <button class="tk-play-big" onclick="playTrack('{{ track.playable_url|default:'' }}','{{ track.title|escapejs }}','{{ track.artist.name|escapejs }}','{% if track.cover_image %}{{ track.cover_image.url }}{% elif track.album and track.album.cover_image %}{{ track.album.cover_image.url }}{% endif %}','/music/track/{{ track.slug }}/',{{ track.pk }})">▶</button>
+  <button class="tk-play-big" onclick="playTrack('{{ track.playable_url|default:''|escapejs }}','{{ track.title|escapejs }}','{{ track.artist.name|escapejs }}','{{ track.display_banner|escapejs }}','/music/track/{{ track.slug }}/',{{ track.pk }})">▶</button>
   <button class="tk-icon-btn {% if user_liked %}liked{% endif %}" id="tk-like-btn" onclick="trackToggleLike({{ track.pk }})">{% if user_liked %}♥{% else %}♡{% endif %}</button>
   {% if track.lyrics or track.has_audio %}
   <button class="tk-icon-btn" onclick="window._LYR_TRACK_PK={{ track.pk }};openLyrics()" title="Lyrics" style="font-size:20px">📝</button>
@@ -90,7 +90,7 @@
       <div class="panel-head"><span class="panel-title">From {{ track.album.title }}</span></div>
       <div class="panel-body" style="padding:8px">
         {% for t in track.album.tracks.all|slice:":15" %}
-        <div class="sp-track-row" style="grid-template-columns:30px 1fr auto" onclick="playTrack('{{ t.playable_url|default:'' }}','{{ t.title|escapejs }}','{{ t.artist.name|escapejs }}','{% if t.cover_image %}{{ t.cover_image.url }}{% elif t.album and t.album.cover_image %}{{ t.album.cover_image.url }}{% endif %}','/music/track/{{ t.slug }}/',{{ t.pk }})">
+        <div class="sp-track-row" style="grid-template-columns:30px 1fr auto" onclick="playTrack('{{ t.playable_url|default:''|escapejs }}','{{ t.title|escapejs }}','{{ t.artist.name|escapejs }}','{{ t.display_banner|escapejs }}','/music/track/{{ t.slug }}/',{{ t.pk }})">
           <span class="sp-track-num" style="{% if t.pk == track.pk %}color:var(--sp-green){% endif %}">{% if t.pk == track.pk %}▶{% else %}{{ forloop.counter }}{% endif %}</span>
           <div class="sp-track-info"><div class="sp-track-title" style="{% if t.pk == track.pk %}color:var(--sp-green){% endif %}">{{ t.title }}</div></div>
           <span class="sp-track-dur">{{ t.duration_str|default:"—" }}</span>
@@ -105,7 +105,7 @@
       <div class="panel-head"><span class="panel-title">You might also like</span></div>
       <div class="panel-body" style="padding:8px">
         {% for t in related %}
-        <div class="sp-track-row" style="grid-template-columns:40px 1fr auto" onclick="playTrack('{{ t.playable_url|default:'' }}','{{ t.title|escapejs }}','{{ t.artist.name|escapejs }}','{% if t.cover_image %}{{ t.cover_image.url }}{% elif t.album and t.album.cover_image %}{{ t.album.cover_image.url }}{% endif %}','/music/track/{{ t.slug }}/',{{ t.pk }})">
+        <div class="sp-track-row" style="grid-template-columns:40px 1fr auto" onclick="playTrack('{{ t.playable_url|default:''|escapejs }}','{{ t.title|escapejs }}','{{ t.artist.name|escapejs }}','{{ t.display_banner|escapejs }}','/music/track/{{ t.slug }}/',{{ t.pk }})">
           <div class="sp-track-thumb">{% if t.cover_image %}<img src="{{ t.cover_image.url }}" loading="lazy">{% elif t.album and t.album.cover_image %}<img src="{{ t.album.cover_image.url }}" loading="lazy">{% else %}🎵{% endif %}</div>
           <div class="sp-track-info"><div class="sp-track-title">{{ t.title }}</div><div class="sp-track-artist">{{ t.artist.name }}</div></div>
           <span class="sp-track-dur">{{ t.duration_str|default:"—" }}</span>
@@ -149,7 +149,7 @@ async function trackToggleLike(pk){
   showToast(d.liked?'♥ Saved to Liked Songs':'Removed from Liked Songs',d.liked?'s':'i');
 }
 document.addEventListener('click',e=>{if(!e.target.closest('#tk-pl-menu')&&!e.target.closest('[onclick*="tk-pl-menu"]'))document.getElementById('tk-pl-menu')?.classList.remove('show')});
-const tkQueue=[{url:'{{ track.playable_url|default:"" }}',title:'{{ track.title|escapejs }}',artist:'{{ track.artist.name|escapejs }}',cover:'{% if track.cover_image %}{{ track.cover_image.url }}{% elif track.album and track.album.cover_image %}{{ track.album.cover_image.url }}{% endif %}',detail:'/music/track/{{ track.slug }}/',pk:{{ track.pk }}}{% for t in related %},{url:'{{ t.playable_url|default:"" }}',title:'{{ t.title|escapejs }}',artist:'{{ t.artist.name|escapejs }}',cover:'{% if t.cover_image %}{{ t.cover_image.url }}{% elif t.album and t.album.cover_image %}{{ t.album.cover_image.url }}{% endif %}',detail:'/music/track/{{ t.slug }}/',pk:{{ t.pk }}}{% endfor %}];
+const tkQueue=[{url:'{{ track.playable_url|default:""|escapejs }}',title:'{{ track.title|escapejs }}',artist:'{{ track.artist.name|escapejs }}',cover:'{{ track.display_banner|escapejs }}',detail:'/music/track/{{ track.slug }}/',pk:{{ track.pk }}}{% for t in related %},{url:'{{ t.playable_url|default:""|escapejs }}',title:'{{ t.title|escapejs }}',artist:'{{ t.artist.name|escapejs }}',cover:'{{ t.display_banner|escapejs }}',detail:'/music/track/{{ t.slug }}/',pk:{{ t.pk }}}{% endfor %}];
 if(typeof setPlayerQueue==='function')setPlayerQueue(tkQueue);
 </script>
 {% endblock %}

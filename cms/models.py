@@ -21,6 +21,8 @@ class BrandingConfig(models.Model):
     logo_email       = models.ImageField(upload_to='cms/branding/', null=True, blank=True)
     favicon          = models.ImageField(upload_to='cms/branding/', null=True, blank=True)
     social_preview   = models.ImageField(upload_to='cms/branding/', null=True, blank=True, help_text='Default OG image (1200x630)')
+    default_player_banner = models.ImageField(upload_to='cms/branding/', null=True, blank=True,
+                             help_text='Fallback background shown in the music player for tracks that have no banner, artist photo, or album cover.')
     # Contact
     contact_email    = models.EmailField(blank=True)
     contact_phone    = models.CharField(max_length=30, blank=True)

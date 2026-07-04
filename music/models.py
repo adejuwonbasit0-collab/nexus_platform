@@ -120,6 +120,8 @@ class Track(models.Model):
     audio_file       = models.FileField(upload_to=track_audio_path, null=True, blank=True)
     audio_url        = models.URLField(blank=True, help_text='External link to the audio file (used instead of an upload to save storage space).')
     cover_image      = models.ImageField(upload_to=track_cover_path, null=True, blank=True)
+    banner_image     = models.ImageField(upload_to=track_cover_path, null=True, blank=True,
+                        help_text='Wide banner shown behind the player. If left empty, the artist photo, then album cover, then site default is used automatically.')
     release_year     = models.IntegerField(default=2024)
     duration         = models.IntegerField(default=0, help_text='seconds')
     lyrics           = models.TextField(blank=True)
@@ -144,6 +146,8 @@ class Track(models.Model):
     likes_count     = models.IntegerField(default=0)
     trend_score     = models.FloatField(default=0.0)
     uploaded_by     = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    is_fetched      = models.BooleanField(default=False, help_text='True if this track was imported via the admin Fetch tool rather than uploaded directly.')
+    fetch_source    = models.CharField(max_length=50, blank=True, help_text='Where a fetched track came from, e.g. "iTunes".')
     created_at      = models.DateTimeField(auto_now_add=True)
     updated_at      = models.DateTimeField(auto_now=True)
 
@@ -178,6 +182,27 @@ class Track(models.Model):
         if self.audio_file:
             return self.audio_file.url
         return self.audio_url
+
+    @property
+    def display_banner(self):
+        """Banner shown behind the player: explicit banner → artist photo →
+        album cover → track cover → site default banner → ''."""
+        if self.banner_image:
+            return self.banner_image.url
+        if self.artist_id and self.artist.photo:
+            return self.artist.photo.url
+        if self.album_id and self.album.cover_image:
+            return self.album.cover_image.url
+        if self.cover_image:
+            return self.cover_image.url
+        try:
+            from cms.models import BrandingConfig
+            b = BrandingConfig.get()
+            if b and b.default_player_banner:
+                return b.default_player_banner.url
+        except Exception:
+            pass
+        return ''
 
     def __str__(self): return f'{self.title} – {self.artist.name}'
 

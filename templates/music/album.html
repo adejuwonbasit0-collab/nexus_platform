@@ -2,7 +2,7 @@
 {% block title %}{{ album.title }} — {{ album.artist.name }}
 <script>
 const albumQueue = [{% for t in tracks %}
-  {url:'{% if t.has_audio %}{{ t.playable_url }}{% endif %}',title:'{{ t.title|escapejs }}',artist:'{{ t.artist.name|escapejs }}',cover:'{% if t.cover_image %}{{ t.cover_image.url }}{% elif t.album and t.album.cover_image %}{{ t.album.cover_image.url }}{% endif %}',detail:'/music/track/{{ t.slug }}/',pk:{{ t.pk }}}{% if not forloop.last %},{% endif %}
+  {url:'{% if t.has_audio %}{{ t.playable_url }}{% endif %}',title:'{{ t.title|escapejs }}',artist:'{{ t.artist.name|escapejs }}',cover:'{{ t.display_banner|escapejs }}',detail:'/music/track/{{ t.slug }}/',pk:{{ t.pk }}}{% if not forloop.last %},{% endif %}
 {% endfor %}];
 if(typeof setPlayerQueue==='function' && albumQueue.length) setPlayerQueue(albumQueue);
 </script>
@@ -46,7 +46,7 @@ if(typeof setPlayerQueue==='function' && albumQueue.length) setPlayerQueue(album
     <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.96rem;color:#fff;margin-bottom:16px;">Tracks</div>
     <div style="display:flex;flex-direction:column;gap:6px;">
       {% for t in tracks %}
-      <div class="track-row" onclick="playTrack('{% if t.has_audio %}{{ t.playable_url }}{% endif %}','{{ t.title|escapejs }}','{{ t.artist.name|escapejs }}','{% if t.cover_image %}{{ t.cover_image.url }}{% elif t.album and t.album.cover_image %}{{ t.album.cover_image.url }}{% endif %}','/music/track/{{ t.slug }}/',{{ t.pk }})">
+      <div class="track-row" onclick="playTrack('{% if t.has_audio %}{{ t.playable_url|escapejs }}{% endif %}','{{ t.title|escapejs }}','{{ t.artist.name|escapejs }}','{{ t.display_banner|escapejs }}','/music/track/{{ t.slug }}/',{{ t.pk }})">
         <span style="width:24px;text-align:right;font-size:0.8rem;color:rgba(255,255,255,0.3);flex-shrink:0;">{{ forloop.counter }}</span>
         <div style="flex:1;min-width:0;">
           <div style="font-weight:500;font-size:0.86rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ t.title }}{% if t.featured_artists.all %} <span style="color:rgba(255,255,255,0.35);font-size:0.7rem;">ft. {% for fa in t.featured_artists.all %}{{ fa.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>{% endif %}</div>

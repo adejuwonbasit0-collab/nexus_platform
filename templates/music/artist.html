@@ -10,6 +10,10 @@
 
 <!-- Artist Hero -->
 <div style="position:relative;background:#0d1118;border-bottom:1px solid rgba(255,255,255,0.05);padding:52px 0 40px;overflow:hidden;">
+  {% if artist.photo %}
+  <div style="position:absolute;inset:0;background-image:url('{{ artist.photo.url }}');background-size:cover;background-position:center 20%;filter:blur(40px) brightness(.35) saturate(1.3);transform:scale(1.15);"></div>
+  <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,13,18,.35) 0%,rgba(10,13,18,.85) 75%,#0a0d12 100%);"></div>
+  {% endif %}
   <div style="position:absolute;inset:0;background:radial-gradient(ellipse 50% 100% at 15% 50%,rgba(29,185,84,0.1),transparent);"></div>
   <div class="container" style="position:relative;z-index:2;display:flex;gap:32px;align-items:center;flex-wrap:wrap;">
     <!-- Artist photo -->
@@ -69,7 +73,7 @@
   <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem;color:#fff;margin-bottom:18px;">🎵 All Songs</div>
   <div style="display:flex;flex-direction:column;gap:6px;">
     {% for t in tracks %}
-    <div class="track-row" onclick="playTrack('{% if t.has_audio %}{{ t.playable_url }}{% endif %}','{{ t.title|escapejs }}','{{ t.artist.name|escapejs }}','{% if t.cover_image %}{{ t.cover_image.url }}{% elif t.album and t.album.cover_image %}{{ t.album.cover_image.url }}{% endif %}','/music/track/{{ t.slug }}/',{{ t.pk }})">
+    <div class="track-row" onclick="playTrack('{% if t.has_audio %}{{ t.playable_url|escapejs }}{% endif %}','{{ t.title|escapejs }}','{{ t.artist.name|escapejs }}','{{ t.display_banner|escapejs }}','/music/track/{{ t.slug }}/',{{ t.pk }})">
       <span style="width:22px;text-align:center;font-size:0.8rem;color:rgba(255,255,255,0.3);">{{ forloop.counter }}</span>
       {% if t.cover_image %}<img class="cover" src="{{ t.cover_image.url }}" alt="">
       {% elif t.album and t.album.cover_image %}<img class="cover" src="{{ t.album.cover_image.url }}" alt="">
@@ -93,7 +97,7 @@
   <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem;color:#fff;margin-bottom:18px;">🤝 Features & Collabs</div>
   <div style="display:flex;flex-direction:column;gap:6px;">
     {% for t in collabs %}
-    <div class="track-row" onclick="playTrack('{% if t.has_audio %}{{ t.playable_url }}{% endif %}','{{ t.title|escapejs }}','{{ t.artist.name|escapejs }}','{% if t.cover_image %}{{ t.cover_image.url }}{% elif t.album and t.album.cover_image %}{{ t.album.cover_image.url }}{% endif %}','/music/track/{{ t.slug }}/',{{ t.pk }})">
+    <div class="track-row" onclick="playTrack('{% if t.has_audio %}{{ t.playable_url|escapejs }}{% endif %}','{{ t.title|escapejs }}','{{ t.artist.name|escapejs }}','{{ t.display_banner|escapejs }}','/music/track/{{ t.slug }}/',{{ t.pk }})">
       {% if t.cover_image %}<img class="cover" src="{{ t.cover_image.url }}" alt="">
       {% elif t.album and t.album.cover_image %}<img class="cover" src="{{ t.album.cover_image.url }}" alt="">
       {% else %}<div class="cover" style="display:flex;align-items:center;justify-content:center;">🎵</div>{% endif %}
@@ -154,7 +158,7 @@
 // Build a queue of this artist's tracks so prev/next work on the player bar
 const artistQueue = [
   {% for t in tracks %}
-  {url:'{% if t.has_audio %}{{ t.playable_url }}{% endif %}',title:'{{ t.title|escapejs }}',artist:'{{ t.artist.name|escapejs }}',cover:'{% if t.cover_image %}{{ t.cover_image.url }}{% elif t.album and t.album.cover_image %}{{ t.album.cover_image.url }}{% endif %}',detail:'/music/track/{{ t.slug }}/',pk:{{ t.pk }}}{% if not forloop.last %},{% endif %}
+  {url:'{% if t.has_audio %}{{ t.playable_url }}{% endif %}',title:'{{ t.title|escapejs }}',artist:'{{ t.artist.name|escapejs }}',cover:'{{ t.display_banner|escapejs }}',detail:'/music/track/{{ t.slug }}/',pk:{{ t.pk }}}{% if not forloop.last %},{% endif %}
   {% endfor %}
 ];
 if(typeof setPlayerQueue==='function' && artistQueue.length) setPlayerQueue(artistQueue);

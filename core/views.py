@@ -1669,6 +1669,8 @@ def admin_music(request):
                     track.audio_file = request.FILES['audio_file']
                 if 'cover_image' in request.FILES:
                     track.cover_image = request.FILES['cover_image']
+                if 'banner_image' in request.FILES:
+                    track.banner_image = request.FILES['banner_image']
                 track.save()
                 # Featured artists (M2M)
                 feat_ids = request.POST.getlist('featured_artist_pks')
@@ -1834,6 +1836,8 @@ def admin_music(request):
                 t.audio_file = request.FILES['audio_file']
             if 'cover_image' in request.FILES:
                 t.cover_image = request.FILES['cover_image']
+            if 'banner_image' in request.FILES:
+                t.banner_image = request.FILES['banner_image']
             t.save()
             messages.success(request, f'Track "{t.title}" updated.')
             return redirect('admin_music')

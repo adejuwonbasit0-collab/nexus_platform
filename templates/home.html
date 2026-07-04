@@ -68,7 +68,7 @@ if(g)g.textContent=(h<12?'Good morning':h<18?'Good afternoon':'Good evening')+'{
     <div class="hero-banner-sub">{{ song_of_day.artist.name }}{% if song_of_day.genre %} · {{ song_of_day.genre.name }}{% endif %}</div>
     <div class="hero-banner-btns">
       <button class="btn btn-primary btn-lg" style="padding:12px 28px;font-size:14px;font-weight:800"
-        onclick="playTrack('{{ song_of_day.playable_url|default:'' }}','{{ song_of_day.title|escapejs }}','{{ song_of_day.artist.name|escapejs }}','{% if song_of_day.cover_image %}{{ song_of_day.cover_image.url }}{% elif song_of_day.album and song_of_day.album.cover_image %}{{ song_of_day.album.cover_image.url }}{% endif %}','/music/track/{{ song_of_day.slug }}/',{{ song_of_day.pk }})">▶ Play</button>
+        onclick="playTrack('{{ song_of_day.playable_url|default:''|escapejs }}','{{ song_of_day.title|escapejs }}','{{ song_of_day.artist.name|escapejs }}','{{ song_of_day.display_banner|escapejs }}','/music/track/{{ song_of_day.slug }}/',{{ song_of_day.pk }})">▶ Play</button>
       <a href="/music/track/{{ song_of_day.slug }}/" class="btn btn-outline" style="padding:12px 22px;font-size:14px">Details</a>
     </div>
   </div>
@@ -82,7 +82,7 @@ if(g)g.textContent=(h<12?'Good morning':h<18?'Good afternoon':'Good evening')+'{
   <div class="sp-row">
     {% for track in recent_tracks %}
     <div class="sp-card" style="width:170px;flex-shrink:0"
-      onclick="playTrack('{{ track.playable_url|default:'' }}','{{ track.title|escapejs }}','{{ track.artist.name|escapejs }}','{% if track.cover_image %}{{ track.cover_image.url }}{% elif track.album and track.album.cover_image %}{{ track.album.cover_image.url }}{% endif %}','/music/track/{{ track.slug }}/',{{ track.pk }})">
+      onclick="playTrack('{{ track.playable_url|default:''|escapejs }}','{{ track.title|escapejs }}','{{ track.artist.name|escapejs }}','{{ track.display_banner|escapejs }}','/music/track/{{ track.slug }}/',{{ track.pk }})">
       <div class="sp-card-cover">
         {% if track.cover_image %}<img src="{{ track.cover_image.url }}" alt="{{ track.title }}" loading="lazy">
         {% elif track.album and track.album.cover_image %}<img src="{{ track.album.cover_image.url }}" alt="{{ track.title }}" loading="lazy">
@@ -127,7 +127,7 @@ if(g)g.textContent=(h<12?'Good morning':h<18?'Good afternoon':'Good evening')+'{
     <a href="/music/artist/{{ artist.slug }}/" style="flex-shrink:0;width:150px;text-align:center;text-decoration:none;color:inherit;display:block">
       <div class="sp-card" style="width:150px;padding:14px;text-align:center">
         <div style="width:100%;aspect-ratio:1;border-radius:50%;overflow:hidden;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:40px;margin-bottom:12px">
-          {% if artist.image %}<img src="{{ artist.image.url }}" alt="{{ artist.name }}" style="width:100%;height:100%;object-fit:cover">{% else %}🎤{% endif %}
+          {% if artist.photo %}<img src="{{ artist.photo.url }}" alt="{{ artist.name }}" style="width:100%;height:100%;object-fit:cover">{% else %}🎤{% endif %}
         </div>
         <div class="sp-card-title" style="text-align:center">{{ artist.name }}</div>
         <div class="sp-card-sub" style="text-align:center">Artist</div>
@@ -163,7 +163,7 @@ if(g)g.textContent=(h<12?'Good morning':h<18?'Good afternoon':'Good evening')+'{
   <div class="sp-section-head"><div class="sp-section-title">📈 Top Chart</div><a href="/music/" class="sp-section-more">Full chart</a></div>
   <div class="sp-tracklist">
     {% for track in chart_tracks %}
-    <div class="sp-track-row" onclick="playTrack('{{ track.playable_url|default:'' }}','{{ track.title|escapejs }}','{{ track.artist.name|escapejs }}','{% if track.cover_image %}{{ track.cover_image.url }}{% elif track.album and track.album.cover_image %}{{ track.album.cover_image.url }}{% endif %}','/music/track/{{ track.slug }}/',{{ track.pk }})">
+    <div class="sp-track-row" onclick="playTrack('{{ track.playable_url|default:''|escapejs }}','{{ track.title|escapejs }}','{{ track.artist.name|escapejs }}','{{ track.display_banner|escapejs }}','/music/track/{{ track.slug }}/',{{ track.pk }})">
       <span class="sp-track-num">{{ forloop.counter }}</span>
       <div class="sp-track-thumb">
         {% if track.cover_image %}<img src="{{ track.cover_image.url }}" alt="{{ track.title }}" loading="lazy">
@@ -245,7 +245,7 @@ if(g)g.textContent=(h<12?'Good morning':h<18?'Good afternoon':'Good evening')+'{
 
 <script>
 // Set queue from top chart
-const homeQueue=[{% for t in recent_tracks %}{url:'{{ t.playable_url|default:'' }}',title:'{{ t.title|escapejs }}',artist:'{{ t.artist.name|escapejs }}',cover:'{% if t.cover_image %}{{ t.cover_image.url }}{% elif t.album and t.album.cover_image %}{{ t.album.cover_image.url }}{% endif %}',detail:'/music/track/{{ t.slug }}/',pk:{{ t.pk }}}{% if not forloop.last %},{% endif %}{% endfor %}];
+const homeQueue=[{% for t in recent_tracks %}{url:'{{ t.playable_url|default:''|escapejs }}',title:'{{ t.title|escapejs }}',artist:'{{ t.artist.name|escapejs }}',cover:'{{ t.display_banner|escapejs }}',detail:'/music/track/{{ t.slug }}/',pk:{{ t.pk }}}{% if not forloop.last %},{% endif %}{% endfor %}];
 if(typeof setPlayerQueue==='function'&&homeQueue.length)setPlayerQueue(homeQueue);
 </script>
 {% endblock %}

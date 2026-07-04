@@ -91,7 +91,7 @@
     <div class="disc-section-label">🎵 Browse All Tracks</div>
     <div id="disc-all-tracks">
       {% for t in all_tracks %}
-      <div class="disc-result-row" onclick="playTrack('{{ t.playable_url|default:'' }}','{{ t.title|escapejs }}','{{ t.artist.name|escapejs }}','{% if t.cover_image %}{{ t.cover_image.url }}{% elif t.album and t.album.cover_image %}{{ t.album.cover_image.url }}{% endif %}','/music/track/{{ t.slug }}/',{{ t.pk }})">
+      <div class="disc-result-row" onclick="playTrack('{{ t.playable_url|default:''|escapejs }}','{{ t.title|escapejs }}','{{ t.artist.name|escapejs }}','{{ t.display_banner|escapejs }}','/music/track/{{ t.slug }}/',{{ t.pk }})">
         <div class="disc-result-cover">{% if t.cover_image %}<img src="{{ t.cover_image.url }}" loading="lazy">{% elif t.album and t.album.cover_image %}<img src="{{ t.album.cover_image.url }}" loading="lazy">{% else %}🎵{% endif %}</div>
         <div class="disc-result-info"><div class="disc-result-title">{{ t.title }}</div><div class="disc-result-sub">{{ t.artist.name }}</div></div>
         <span class="disc-result-badge badge-green">▶ Play</span>
@@ -176,11 +176,21 @@ async function toggleListen(){
     const fd = new FormData();
     fd.append('csrfmiddlewaretoken',CSRF);
     fd.append('audio',blob,'capture.webm');
+    // Hard client-side timeout — the identify request must never spin
+    // forever even if the server-side AI calls are slow/unreachable.
+    const ctrl = new AbortController();
+    const killTimer = setTimeout(()=>ctrl.abort(), 20000);
     try{
-      const r = await fetch('/music/discover/identify/',{method:'POST',body:fd});
+      const r = await fetch('/music/discover/identify/',{method:'POST',body:fd,signal:ctrl.signal});
+      if(!r.ok) throw new Error('bad status '+r.status);
       const d = await r.json();
       showIdentifyResult(d);
-    }catch(e){ setStatus('❌ Could not identify — try the search bar instead.'); }
+    }catch(e){
+      if(e.name === 'AbortError'){ setStatus('⏱ Identification timed out — try the search bar instead.'); }
+      else { setStatus('❌ Could not identify — try the search bar instead.'); }
+    }finally{
+      clearTimeout(killTimer);
+    }
   };
   recorder.start();
   setTimeout(()=>{ if(isListening){ recorder.stop(); stopListen(); } }, 6000);

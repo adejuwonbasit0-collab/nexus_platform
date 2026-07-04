@@ -39,9 +39,11 @@ def whisper_transcribe(audio_bytes: bytes, mime: str = 'audio/webm') -> str:
     tmp.close()
 
     try:
-        # Use the openai SDK
+        # Use the openai SDK — explicit timeout so a slow/unreachable API
+        # can never hang the request indefinitely (was causing Discover to
+        # spin forever when the OpenAI endpoint was slow or unreachable).
         from openai import OpenAI
-        client = OpenAI(api_key=key)
+        client = OpenAI(api_key=key, timeout=12.0, max_retries=0)
         with open(tmp_path, 'rb') as f:
             transcript = client.audio.transcriptions.create(
                 model='whisper-1',

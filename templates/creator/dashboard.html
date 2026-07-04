@@ -16,7 +16,7 @@
 
 /* ── Bottom app-style tab nav (the key missing piece) ── */
 .cd-bottom-nav{
-  position:fixed;bottom:var(--player-h);left:0;right:0;
+  position:fixed;bottom:var(--player-space);left:0;right:0;
   background:rgba(10,10,10,.96);backdrop-filter:blur(20px);
   border-top:1px solid rgba(255,255,255,.08);
   display:flex;z-index:150;
@@ -32,7 +32,7 @@
 .cd-nav-btn.on,.cd-nav-btn:hover{color:var(--sp-green)}
 .cd-nav-btn .icon{font-size:20px;line-height:1}
 /* Push page content above bottom nav */
-.cd-page{padding-bottom:calc(var(--player-h) + 68px)}
+.cd-page{padding-bottom:calc(var(--player-space) + 68px)}
 
 /* ── Content panels ── */
 .cd-panel{display:none;padding:0 32px}
@@ -384,6 +384,9 @@
   <button class="cd-nav-btn" id="nav-all" onclick="cdNav('all',this)">
     <span class="icon">📦</span><span class="cd-lbl">All</span>
   </button>
+  <a class="cd-nav-btn" href="/pay/wallet/" style="display:flex">
+    <span class="icon">💰</span><span class="cd-lbl">Wallet</span>
+  </a>
 </div>
 
 <script>

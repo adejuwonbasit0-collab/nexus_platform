@@ -44,6 +44,11 @@
   --r:6px; --r2:8px; --r3:12px;
   --shadow:0 8px 24px rgba(0,0,0,.5);
   --player-h:90px;
+  /* Reserved bottom space in the page grid. Kept at 0 until a track is
+     actually playing so there's no empty gap at the bottom of the page
+     when the player bar is hidden (was previously always reserving
+     var(--player-h) even with nothing shown there). */
+  --player-space:0px;
   --nav-h:64px;
   --sidebar-w:240px;
   --accent:var(--ac);
@@ -86,7 +91,7 @@ input,select,textarea,button{font-family:inherit;font-size:inherit}
 .sp-layout{
   display:grid;
   grid-template-columns:var(--sidebar-w) 1fr;
-  grid-template-rows:1fr var(--player-h);
+  grid-template-rows:1fr var(--player-space);
   min-height:100vh;
   max-height:100vh;
   overflow:hidden;
@@ -98,7 +103,7 @@ input,select,textarea,button{font-family:inherit;font-size:inherit}
   display:flex;flex-direction:column;
   overflow:hidden;
   border-right:none;
-  position:sticky;top:0;height:calc(100vh - var(--player-h));
+  position:sticky;top:0;height:calc(100vh - var(--player-space));
   padding-bottom:0;
   z-index:100;
   min-height:0;
@@ -505,14 +510,14 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.6}
 @media(max-width:860px){
   .sp-layout{grid-template-columns:1fr}
   .sp-sidebar{
-    display:none;position:fixed;left:0;top:0;bottom:var(--player-h);
+    display:none;position:fixed;left:0;top:0;bottom:var(--player-space);
     height:auto;
     width:260px;z-index:500;
     background:var(--sp-base);
     transform:translateX(-100%);transition:transform .28s ease;
   }
   .sp-sidebar.open{display:flex;flex-direction:column;transform:none}
-  .sp-sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:499;bottom:var(--player-h)}
+  .sp-sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:499;bottom:var(--player-space)}
   .sp-sidebar-overlay.open{display:block}
   .sp-topbar{padding:12px 16px}
   .sp-search-bar{max-width:100%}
@@ -573,7 +578,7 @@ input,select,textarea{max-width:100%;font-size:16px} /* prevent iOS zoom */
 @media(max-width:600px){
   .footer-grid{grid-template-columns:1fr;gap:18px}
   .footer-bottom{flex-direction:column;gap:10px;text-align:center}
-  .footer{padding:36px 0 calc(var(--player-h) + 16px)}
+  .footer{padding:36px 0 calc(var(--player-space) + 16px)}
 }
 
 /* ── Content grids ───────────────────────────────────────────── */
@@ -600,7 +605,7 @@ input,select,textarea{max-width:100%;font-size:16px} /* prevent iOS zoom */
 .stitle a:hover{color:var(--tx)}
 .sec{padding:32px 0}
 .sec-sm{padding:20px 0}
-.footer{background:var(--sp-base);border-top:1px solid var(--bd);padding:48px 0 calc(var(--player-h) + 20px);margin-top:auto;flex-shrink:0}
+.footer{background:var(--sp-base);border-top:1px solid var(--bd);padding:48px 0 calc(var(--player-space) + 20px);margin-top:auto;flex-shrink:0}
 .footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:32px;margin-bottom:32px}
 .footer-logo{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:800;color:var(--sp-green);margin-bottom:12px}
 .footer-desc{font-size:13px;color:var(--tx2);line-height:1.7;max-width:220px;margin-bottom:16px}
@@ -1043,8 +1048,14 @@ function _loadTrack(t){
   _AUD.src=t.url; _AUD.play();
   _currentPk=t.pk||null; _currentDetail=t.detail||'#'; _liked=false;
 
-  // Show player
-  if(_PLAYER){_PLAYER.style.display='flex';document.body.style.paddingBottom='var(--player-h)'}
+  // Show player — also reserve the grid/footer space for it now that it's
+  // actually visible (was previously always reserved, leaving a permanent
+  // empty gap at the bottom of every page before any track ever played).
+  if(_PLAYER){
+    _PLAYER.style.display='flex';
+    document.body.style.paddingBottom='var(--player-h)';
+    document.documentElement.style.setProperty('--player-space','var(--player-h)');
+  }
 
   // Cover helper
   function _cover(el,coverUrl,emoji){

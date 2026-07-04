@@ -26,8 +26,16 @@
     </div>
   </div>
 
+  <div id="track-bulk-bar" style="display:none;gap:8px;align-items:center;margin-bottom:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;">
+    <span id="track-bulk-count" style="font-size:12px;color:var(--text2);"></span>
+    <button type="button" class="btn btn-primary btn-xs" onclick="trackBulk('approve')">✅ Approve</button>
+    <button type="button" class="btn btn-secondary btn-xs" onclick="trackBulk('reject')">↩ Set Draft</button>
+    <button type="button" class="btn btn-danger btn-xs" onclick="trackBulk('delete')">🗑 Delete</button>
+  </div>
+
   <div class="table-wrap"><table class="dt">
     <thead><tr>
+      <th style="width:24px;"><input type="checkbox" onclick="trackToggleAll(this)"></th>
       <th style="width:52px;">Cover</th>
       <th>Title</th>
       <th>Artist / Featured</th>
@@ -40,6 +48,7 @@
     <tbody>
     {% for track in page.object_list %}
     <tr>
+      <td><input type="checkbox" class="track-check" value="{{ track.pk }}" onclick="trackBulkUpdate()"></td>
       <td>
         {% if track.cover_image %}<img src="{{ track.cover_image.url }}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;">
         {% else %}<div style="width:40px;height:40px;background:rgba(29,185,84,.1);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:18px;">🎵</div>{% endif %}
@@ -48,6 +57,7 @@
         <div style="font-weight:600;font-size:13px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ track.title }}</div>
         {% if track.is_song_of_day %}<span class="badge badge-yellow" style="font-size:9px;">⭐ SOTD</span>{% endif %}
         {% if track.is_premium %}<span class="badge badge-purple" style="font-size:9px;">PRO</span>{% endif %}
+        {% if track.is_fetched %}<span class="badge badge-blue" style="font-size:9px;" title="Imported via Fetch">📥 {{ track.fetch_source }}</span>{% endif %}
       </td>
       <td style="font-size:12px;">
         <a href="/music/artist/{{ track.artist.slug }}/" style="color:var(--accent);" target="_blank">{{ track.artist.name }}</a>
@@ -282,6 +292,7 @@
 
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;">
     <div class="fg"><label>Cover Image</label><input class="finput" type="file" name="cover_image" accept="image/*"></div>
+    <div class="fg"><label>Banner Image <span style="color:var(--text2);font-weight:400;">(optional — falls back to artist/album art)</span></label><input class="finput" type="file" name="banner_image" accept="image/*"></div>
     <div class="fg"><label>Produced By</label><input class="finput" name="produced_by" placeholder="Producer name"></div>
     <div class="fg"><label>Written By</label><input class="finput" name="written_by" placeholder="Songwriter(s)"></div>
     <div class="fg"><label>Label</label><input class="finput" name="label" placeholder="Record label"></div>
@@ -460,6 +471,7 @@ function tkSetMode(mode){
         </div>
         <div class="fg"><label>New Audio File</label><input class="finput" type="file" name="audio_file" accept="audio/*"></div>
         <div class="fg"><label>New Cover Image</label><input class="finput" type="file" name="cover_image" accept="image/*"></div>
+        <div class="fg"><label>New Banner Image</label><input class="finput" type="file" name="banner_image" accept="image/*"></div>
         <div class="fg" style="display:flex;flex-direction:column;gap:8px;">
           <label class="fcheck"><input type="checkbox" name="is_published" id="et-published"> Published</label>
           <label class="fcheck"><input type="checkbox" name="is_premium" id="et-premium"> Premium</label>
@@ -610,6 +622,28 @@ document.addEventListener('click', () => {
     if (el) el.style.display = 'none';
   });
 });
+
+// ── Bulk actions (approve / reject / delete selected tracks) ───────────────
+function trackToggleAll(box){
+  document.querySelectorAll('.track-check').forEach(c=>c.checked=box.checked);
+  trackBulkUpdate();
+}
+function trackBulkUpdate(){
+  const n = document.querySelectorAll('.track-check:checked').length;
+  const bar = document.getElementById('track-bulk-bar');
+  bar.style.display = n ? 'flex' : 'none';
+  document.getElementById('track-bulk-count').textContent = n + ' selected';
+}
+async function trackBulk(action){
+  const pks = [...document.querySelectorAll('.track-check:checked')].map(c=>c.value);
+  if(!pks.length) return;
+  if(action==='delete' && !confirm('Delete '+pks.length+' track(s)? This cannot be undone.')) return;
+  const fd = new FormData();
+  fd.append('kind','track'); fd.append('action',action); fd.append('pks',pks.join(','));
+  fd.append('csrfmiddlewaretoken', getCsrf());
+  const r = await fetch('/admin-panel/fetch/bulk/', {method:'POST', body:fd});
+  if(r.ok){ location.reload(); } else { alert('Something went wrong — please try again.'); }
+}
 </script>
 
 <style>
@@ -629,14 +663,14 @@ document.addEventListener('click', () => {
   .tab-btn{font-size:11px;padding:6px 10px}
 }
 @media(max-width:700px){
-  .dt thead th:nth-child(4),
   .dt thead th:nth-child(5),
-  .dt td:nth-child(4),
-  .dt td:nth-child(5){display:none}
+  .dt thead th:nth-child(6),
+  .dt td:nth-child(5),
+  .dt td:nth-child(6){display:none}
 }
 @media(max-width:500px){
-  .dt thead th:nth-child(3),
-  .dt td:nth-child(3){display:none}
+  .dt thead th:nth-child(4),
+  .dt td:nth-child(4){display:none}
   div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
   div[style*="grid-template-columns:1fr 1fr 1fr"]{grid-template-columns:1fr 1fr!important}
 }

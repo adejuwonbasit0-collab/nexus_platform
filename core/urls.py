@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from . import settings_views
+from . import fetch_views
 
 urlpatterns = [
     # Dashboard & analytics
@@ -17,6 +18,12 @@ urlpatterns = [
     path('music/',                          views.admin_music,            name='admin_music'),
     path('blog/',                           views.admin_blog,             name='admin_blog'),
     path('images/',                         views.admin_images_mgmt,      name='admin_images'),
+    # Fetch tools — search/browse external catalogues and import
+    path('fetch/music/',                    fetch_views.fetch_music,        name='fetch_music'),
+    path('fetch/music/import/',             fetch_views.fetch_music_import, name='fetch_music_import'),
+    path('fetch/movies/',                   fetch_views.fetch_movies,        name='fetch_movies'),
+    path('fetch/movies/import/',            fetch_views.fetch_movies_import, name='fetch_movies_import'),
+    path('fetch/bulk/',                     fetch_views.fetch_bulk_action,   name='fetch_bulk_action'),
     # Series
     path('series/',                         views.admin_series,           name='admin_series'),
     path('series/create/',                  views.admin_create_series,    name='admin_create_series'),
