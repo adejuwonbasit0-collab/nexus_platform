@@ -49,7 +49,7 @@ def cms_hub(request):
                       'social_twitter','social_instagram','social_facebook',
                       'social_youtube','social_tiktok','social_discord','social_linkedin']:
                 setattr(obj, f, request.POST.get(f, ''))
-            for fld in ['logo_primary','logo_dark','logo_footer','logo_email','favicon','social_preview']:
+            for fld in ['logo_primary','logo_dark','logo_footer','logo_email','favicon','social_preview','default_player_banner']:
                 if fld in request.FILES:
                     setattr(obj, fld, request.FILES[fld])
             obj.save(); cache.delete('cms_branding')

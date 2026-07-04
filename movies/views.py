@@ -82,6 +82,7 @@ def movie_detail(request, slug):
         'movie': movie, 'related': related, 'progress': progress,
         'comments': comments, 'user_liked': user_liked,
         'trailer_embed_url': youtube_embed_url(movie.trailer_url) if movie.trailer_url else '',
+        'video_embed_url': youtube_embed_url(movie.video_url) if movie.is_youtube_video else '',
     })
 
 

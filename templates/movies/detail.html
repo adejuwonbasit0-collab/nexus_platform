@@ -84,7 +84,16 @@ video{width:100%;border-radius:10px;background:#000;display:block}
 <div class="mv-body">
   {# ── Main column ── #}
   <div>
-    {% if movie.has_video %}
+    {% if movie.has_video and movie.is_youtube_video %}
+    <div class="mv-panel" style="margin-bottom:20px" id="player">
+      <div class="mv-panel-head">▶ Watch</div>
+      <div class="mv-panel-body">
+        <div style="position:relative;padding-top:56.25%;border-radius:10px;overflow:hidden;background:#000">
+          <iframe src="{{ video_embed_url }}" style="position:absolute;inset:0;width:100%;height:100%;border:none" allowfullscreen></iframe>
+        </div>
+      </div>
+    </div>
+    {% elif movie.has_video %}
     <div class="mv-panel" style="margin-bottom:20px" id="player">
       <div class="mv-panel-head">▶ Watch</div>
       <div class="mv-panel-body">

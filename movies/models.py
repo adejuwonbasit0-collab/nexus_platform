@@ -85,6 +85,16 @@ class Movie(models.Model):
         return bool(self.video_url) and not self.video_file
 
     @property
+    def is_youtube_video(self):
+        """True when video_url is a YouTube link rather than a direct
+        video file — these need an <iframe> embed, not a <video> tag,
+        or the browser shows a broken-video error."""
+        if not self.video_url:
+            return False
+        u = self.video_url.lower()
+        return 'youtube.com' in u or 'youtu.be' in u
+
+    @property
     def playable_url(self):
         if self.video_file:
             return self.video_file.url

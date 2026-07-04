@@ -74,7 +74,11 @@ def itunes_search(term, limit=25):
 
 def itunes_chart(genre_id='', feed='topsongs', limit=50):
     """Trending / latest charts via the iTunes RSS feed API. feed is one of
-    'topsongs' (trending) or 'newmusic' (latest releases)."""
+    'topsongs' (trending) or 'newmusic' (latest releases).
+    Returns items with cover art straight from the RSS feed (upgraded to
+    600x600) and no preview_url yet — previews are looked up individually
+    at import time (see enrich_for_import) so a handful of failed lookups
+    can never blank out an entire browse page of results."""
     genre_part = f'/genre={genre_id}' if genre_id else ''
     url = f'https://itunes.apple.com/us/rss/{feed}/limit={limit}{genre_part}/json'
     data = _get_json(url)
@@ -93,45 +97,40 @@ def itunes_chart(genre_id='', feed='topsongs', limit=50):
             artist = e['im:artist']['label']
             images = e.get('im:image', [])
             cover = images[-1]['label'] if images else ''
-            link = ''
-            for l in e.get('link', []):
-                if isinstance(l, dict) and l.get('attributes', {}).get('rel') != 'alternate':
-                    continue
+            if cover:
+                cover = cover.replace('100x100', '600x600').replace('170x170', '600x600')
             itunes_id = e.get('id', {}).get('attributes', {}).get('im:id', '')
             out.append({
                 'source': 'iTunes', 'external_id': itunes_id,
                 'title': title, 'artist': artist, 'album': '',
-                'cover': cover.replace('100x100', '600x600') if cover else '',
-                'preview_url': '', 'genre': e.get('category', {}).get('attributes', {}).get('label', ''),
+                'cover': cover, 'preview_url': '',
+                'genre': e.get('category', {}).get('attributes', {}).get('label', ''),
                 'release_year': '',
             })
         except Exception:
             continue
-    # Charts don't include a 30s preview URL — enrich the first page via search
-    # lookup so tracks are actually playable once imported.
-    return _enrich_with_lookup(out)
+    return out
 
 
-def _enrich_with_lookup(items):
-    enriched = []
-    for it in items[:50]:
-        found = None
-        try:
-            q = urllib.parse.urlencode({'term': f"{it['artist']} {it['title']}", 'entity': 'song', 'limit': 1})
-            data = _get_json(f'https://itunes.apple.com/search?{q}', timeout=6)
-            if data and data.get('results'):
-                found = data['results'][0]
-        except Exception:
-            found = None
-        if found:
-            it['preview_url'] = found.get('previewUrl', '')
-            it['external_id'] = str(found.get('trackId', it.get('external_id', '')))
-            it['album'] = found.get('collectionName', '')
-            it['release_year'] = (found.get('releaseDate') or '')[:4]
-            if found.get('artworkUrl100'):
-                it['cover'] = found['artworkUrl100'].replace('100x100', '600x600')
-        enriched.append(it)
-    return enriched
+def enrich_for_import(item):
+    """Fill in a missing preview_url/cover/album/year for a single item right
+    before it's imported. Called per-selected-item (not per browse-page-item)
+    so it's fast and a single failed lookup only affects that one track."""
+    if item.get('preview_url'):
+        return item
+    try:
+        q = urllib.parse.urlencode({'term': f"{item.get('artist','')} {item.get('title','')}", 'entity': 'song', 'limit': 1})
+        data = _get_json(f'https://itunes.apple.com/search?{q}', timeout=8)
+        if data and data.get('results'):
+            found = data['results'][0]
+            item['preview_url'] = found.get('previewUrl', '') or item.get('preview_url', '')
+            item['album'] = found.get('collectionName', '') or item.get('album', '')
+            item['release_year'] = (found.get('releaseDate') or '')[:4] or item.get('release_year', '')
+            if not item.get('cover') and found.get('artworkUrl100'):
+                item['cover'] = found['artworkUrl100'].replace('100x100', '600x600')
+    except Exception:
+        pass
+    return item
 
 
 def _itunes_to_result(r):

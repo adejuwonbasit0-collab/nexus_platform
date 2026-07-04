@@ -65,6 +65,8 @@ def fetch_music_import(request):
         items = []
 
     created = 0
+    no_audio = 0
+    no_cover = 0
     for it in items:
         title = (it.get('title') or '').strip()
         artist_name = (it.get('artist') or '').strip() or 'Unknown Artist'
@@ -72,6 +74,11 @@ def fetch_music_import(request):
             continue
         if Track.objects.filter(is_fetched=True, title__iexact=title, artist__name__iexact=artist_name).exists():
             continue
+
+        # Chart-based browsing (Trending/Latest/Genre) doesn't carry a
+        # preview URL — fill it in now, per selected item, so a handful of
+        # failed lookups can never affect the whole batch.
+        it = ext.enrich_for_import(it)
 
         artist, _c = Artist.objects.get_or_create(
             name__iexact=artist_name,
@@ -98,14 +105,25 @@ def fetch_music_import(request):
         track.save()
 
         cover = it.get('cover') or ''
+        cover_ok = False
         if cover:
-            ext.download_image_into(track, 'cover_image', cover, filename_hint=f'{title}.jpg')
-            track.save(update_fields=['cover_image'])
+            cover_ok = ext.download_image_into(track, 'cover_image', cover, filename_hint=f'{title}.jpg')
+            if cover_ok:
+                track.save(update_fields=['cover_image'])
         created += 1
+        if not track.audio_url:
+            no_audio += 1
+        if not cover_ok:
+            no_cover += 1
 
     if created:
         state = 'imported and approved' if approve else 'imported as pending — approve them from the Tracks tab'
-        messages.success(request, f'{created} track(s) {state}.')
+        msg = f'{created} track(s) {state}.'
+        if no_audio:
+            msg += f' ⚠ {no_audio} had no preview available on iTunes — edit them to add a real audio file/link.'
+        if no_cover:
+            msg += f' ⚠ {no_cover} had no cover art fetched — you can upload one via Edit.'
+        messages.success(request, msg)
     else:
         messages.info(request, 'Nothing new to import — those tracks are already in your library.')
     return redirect('/admin-panel/music/?tab=tracks')

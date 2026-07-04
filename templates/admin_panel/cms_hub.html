@@ -98,6 +98,9 @@
         <div class="fg"><label>Social Preview Image <span class="hint" style="font-weight:400;letter-spacing:0;">1200×630px</span></label>
           {% if branding.social_preview %}<img src="{{ branding.social_preview.url }}" style="width:100%;max-width:240px;border-radius:6px;margin-bottom:8px;display:block;">{% endif %}
           <input class="finput" type="file" name="social_preview" accept="image/*"></div>
+        <div class="fg"><label>Default Player Banner <span class="hint" style="font-weight:400;letter-spacing:0;">shown behind the player when a track has no banner, artist photo, or album cover</span></label>
+          {% if branding.default_player_banner %}<img src="{{ branding.default_player_banner.url }}" style="width:100%;max-width:240px;border-radius:6px;margin-bottom:8px;display:block;">{% endif %}
+          <input class="finput" type="file" name="default_player_banner" accept="image/*"></div>
         {% endfor %}{% endfor %}{% endfor %}
       </div>
     </div>
