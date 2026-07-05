@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from cms.views import static_page_view, cms_robots_txt, cms_theme_css
+from cms.views import static_page_view, cms_robots_txt, cms_theme_css, cms_sitemap_xml
 
 urlpatterns = [
     path('django-admin/', admin.site.urls),
@@ -27,6 +27,7 @@ urlpatterns = [
     path('creator/', include('core.creator_urls')),
     # SEO endpoints
     path('robots.txt',    cms_robots_txt,  name='robots_txt'),
+    path('sitemap.xml',   cms_sitemap_xml, name='sitemap_xml'),
     path('cms/dynamic.css', cms_theme_css, name='dynamic_css'),
     # Public static pages
     path('page/<slug:slug>/', static_page_view, name='static_page'),

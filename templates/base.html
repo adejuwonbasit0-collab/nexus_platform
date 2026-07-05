@@ -3,12 +3,48 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
-<title>{% block title %}NEXUS{% endblock %}</title>
-{% if global_seo %}<meta name="description" content="{% block desc %}{{ global_seo.meta_description }}{% endblock %}">{% endif %}
+<title>{% if page_seo.meta_title %}{{ page_seo.meta_title }}{% else %}{% block title %}{{ global_seo.meta_title|default:"NEXUS" }}{% endblock %}{% endif %}</title>
+{% with desc=page_seo.meta_description|default:global_seo.meta_description %}{% if desc %}<meta name="description" content="{% block desc %}{{ desc }}{% endblock %}">{% endif %}{% endwith %}
+{% if global_seo.meta_keywords %}<meta name="keywords" content="{{ global_seo.meta_keywords }}">{% endif %}
+
+{# Robots / indexing #}
+{% if page_seo.no_index or global_seo.allow_indexing == False %}<meta name="robots" content="noindex,nofollow">{% else %}<meta name="robots" content="index,follow">{% endif %}
+
+{# Canonical URL #}
+{% if page_seo.canonical_url %}<link rel="canonical" href="{{ page_seo.canonical_url }}">
+{% elif global_seo.canonical_domain %}<link rel="canonical" href="{{ global_seo.canonical_domain|slice:':-1' }}{{ request.path }}">{% endif %}
+
+{# Open Graph #}
+<meta property="og:site_name" content="{{ branding.site_name|default:'NEXUS' }}">
+<meta property="og:type" content="website">
+<meta property="og:url" content="{% if global_seo.canonical_domain %}{{ global_seo.canonical_domain|slice:':-1' }}{{ request.path }}{% else %}{{ request.build_absolute_uri }}{% endif %}">
+<meta property="og:title" content="{% if page_seo.meta_title %}{{ page_seo.meta_title }}{% elif global_seo.og_title %}{{ global_seo.og_title }}{% else %}{{ global_seo.meta_title|default:'NEXUS' }}{% endif %}">
+<meta property="og:description" content="{% if page_seo.meta_description %}{{ page_seo.meta_description }}{% elif global_seo.og_description %}{{ global_seo.og_description }}{% else %}{{ global_seo.meta_description }}{% endif %}">
+{% if page_seo.og_image %}<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ page_seo.og_image.url }}">
+{% elif global_seo.og_image %}<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ global_seo.og_image.url }}">{% endif %}
+
+{# Twitter Card #}
+<meta name="twitter:card" content="{{ global_seo.twitter_card|default:'summary_large_image' }}">
+{% if global_seo.twitter_handle %}<meta name="twitter:site" content="@{{ global_seo.twitter_handle }}">{% endif %}
+<meta name="twitter:title" content="{% if page_seo.meta_title %}{{ page_seo.meta_title }}{% else %}{{ global_seo.meta_title|default:'NEXUS' }}{% endif %}">
+{% with tdesc=page_seo.meta_description|default:global_seo.meta_description %}{% if tdesc %}<meta name="twitter:description" content="{{ tdesc }}">{% endif %}{% endwith %}
+{% if page_seo.og_image %}<meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ page_seo.og_image.url }}">
+{% elif global_seo.og_image %}<meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ global_seo.og_image.url }}">{% endif %}
+
+{# Search engine verification #}
+{% if global_seo.google_site_verification %}<meta name="google-site-verification" content="{{ global_seo.google_site_verification }}">{% endif %}
+{% if global_seo.bing_site_verification %}<meta name="msvalidate.01" content="{{ global_seo.bing_site_verification }}">{% endif %}
+
+{# Structured data #}
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"{{ global_seo.schema_org_type|default:'WebSite' }}","name":"{{ branding.site_name|default:'NEXUS'|escapejs }}","url":"{% if global_seo.canonical_domain %}{{ global_seo.canonical_domain|escapejs }}{% else %}{{ request.scheme }}://{{ request.get_host }}{% endif %}"}
+</script>
+
 {% if branding and branding.favicon %}<link rel="icon" href="{{ branding.favicon.url }}">{% else %}<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%231db954'/><text x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-size='18' fill='white'>N</text></svg>">{% endif %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Circular+Std:wght@400;500;700;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+<link rel="stylesheet" href="/cms/dynamic.css">
 <style>
 /* ═══════════════════════════════════════════════════════════
    NEXUS · SPOTIFY-INSPIRED DESIGN SYSTEM
@@ -29,9 +65,9 @@
   --sp-bd:rgba(255,255,255,.1);
   --sp-bd2:rgba(255,255,255,.15);
   /* Keep purple accent for NEXUS brand identity */
-  --ac:#7c5cfc;
+  --ac:#1db954;
   --ac2:#ff4d6d;
-  --ac3:#1db954;
+  --ac3:#7c5cfc;
   /* Aliases */
   --bg:var(--sp-black);
   --bg2:var(--sp-surface);
@@ -458,7 +494,7 @@ input,select,textarea,button{font-family:inherit;font-size:inherit}
 /* Badge */
 .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
 .badge-green{background:rgba(29,185,84,.15);color:var(--sp-green)}
-.badge-purple{background:rgba(124,92,252,.15);color:#c4abff}
+.badge-purple{background:rgba(29,185,84,.15);color:#c4abff}
 .badge-red{background:rgba(239,68,68,.15);color:#f87171}
 .badge-gray{background:rgba(255,255,255,.08);color:var(--tx2)}
 .badge-gold{background:rgba(245,158,11,.15);color:#fbbf24}
@@ -525,23 +561,31 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.6}
   .sp-hamburger-btn{display:flex!important}
 }
 @media(max-width:600px){
-  :root{--player-h:80px}
-  .sp-pl-center{gap:6px}
+  :root{--player-h:64px}
   .sp-pl-time{display:none}
-  .sp-pl-right .sp-pl-vol-wrap,.sp-pl-right .sp-pl-extra-btn:not(.sp-lyrics-btn){display:none}
-  .sp-pl-left{max-width:45%}
-  .sp-pl-center{max-width:45%}
-  .sp-pl-right{max-width:10%}
-  .sp-pl-cover{width:48px;height:48px}
+  .sp-pl-right .sp-pl-vol-wrap,.sp-pl-right .sp-pl-extra-btn{display:none}
+  /* Collapsed mini-player: keep it to cover + title/artist + play/pause +
+     next only. Shuffle, previous, like, and lyrics stay available once
+     the player is expanded to full screen — showing them here made the
+     64px bar feel cramped and busy before a track was even opened. */
+  #sp-shuffle-btn,.sp-pl-like{display:none}
+  .sp-pl-left{max-width:60%}
+  .sp-pl-center{max-width:38%;gap:2px}
+  .sp-pl-right{max-width:2%}
+  .sp-pl-cover{width:44px;height:44px}
+  .sp-pl-controls{gap:8px}
 }
 @media(max-width:480px){
   .sp-pl-lyrics-btn span.lyr-label{display:none}
   .sp-section-title{font-size:17px}
   .sp-card{min-width:0}
+  /* At very narrow widths drop the "previous" button too — play/pause
+     and next are enough to act on without opening the full player. */
+  .sp-pl-controls button[onclick="spPrev()"]{display:none}
 }
 @media(max-width:400px){
-  .sp-pl-controls{gap:10px}
-  .sp-pl-btn{font-size:18px}
+  .sp-pl-controls{gap:8px}
+  .sp-pl-btn{font-size:16px}
 }
 
 /* ── Desktop (1200px+): wider sidebar ───────────────────────── */

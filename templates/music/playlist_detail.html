@@ -2,17 +2,17 @@
 {% block title %}{{ playlist.title }}{% endblock %}
 {% block head %}
 <style>
-.pl-header{background:linear-gradient(160deg,rgba(124,92,252,.18) 0%,rgba(0,0,0,0) 70%);padding:40px 0 28px;}
+.pl-header{background:linear-gradient(160deg,rgba(29,185,84,.18) 0%,rgba(0,0,0,0) 70%);padding:40px 0 28px;}
 .track-item{display:flex;align-items:center;gap:14px;padding:10px 14px;border-radius:10px;cursor:pointer;transition:background .18s;}
 .track-item:hover{background:rgba(255,255,255,.05);}
 .track-num{width:24px;text-align:center;font-size:12px;color:rgba(255,255,255,.35);flex-shrink:0;}
-.track-cover{width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0;background:rgba(124,92,252,.2);display:flex;align-items:center;justify-content:center;font-size:18px;}
+.track-cover{width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0;background:rgba(29,185,84,.2);display:flex;align-items:center;justify-content:center;font-size:18px;}
 </style>
 {% endblock %}
 {% block content %}
 <div class="pl-header">
   <div class="container" style="display:flex;align-items:flex-end;gap:24px;flex-wrap:wrap;">
-    <div style="width:180px;height:180px;border-radius:16px;background:linear-gradient(135deg,rgba(124,92,252,.4),rgba(0,212,170,.2));display:flex;align-items:center;justify-content:center;font-size:4rem;flex-shrink:0;overflow:hidden;">
+    <div style="width:180px;height:180px;border-radius:16px;background:linear-gradient(135deg,rgba(29,185,84,.4),rgba(0,212,170,.2));display:flex;align-items:center;justify-content:center;font-size:4rem;flex-shrink:0;overflow:hidden;">
       {% if playlist.cover %}<img src="{{ playlist.cover.url }}" style="width:100%;height:100%;object-fit:cover;">{% else %}📋{% endif %}
     </div>
     <div style="flex:1;min-width:0;">
@@ -82,7 +82,7 @@
           </div>
         </div>
         <form method="post" action="/music/playlists/{{ playlist.pk }}/add/{{ t.pk }}/" style="margin:0;">{% csrf_token %}
-          <button type="submit" class="btn btn-sm" style="background:rgba(124,92,252,.2);border:1px solid rgba(124,92,252,.3);color:var(--ac);border-radius:20px;padding:5px 14px;font-size:12px;">+ Add</button>
+          <button type="submit" class="btn btn-sm" style="background:rgba(29,185,84,.2);border:1px solid rgba(29,185,84,.3);color:var(--ac);border-radius:20px;padding:5px 14px;font-size:12px;">+ Add</button>
         </form>
       </div>
       {% endfor %}

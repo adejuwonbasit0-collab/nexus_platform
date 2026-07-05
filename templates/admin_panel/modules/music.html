@@ -30,6 +30,7 @@
     <span id="track-bulk-count" style="font-size:12px;color:var(--text2);"></span>
     <button type="button" class="btn btn-primary btn-xs" onclick="trackBulk('approve')">✅ Approve</button>
     <button type="button" class="btn btn-secondary btn-xs" onclick="trackBulk('reject')">↩ Set Draft</button>
+    <button type="button" class="btn btn-secondary btn-xs" onclick="trackBulk('fetch_lyrics')">📝 Fetch Synced Lyrics</button>
     <button type="button" class="btn btn-danger btn-xs" onclick="trackBulk('delete')">🗑 Delete</button>
   </div>
 
@@ -648,7 +649,13 @@ async function trackBulk(action){
   fd.append('kind','track'); fd.append('action',action); fd.append('pks',pks.join(','));
   fd.append('csrfmiddlewaretoken', getCsrf());
   const r = await fetch('/admin-panel/fetch/bulk/', {method:'POST', body:fd});
-  if(r.ok){ location.reload(); } else { alert('Something went wrong — please try again.'); }
+  if(r.ok){
+    if(action === 'fetch_lyrics'){
+      const d = await r.json();
+      alert(`Found synced lyrics for ${d.found} of ${d.count} track(s).`);
+    }
+    location.reload();
+  } else { alert('Something went wrong — please try again.'); }
 }
 </script>
 

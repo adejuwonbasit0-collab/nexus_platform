@@ -267,3 +267,37 @@ def pexels_search(query, per_page=15):
             'page_url': p.get('url', ''),
         })
     return out
+
+
+# ── Lyrics: LRCLIB ────────────────────────────────────────────────────────────
+# Free, keyless, crowd-sourced synced-lyrics database (lrclib.net). Used to
+# auto-fill Track.lyrics_lrc when importing via Fetch Music.
+
+def lrclib_get_lyrics(track_name, artist_name, album_name='', duration=None):
+    """Best-effort synced (LRC) lyrics lookup. Returns '' if nothing found —
+    never raises, so a missing/unreachable lyrics source can't break an
+    import."""
+    if not track_name or not artist_name:
+        return ''
+    params = {'track_name': track_name, 'artist_name': artist_name}
+    if album_name:
+        params['album_name'] = album_name
+    if duration:
+        params['duration'] = int(duration)
+    q = urllib.parse.urlencode(params)
+    data = _get_json(f'https://lrclib.net/api/get?{q}', headers={'User-Agent': 'Bazillin/1.0'})
+    if data and data.get('syncedLyrics'):
+        return data['syncedLyrics']
+
+    # Exact lookup failed (wrong duration, slight title mismatch, etc.) —
+    # fall back to fuzzy search and take the first hit with synced lyrics.
+    try:
+        sq = urllib.parse.urlencode({'q': f'{track_name} {artist_name}'})
+        results = _get_json(f'https://lrclib.net/api/search?{sq}', headers={'User-Agent': 'Bazillin/1.0'})
+        if results:
+            for r in results:
+                if r.get('syncedLyrics'):
+                    return r['syncedLyrics']
+    except Exception:
+        pass
+    return ''

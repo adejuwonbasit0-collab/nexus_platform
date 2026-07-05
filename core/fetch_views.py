@@ -11,6 +11,7 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.utils.text import slugify
+from django.core.cache import cache
 
 from .views import _admin_required
 from . import external_fetch as ext
@@ -67,6 +68,7 @@ def fetch_music_import(request):
     created = 0
     no_audio = 0
     no_cover = 0
+    no_lyrics_count = 0
     for it in items:
         title = (it.get('title') or '').strip()
         artist_name = (it.get('artist') or '').strip() or 'Unknown Artist'
@@ -110,11 +112,20 @@ def fetch_music_import(request):
             cover_ok = ext.download_image_into(track, 'cover_image', cover, filename_hint=f'{title}.jpg')
             if cover_ok:
                 track.save(update_fields=['cover_image'])
+
+        lyrics = ext.lrclib_get_lyrics(title, artist_name)
+        no_lyrics = not lyrics
+        if lyrics:
+            track.lyrics_lrc = lyrics
+            track.save(update_fields=['lyrics_lrc'])
+
         created += 1
         if not track.audio_url:
             no_audio += 1
         if not cover_ok:
             no_cover += 1
+        if no_lyrics:
+            no_lyrics_count += 1
 
     if created:
         state = 'imported and approved' if approve else 'imported as pending — approve them from the Tracks tab'
@@ -123,9 +134,12 @@ def fetch_music_import(request):
             msg += f' ⚠ {no_audio} had no preview available on iTunes — edit them to add a real audio file/link.'
         if no_cover:
             msg += f' ⚠ {no_cover} had no cover art fetched — you can upload one via Edit.'
+        if no_lyrics_count:
+            msg += f' 📝 {no_lyrics_count} had no synced lyrics found — this is common for less-popular tracks.'
         messages.success(request, msg)
     else:
         messages.info(request, 'Nothing new to import — those tracks are already in your library.')
+    cache.delete('trending_page_v2')
     return redirect('/admin-panel/music/?tab=tracks')
 
 
@@ -223,6 +237,7 @@ def fetch_movies_import(request):
         messages.success(request, f'{created} movie(s) {state}. Posters, ratings, and trailers were fetched — add the actual video file/link on each one before publishing.')
     else:
         messages.info(request, 'Nothing new to import — those movies are already in your library.')
+    cache.delete('trending_page_v2')
     return redirect('/admin-panel/movies/')
 
 
@@ -323,7 +338,7 @@ def fetch_bulk_action(request):
     kind = request.POST.get('kind', '')
     action = request.POST.get('action', '')
     pks = [p for p in request.POST.get('pks', '').split(',') if p.strip()]
-    if not pks or kind not in ('track', 'movie') or action not in ('approve', 'reject', 'delete'):
+    if not pks or kind not in ('track', 'movie') or action not in ('approve', 'reject', 'delete', 'fetch_lyrics'):
         return JsonResponse({'ok': False, 'error': 'Invalid request'}, status=400)
 
     if kind == 'track':
@@ -340,5 +355,15 @@ def fetch_bulk_action(request):
         qs.update(is_published=False)
     elif action == 'delete':
         qs.delete()
+    elif action == 'fetch_lyrics' and kind == 'track':
+        found = 0
+        for t in qs:
+            lyrics = ext.lrclib_get_lyrics(t.title, t.artist.name)
+            if lyrics:
+                t.lyrics_lrc = lyrics
+                t.save(update_fields=['lyrics_lrc'])
+                found += 1
+        return JsonResponse({'ok': True, 'count': count, 'action': action, 'found': found})
 
+    cache.delete('trending_page_v2')
     return JsonResponse({'ok': True, 'count': count, 'action': action})

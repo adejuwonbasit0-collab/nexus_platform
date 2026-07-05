@@ -1,0 +1,115 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Admin Guide{% endblock %}
+{% block topbar_title %}📖 Admin Guide{% endblock %}
+{% block content %}
+
+<div class="panel" style="margin-bottom:20px;">
+  <div class="panel-body" style="padding:16px;font-size:13px;color:var(--text2);">
+    A practical walkthrough of every part of the admin — what it's for, and the order that usually makes sense to use things in.
+  </div>
+</div>
+
+<style>
+  .gd-section{margin-bottom:24px;}
+  .gd-h{font-size:16px;font-weight:800;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+  .gd-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:10px;}
+  .gd-card h4{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:6px;}
+  .gd-card p, .gd-card li{font-size:12.5px;color:var(--text2);line-height:1.6;}
+  .gd-card ul, .gd-card ol{margin-left:18px;margin-top:4px;}
+  .gd-card code{background:rgba(255,255,255,.06);padding:1px 6px;border-radius:4px;font-size:11.5px;}
+</style>
+
+<div class="gd-section">
+  <div class="gd-h">🚀 First things to set up</div>
+  <div class="gd-card">
+    <h4>1. Branding</h4>
+    <p><strong>Admin → CMS → Branding.</strong> Set your site name, logo, favicon, and the default player banner (the fallback image used behind the music player when a track has no banner, artist photo, or album cover of its own).</p>
+  </div>
+  <div class="gd-card">
+    <h4>2. SEO</h4>
+    <p><strong>Admin → CMS → SEO.</strong> Set your site's default meta title/description, Open Graph image, and Twitter card — these apply everywhere unless a specific page overrides them. Also where you paste Google/Bing site-verification codes and edit robots.txt. Your sitemap is always live at <code>/sitemap.xml</code>, and robots.txt at <code>/robots.txt</code> — both update automatically as you publish content.</p>
+  </div>
+  <div class="gd-card">
+    <h4>3. AI Settings</h4>
+    <p><strong>Admin → AI Settings.</strong> Add API keys for OpenAI/Stability (used for AI image generation and blog writing) — without a key, these features run in a limited demo mode.</p>
+  </div>
+</div>
+
+<div class="gd-section">
+  <div class="gd-h">🎵 Getting music onto the site</div>
+  <div class="gd-card">
+    <h4>Option A — Upload it yourself</h4>
+    <p><strong>Admin → Music → Add Track.</strong> Upload the audio file (or paste a direct link), cover image, and optional banner image, then publish.</p>
+  </div>
+  <div class="gd-card">
+    <h4>Option B — Fetch from iTunes</h4>
+    <p><strong>Admin → Fetch Music.</strong> Search, or browse Trending/Latest/By Genre. Select tracks (individually or several at once) and choose <em>Import as Pending</em> or <em>Import &amp; Approve</em>. Cover art and, where available, synced lyrics are pulled in automatically. What you get is a 30-second preview clip and metadata — not the full song, since no free service legally provides that. Edit the track afterward to attach the real audio file/link once you have the rights to it.</p>
+    <p>Already-imported tracks missing lyrics? Select them in the Tracks table and use the <em>📝 Fetch Synced Lyrics</em> bulk button to try again.</p>
+  </div>
+  <div class="gd-card">
+    <h4>Approving content</h4>
+    <p>Individually: use the Live/Draft toggle on each row. In bulk: tick the checkboxes on the left of the Tracks/Movies table and use the action bar that appears (Approve / Set Draft / Delete).</p>
+  </div>
+  <div class="gd-card">
+    <h4>Banners &amp; missing cover art</h4>
+    <p><strong>Admin → Fetch Images.</strong> Search free stock photos (Pexels) or generate one with AI, then apply it as a specific track's banner, a movie's thumbnail, or the site-wide default. There's also a quick link straight to this from the Banner field inside Edit Track.</p>
+  </div>
+</div>
+
+<div class="gd-section">
+  <div class="gd-h">🎬 Getting movies onto the site</div>
+  <div class="gd-card">
+    <h4>Fetch from TMDB</h4>
+    <p><strong>Admin → Fetch Movies.</strong> First visit asks for a free TMDB API key. Same Search/Trending/Now Playing/By Genre browsing as music. You get poster, description, rating, genre, and an official trailer automatically — never the full movie (same licensing reality as music). Edit the movie afterward and paste a real video link, or upload a file, into <strong>Video URL</strong> / <strong>Video File</strong>.</p>
+    <p>Pasting a YouTube link into either Video URL or Trailer URL works fine — it gets embedded properly regardless of which link format YouTube gave you.</p>
+  </div>
+</div>
+
+<div class="gd-section">
+  <div class="gd-h">🖋 Blog, Images &amp; other content</div>
+  <div class="gd-card">
+    <p><strong>Admin → Blog</strong> and <strong>Admin → Images</strong> manage those libraries the same way — upload directly, or approve/reject what creators submit through Creator Studio.</p>
+    <p><strong>Admin → Content</strong> is the unified moderation queue for everything creators upload through Creator Studio (music, video, images, blog), separate from your own direct uploads above.</p>
+  </div>
+</div>
+
+<div class="gd-section">
+  <div class="gd-h">👥 Creators &amp; payouts</div>
+  <div class="gd-card">
+    <p>Creators upload their own content through <strong>Creator Studio</strong> (front-end, not in this admin) — it lands in the Content moderation queue here for you to approve. Their earnings accumulate in an in-app Wallet, and withdrawal requests show up under <strong>Admin → Monetization</strong> for you to process.</p>
+  </div>
+</div>
+
+<div class="gd-section">
+  <div class="gd-h">🛠 Site management</div>
+  <div class="gd-card">
+    <h4>Pages</h4>
+    <p><strong>Admin → CMS → Pages.</strong> About, Privacy, Terms, Refund Policy, FAQ, Contact, Community Guidelines, and Cookie Policy already have real content — edit any of them here any time.</p>
+  </div>
+  <div class="gd-card">
+    <h4>Theme</h4>
+    <p><strong>Admin → CMS → Theme.</strong> Adjust site-wide color variables. Changes here layer on top of the built-in look, so you can nudge things without starting from scratch.</p>
+  </div>
+  <div class="gd-card">
+    <h4>System &amp; Automation</h4>
+    <p><strong>Admin → System</strong> shows health/cache status. <strong>Admin → Automation</strong> manages scheduled jobs and workflows, if you're using them.</p>
+  </div>
+  <div class="gd-card">
+    <h4>Maintenance mode</h4>
+    <p>Found in Settings — flip this on when doing major work, with an option to still let admins and specific IPs through.</p>
+  </div>
+</div>
+
+<div class="gd-section">
+  <div class="gd-h">✅ A sensible weekly routine</div>
+  <div class="gd-card">
+    <ol>
+      <li>Check <strong>Content</strong> for anything creators submitted, approve or reject.</li>
+      <li>Check the <strong>Tracks</strong>/<strong>Movies</strong> tables for anything still Pending from Fetch and approve in bulk.</li>
+      <li>Skim <strong>Monetization</strong> for pending withdrawal requests.</li>
+      <li>Once a month or so, glance at <strong>SEO</strong> and <strong>Branding</strong> to make sure nothing needs updating.</li>
+    </ol>
+  </div>
+</div>
+
+{% endblock %}

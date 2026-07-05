@@ -1,0 +1,55 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Network Diagnostics{% endblock %}
+{% block topbar_title %}📡 Network Diagnostics{% endblock %}
+{% block content %}
+
+<div class="panel" style="margin-bottom:16px;">
+  <div class="panel-body" style="padding:14px 16px;font-size:13px;color:var(--text2);">
+    Tests whether this server can actually reach the external services Fetch Music, Fetch Movies,
+    Fetch Images, and lyrics sync rely on. If any show ❌ below, that feature will silently return
+    no results — this is almost always a hosting-provider network restriction (e.g. PythonAnywhere's
+    free-tier allowlist), not a bug in the fetch tools themselves.
+  </div>
+</div>
+
+<div class="panel">
+  <div class="table-wrap"><table class="dt">
+    <thead><tr><th>Service</th><th>Status</th><th>Detail</th></tr></thead>
+    <tbody>
+    {% for r in results %}
+    <tr>
+      <td style="font-weight:600;">{{ r.name }}</td>
+      <td>{% if r.ok %}<span class="badge badge-green">✅ Reachable</span>{% else %}<span class="badge badge-gray" style="color:#ef4444;border-color:#ef4444;">❌ Blocked/Unreachable</span>{% endif %}</td>
+      <td style="font-size:12px;color:var(--text2);font-family:monospace;">{{ r.detail }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+
+{% if any_failed %}
+<div class="panel" style="margin-top:16px;border-color:#f59e0b;">
+  <div class="panel-body" style="padding:16px;font-size:13px;color:var(--text2);">
+    <strong style="color:var(--text);">At least one service is unreachable from this server.</strong>
+    If you're on PythonAnywhere's free plan, this is expected — free accounts can only reach a
+    specific allowlist of external sites. Two ways to fix it:
+    <ol style="margin:10px 0 0 20px;">
+      <li>Request the blocked domain(s) be added at
+        <a href="https://www.pythonanywhere.com/whitelist/" target="_blank" style="color:var(--accent);">pythonanywhere.com/whitelist</a>
+        (not guaranteed, but these are public documented APIs so it's a reasonable ask).</li>
+      <li>Upgrade to any paid PythonAnywhere plan — outbound restrictions are lifted entirely.</li>
+    </ol>
+  </div>
+</div>
+{% else %}
+<div class="panel" style="margin-top:16px;border-color:#22c55e;">
+  <div class="panel-body" style="padding:16px;font-size:13px;color:var(--text2);">
+    ✅ Everything is reachable — if Fetch is still returning no results, it's something else; let's dig
+    further with the exact search term/error you're seeing.
+  </div>
+</div>
+{% endif %}
+
+<a href="/admin-panel/network-diagnostics/" class="btn btn-secondary btn-sm" style="margin-top:16px;display:inline-block;">🔄 Re-run test</a>
+
+{% endblock %}

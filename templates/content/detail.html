@@ -45,7 +45,7 @@
       {# Thumbnail #}
       <div style="width:280px;flex-shrink:0;border-radius:16px;overflow:hidden;box-shadow:0 16px 48px rgba(0,0,0,.6);border:1px solid var(--bd2);">
         {% if content.thumbnail %}<img src="{{ content.thumbnail.url }}" alt="{{ content.title }}" style="width:100%;display:block;">
-        {% else %}<div style="aspect-ratio:16/9;background:linear-gradient(135deg,rgba(124,92,252,.2),rgba(255,77,109,.1));display:flex;align-items:center;justify-content:center;font-size:64px;">{% if content.content_type == 'video' %}🎬{% elif content.content_type == 'music' %}🎵{% else %}📄{% endif %}</div>{% endif %}
+        {% else %}<div style="aspect-ratio:16/9;background:linear-gradient(135deg,rgba(29,185,84,.2),rgba(255,77,109,.1));display:flex;align-items:center;justify-content:center;font-size:64px;">{% if content.content_type == 'video' %}🎬{% elif content.content_type == 'music' %}🎵{% else %}📄{% endif %}</div>{% endif %}
       </div>
 
       {# Info #}
@@ -138,7 +138,7 @@
           </div>
         </div>
         {% else %}
-        <div style="background:rgba(124,92,252,.07);border:1px solid rgba(124,92,252,.2);border-radius:12px;padding:16px 20px;margin-bottom:24px;text-align:center;">
+        <div style="background:rgba(29,185,84,.07);border:1px solid rgba(29,185,84,.2);border-radius:12px;padding:16px 20px;margin-bottom:24px;text-align:center;">
           <a href="/auth/login/?next={{ request.path }}" style="color:var(--ac);font-weight:600;">Sign in</a> to leave a comment
         </div>
         {% endif %}

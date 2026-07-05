@@ -266,7 +266,9 @@ def trending_view(request):
         'trending_content': trending_content,
         'external_music':   external_music,
     }
-    cache.set(cache_key, ctx, 300)   # cache 5 minutes
+    cache.set(cache_key, ctx, 60)   # cache 60s — short enough that recently
+                                    # edited/deleted/fetched items don't
+                                    # linger as broken links for long
     return render(request, 'trending.html', ctx)
 
 

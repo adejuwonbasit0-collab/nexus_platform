@@ -38,6 +38,8 @@ urlpatterns = [
     # Finance
     path('monetization/',                   views.admin_monetization,     name='admin_monetization'),
     # CMS, Automation, System, Settings — unified hubs
+    path('guide/',                           settings_views.admin_guide,   name='admin_guide'),
+    path('network-diagnostics/',             settings_views.network_diagnostics, name='network_diagnostics'),
     path('cms/',                            settings_views.cms_hub,       name='cms_hub'),
     path('automation/',                     settings_views.automation_hub, name='automation_hub'),
     path('automation/job/<int:pk>/toggle/', settings_views.job_toggle,    name='job_toggle'),

@@ -21,8 +21,8 @@
   <div class="sp-section-head"><div class="sp-section-title">⭐ Featured</div></div>
   <div class="sp-row">
     {% for img in featured %}
-    <a href="/images/{{ img.slug }}/" class="sp-card" style="width:180px;flex-shrink:0">
-      <div class="sp-card-cover">{% if img.file %}<img src="{{ img.file.url }}" loading="lazy">{% else %}🖼{% endif %}</div>
+    <a href="/images/view/{{ img.slug }}/" class="sp-card" style="width:180px;flex-shrink:0">
+      <div class="sp-card-cover">{% if img.has_image %}<img src="{{ img.display_url }}" loading="lazy">{% else %}🖼{% endif %}</div>
       <div class="sp-card-title">{{ img.title }}</div>
     </a>
     {% endfor %}
@@ -40,8 +40,8 @@
   <div class="sp-section-head"><div class="sp-section-title">🆕 Recent Uploads</div><a href="/images/browse/" class="sp-section-more">Browse all</a></div>
   <div class="ig-masonry">
     {% for img in recent %}
-    <a href="/images/{{ img.slug }}/" class="ig-card">
-      {% if img.file %}<img src="{{ img.file.url }}" loading="lazy" alt="{{ img.title }}">{% else %}<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:36px;background:var(--bg3)">🖼</div>{% endif %}
+    <a href="/images/view/{{ img.slug }}/" class="ig-card">
+      {% if img.has_image %}<img src="{{ img.display_url }}" loading="lazy" alt="{{ img.title }}">{% else %}<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:36px;background:var(--bg3)">🖼</div>{% endif %}
       <div class="ig-overlay"><div class="ig-title">{{ img.title }}</div></div>
     </a>
     {% empty %}

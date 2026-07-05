@@ -634,3 +634,44 @@ def email_test(request):
     except Exception as e:
         messages.error(request, f'Email failed: {e}')
     return redirect('/admin-panel/settings/?tab=email')
+
+
+@_admin
+def admin_guide(request):
+    """Static how-to-use-the-admin reference page."""
+    return render(request, 'admin_panel/guide.html', {})
+
+
+@_admin
+def network_diagnostics(request):
+    """Tests outbound connectivity to every external API Fetch relies on,
+    so a PythonAnywhere free-tier network restriction shows up as a clear
+    pass/fail list instead of a silent empty result somewhere else."""
+    import urllib.request
+    import time
+
+    targets = [
+        ('iTunes (music search)', 'https://itunes.apple.com/search?term=test&limit=1'),
+        ('iTunes (charts feed)', 'https://itunes.apple.com/us/rss/topsongs/limit=1/json'),
+        ('TMDB (movies)', 'https://api.themoviedb.org/3/configuration'),
+        ('Pexels (stock photos)', 'https://api.pexels.com/v1/search?query=test&per_page=1'),
+        ('LRCLIB (synced lyrics)', 'https://lrclib.net/api/search?q=test'),
+        ('YouTube (embeds)', 'https://www.youtube.com'),
+    ]
+    results = []
+    for name, url in targets:
+        start = time.time()
+        try:
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                status = resp.status
+            elapsed = round(time.time() - start, 2)
+            results.append({'name': name, 'ok': status < 500, 'detail': f'HTTP {status} in {elapsed}s'})
+        except Exception as e:
+            elapsed = round(time.time() - start, 2)
+            results.append({'name': name, 'ok': False, 'detail': f'{type(e).__name__}: {str(e)[:150]} ({elapsed}s)'})
+
+    any_failed = any(not r['ok'] for r in results)
+    return render(request, 'admin_panel/network_diagnostics.html', {
+        'results': results, 'any_failed': any_failed,
+    })

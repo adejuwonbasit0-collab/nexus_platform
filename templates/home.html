@@ -182,14 +182,21 @@ if(g)g.textContent=(h<12?'Good morning':h<18?'Good afternoon':'Good evening')+'{
 {% if genres %}
 <div class="sp-sec">
   <div class="sp-section-head"><div class="sp-section-title">🎸 Browse by Genre</div><a href="/music/" class="sp-section-more">All genres</a></div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px">
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px">
     {% for g in genres %}
-    <a href="/music/genre/{{ g.slug }}/" style="border-radius:var(--r2);padding:18px 16px;text-decoration:none;color:#fff;font-weight:700;font-size:15px;min-height:100px;display:flex;align-items:flex-end;position:relative;overflow:hidden;transition:transform .2s;background:{% cycle '#3d0c7b' '#7b0c4a' '#0c5a7b' '#7b4a0c' '#0c7b3d' '#4a0c7b' %}" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform=''">
-      <span style="position:relative;z-index:1">{{ g.name }}</span>
+    <a href="/music/genre/{{ g.slug }}/" class="genre-tile" style="background:{% cycle 'linear-gradient(135deg,#8b2fd6,#4c1a8f)' 'linear-gradient(135deg,#e0245e,#7b0c3a)' 'linear-gradient(135deg,#1db954,#0d6b30)' 'linear-gradient(135deg,#e8590c,#7b3204)' 'linear-gradient(135deg,#0091d5,#053a54)' 'linear-gradient(135deg,#c9184a,#5c0827)' %}">
+      <span class="genre-tile-note">♪</span>
+      <span class="genre-tile-label">{{ g.name }}</span>
     </a>
     {% endfor %}
   </div>
 </div>
+<style>
+.genre-tile{border-radius:var(--r2);padding:18px 16px;text-decoration:none;color:#fff;font-weight:800;font-size:15px;min-height:104px;display:flex;align-items:flex-end;position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.genre-tile:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 10px 24px rgba(0,0,0,.4)}
+.genre-tile-label{position:relative;z-index:1;letter-spacing:.01em}
+.genre-tile-note{position:absolute;right:-8px;top:-14px;font-size:70px;color:rgba(255,255,255,.18);transform:rotate(22deg);z-index:0;line-height:1}
+</style>
 {% endif %}
 
 {# Featured content #}
@@ -231,7 +238,7 @@ if(g)g.textContent=(h<12?'Good morning':h<18?'Good afternoon':'Good evening')+'{
 {# CTA for guests #}
 {% if not user.is_authenticated %}
 <div class="sp-sec">
-  <div style="background:linear-gradient(135deg,rgba(29,185,84,.12),rgba(124,92,252,.1));border:1px solid rgba(29,185,84,.2);border-radius:14px;padding:40px 32px;text-align:center">
+  <div style="background:linear-gradient(135deg,rgba(29,185,84,.12),rgba(29,185,84,.1));border:1px solid rgba(29,185,84,.2);border-radius:14px;padding:40px 32px;text-align:center">
     <div style="font-size:40px;margin-bottom:14px">🚀</div>
     <h2 style="font-family:'Space Grotesk',sans-serif;font-size:clamp(18px,3vw,26px);font-weight:800;margin-bottom:8px">Start listening for free</h2>
     <p style="font-size:14px;color:var(--tx2);margin-bottom:24px;max-width:380px;margin-left:auto;margin-right:auto">Millions of tracks, movies, and stories. Upload, stream, and earn — all in one platform.</p>

@@ -866,58 +866,8 @@ def notifications_count(request):
 @_creator_required
 
 
-@_creator_required
 @require_POST
 def creator_bulk_upload(request):
-    """Bulk upload endpoint ..."""
-    from django.http import JsonResponse
-    from django.core.files.storage import default_storage
-
-    action = request.POST.get('action', 'bulk_create')
-
-    if action == 'bulk_episode':
-        try:
-            from movies.models import Series, Season, Episode
-            series = Series.objects.get(pk=request.POST.get('series_pk'))
-            season_num = int(request.POST.get('season_number', 1))
-            season, _ = Season.objects.get_or_create(series=series, number=season_num)
-            ep_num = season.episodes.count() + 1
-            ep = Episode(
-                season=season,
-                number=ep_num,
-                title=request.POST.get('title', f'Episode {ep_num}'),
-                description='',
-                is_free=True,
-            )
-            if 'video_file' in request.FILES:
-                ep.video_file = request.FILES['video_file']
-            ep.save()
-            return JsonResponse({'ok': True, 'pk': ep.pk, 'title': ep.title})
-        except Exception as ex:
-            return JsonResponse({'ok': False, 'error': str(ex)})
-
-    content_type = request.POST.get('content_type', 'video')
-    title = request.POST.get('title', 'Untitled').strip() or 'Untitled'
-    try:
-        c = Content(
-            creator=request.user,
-            title=title,
-            content_type=content_type,
-            status='draft',
-            tier='free',
-            description='',
-        )
-        file_fields = {'music': 'audio_file', 'image': 'image_file', 'video': 'video_file'}
-        field = file_fields.get(content_type, 'file')
-        uploaded = request.FILES.get(field) or request.FILES.get('file')
-        if uploaded:
-            c.file = uploaded
-        if content_type == 'image' and uploaded:
-            c.thumbnail = uploaded
-        c.save()
-        return JsonResponse({'ok': True, 'pk': c.pk, 'title': c.title})
-    except Exception as ex:
-        return JsonResponse({'ok': False, 'error': str(ex)})
     """Bulk upload endpoint — creates Content items as drafts immediately
     so the creator can name and edit them before publishing.
     Accepts: action=bulk_create (generic content) or action=bulk_episode (series episode).
@@ -976,65 +926,9 @@ def creator_bulk_upload(request):
         return JsonResponse({'ok': False, 'error': str(ex)})
 
 
-@_creator_required
 def creator_dashboard(request):
     user    = request.user
     content = Content.objects.filter(creator=user).order_by('-created_at')
-
-    stats = {
-        'total_uploads': content.count(),
-        'approved':      content.filter(status='approved').count(),
-        'pending':       content.filter(status='pending').count(),
-        'draft':         content.filter(status='draft').count(),
-        'rejected':      content.filter(status='rejected').count(),
-        'total_views':   content.aggregate(t=Sum('views'))['t'] or 0,
-    }
-
-    wallet = None
-    try:
-        wallet = user.wallet
-    except Exception:
-        pass
-
-    recent_earnings = []
-    try:
-        from monetization.models import Earning
-        recent_earnings = Earning.objects.filter(creator=user).order_by('-created_at')[:10]
-    except Exception:
-        pass
-
-    by_type = {
-        'video': content.filter(content_type='video'),
-        'music': content.filter(content_type='music'),
-        'image': content.filter(content_type='image'),
-        'blog':  content.filter(content_type='blog'),
-    }
-    type_counts = {k: v.count() for k, v in by_type.items()}
-
-    series_list = []
-    try:
-        from movies.models import Series
-        series_list = list(Series.objects.filter(
-            seasons__episodes__isnull=False
-        ).distinct().prefetch_related('seasons__episodes').order_by('title'))
-        all_series = list(Series.objects.order_by('title'))
-        pks_seen = {s.pk for s in series_list}
-        series_list += [s for s in all_series if s.pk not in pks_seen]
-    except Exception:
-        pass
-
-    return render(request, 'creator/dashboard.html', {
-        'content': content[:5],
-        'all_content': content,
-        'video_content': by_type['video'][:12],
-        'music_content': by_type['music'][:12],
-        'image_content': by_type['image'][:12],
-        'blog_content':  by_type['blog'][:12],
-        'type_counts': type_counts,
-        'stats': stats,
-        'series_list': series_list,
-        'recent_earnings': recent_earnings,
-    })
 
     stats = {
         'total_uploads': content.count(),
@@ -1519,6 +1413,7 @@ def admin_movies(request):
     """Movies management — all CRUD from admin panel."""
     from movies.models import Movie, Genre, Country, Series
     if request.method == 'POST':
+        from django.core.cache import cache; cache.delete('trending_page_v2')
         action = request.POST.get('action', '')
         if action == 'toggle_publish':
             m = get_object_or_404(Movie, pk=request.POST.get('pk'))
@@ -1703,6 +1598,7 @@ def admin_music(request):
     from django.utils.text import slugify
 
     if request.method == 'POST':
+        from django.core.cache import cache; cache.delete('trending_page_v2')
         action = request.POST.get('action', '')
 
         # ── Track actions ─────────────────────────────────────────────────────

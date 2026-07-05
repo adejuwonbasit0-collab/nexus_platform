@@ -85,7 +85,6 @@ def cms_theme(request):
     return render(request, 'admin_panel/cms/theme.html', {'obj': obj})
 
 
-@_admin_required
 def cms_theme_css(request):
     """Serve dynamic CSS from theme config — linked in base.html."""
     obj = ThemeConfig.get()
@@ -351,7 +350,6 @@ def cms_seo(request):
     })
 
 
-@_admin_required
 def cms_robots_txt(request):
     """Serve robots.txt from CMS."""
     try:
@@ -359,7 +357,64 @@ def cms_robots_txt(request):
         content = seo.robots_txt
     except Exception:
         content = 'User-agent: *\nAllow: /'
+    if 'Sitemap:' not in content:
+        content = content.rstrip() + f'\nSitemap: {request.scheme}://{request.get_host()}/sitemap.xml\n'
     return HttpResponse(content, content_type='text/plain')
+
+
+def cms_sitemap_xml(request):
+    """Lightweight dynamic sitemap covering static pages plus all published
+    tracks, movies, artists, albums, blog posts, and images. Kept dependency
+    -free (no django.contrib.sitemaps) to avoid touching INSTALLED_APPS."""
+    base = f'{request.scheme}://{request.get_host()}'
+    urls = [(base + '/', '1.0', 'daily')]
+
+    try:
+        for p in StaticPage.objects.filter(status='published'):
+            urls.append((f'{base}/page/{p.slug}/', '0.5', 'monthly'))
+    except Exception:
+        pass
+
+    try:
+        from music.models import Track, Artist, Album
+        for t in Track.objects.filter(is_published=True).only('slug'):
+            urls.append((f'{base}/music/track/{t.slug}/', '0.7', 'weekly'))
+        for a in Artist.objects.all().only('slug'):
+            urls.append((f'{base}/music/artist/{a.slug}/', '0.6', 'weekly'))
+        for al in Album.objects.all().only('slug'):
+            urls.append((f'{base}/music/album/{al.slug}/', '0.6', 'weekly'))
+    except Exception:
+        pass
+
+    try:
+        from movies.models import Movie
+        for m in Movie.objects.filter(is_published=True).only('slug'):
+            urls.append((f'{base}/movies/film/{m.slug}/', '0.7', 'weekly'))
+    except Exception:
+        pass
+
+    try:
+        from blog.models import Post
+        for post in Post.objects.filter(is_published=True).only('slug'):
+            urls.append((f'{base}/blog/{post.slug}/', '0.6', 'monthly'))
+    except Exception:
+        pass
+
+    try:
+        from images.models import Image
+        for img in Image.objects.filter(is_published=True).only('slug'):
+            urls.append((f'{base}/images/view/{img.slug}/', '0.5', 'monthly'))
+    except Exception:
+        pass
+
+    xml_parts = ['<?xml version="1.0" encoding="UTF-8"?>',
+                 '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    for loc, priority, freq in urls:
+        xml_parts.append(
+            f'<url><loc>{loc}</loc><changefreq>{freq}</changefreq><priority>{priority}</priority></url>'
+        )
+    xml_parts.append('</urlset>')
+    return HttpResponse('\n'.join(xml_parts), content_type='application/xml')
 
 
 # ── Announcements ─────────────────────────────────────────────────────────────

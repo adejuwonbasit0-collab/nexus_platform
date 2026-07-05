@@ -7,14 +7,14 @@
 .hero-grad{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.3),rgba(0,0,0,.6) 60%,var(--bg) 100%);}
 .hero-content{position:relative;z-index:2;padding:48px 0 40px;display:flex;gap:32px;align-items:flex-end;}
 .series-poster{width:190px;flex-shrink:0;border-radius:12px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.7);aspect-ratio:2/3;}
-.series-poster img,.series-poster .ph{width:100%;height:100%;object-fit:cover;display:flex;align-items:center;justify-content:center;font-size:4rem;background:linear-gradient(135deg,rgba(124,92,252,.3),rgba(255,77,109,.2));}
+.series-poster img,.series-poster .ph{width:100%;height:100%;object-fit:cover;display:flex;align-items:center;justify-content:center;font-size:4rem;background:linear-gradient(135deg,rgba(29,185,84,.3),rgba(255,77,109,.2));}
 .meta-tag{padding:3px 11px;border-radius:20px;font-size:12px;font-weight:600;background:rgba(255,255,255,.1);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.15);}
-.meta-tag.genre{background:rgba(124,92,252,.25);color:#c4b5fd;border-color:rgba(124,92,252,.3);}
+.meta-tag.genre{background:rgba(29,185,84,.25);color:#c4b5fd;border-color:rgba(29,185,84,.3);}
 
 .season-block{border:1px solid var(--bd);border-radius:12px;overflow:hidden;margin-bottom:12px;}
 .season-header{display:flex;align-items:center;justify-content:space-between;padding:15px 20px;background:rgba(255,255,255,.04);cursor:pointer;user-select:none;transition:background .15s;}
 .season-header:hover{background:rgba(255,255,255,.07);}
-.season-header.open{background:rgba(124,92,252,.08);border-bottom:1px solid var(--bd);}
+.season-header.open{background:rgba(29,185,84,.08);border-bottom:1px solid var(--bd);}
 .season-arrow{transition:transform .25s;font-size:14px;color:var(--tx2);}
 .season-header.open .season-arrow{transform:rotate(90deg);}
 .season-body{display:none;}
@@ -37,7 +37,7 @@
 
 .related-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;}
 .rcard{text-decoration:none;display:block;}
-.rcard img,.rcard .rph{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:9px;display:block;background:rgba(124,92,252,.1);transition:transform .3s;}
+.rcard img,.rcard .rph{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:9px;display:block;background:rgba(29,185,84,.1);transition:transform .3s;}
 .rcard:hover img{transform:scale(1.05);}
 @media(max-width:768px){.hero-content{flex-direction:column;gap:18px;}.series-poster{width:130px;}}
 </style>
@@ -145,7 +145,7 @@
         {% for r in related %}
         <a href="/movies/series/{{ r.slug }}/" class="rcard">
           {% if r.thumbnail %}<img src="{{ r.thumbnail.url }}" alt="{{ r.title }}">
-          {% else %}<div class="rph" style="aspect-ratio:2/3;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:2.5rem;background:rgba(124,92,252,.1);">📺</div>{% endif %}
+          {% else %}<div class="rph" style="aspect-ratio:2/3;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:2.5rem;background:rgba(29,185,84,.1);">📺</div>{% endif %}
           <div style="font-size:12px;font-weight:600;color:var(--tx);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ r.title }}</div>
           <div style="font-size:11px;color:var(--tx2);">{{ r.release_year }}</div>
         </a>
