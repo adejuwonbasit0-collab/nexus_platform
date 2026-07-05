@@ -259,6 +259,9 @@ def admin_approve_content(request, pk):
     except Exception:
         pass
     messages.success(request, f'"{content.title}" approved.')
+    from django.core.cache import cache
+    cache.delete('homepage_content_v5')
+    cache.delete('trending_page_v2')
     return redirect(request.META.get('HTTP_REFERER', 'admin_content'))
 
 
@@ -282,6 +285,8 @@ def admin_reject_content(request, pk):
     except Exception:
         pass
     messages.success(request, f'"{content.title}" rejected.')
+    from django.core.cache import cache
+    cache.delete('homepage_content_v5')
     return redirect(request.META.get('HTTP_REFERER', 'admin_content'))
 
 
@@ -292,6 +297,9 @@ def admin_delete_content(request, pk):
     title = content.title
     content.delete()
     messages.success(request, f'"{title}" deleted.')
+    from django.core.cache import cache
+    cache.delete('homepage_content_v5')
+    cache.delete('trending_page_v2')
     return redirect('admin_content')
 
 
@@ -1832,6 +1840,7 @@ def admin_music(request):
                 try: t.genre = Genre.objects.get(pk=genre_pk)
                 except: pass
             t.lyrics = request.POST.get('lyrics', t.lyrics)
+            t.lyrics_lrc = request.POST.get('lyrics_lrc', t.lyrics_lrc)
             t.is_published = request.POST.get('is_published') == 'on'
             t.is_premium = request.POST.get('is_premium') == 'on'
             if 'audio_file' in request.FILES:

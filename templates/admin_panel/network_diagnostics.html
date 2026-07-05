@@ -59,6 +59,29 @@
   </div>
 </div>
 
+{% if deep.ran %}
+<div class="panel" style="margin-top:16px;">
+  <div class="panel-body" style="padding:16px;">
+    <div style="font-weight:700;margin-bottom:10px;">🔬 Deep test: actual Pexels search + image download</div>
+    {% if deep.error %}
+      <div style="color:#ef4444;font-size:12px;font-family:monospace;">{{ deep.error }}</div>
+    {% else %}
+      <div style="font-size:12.5px;color:var(--text2);margin-bottom:6px;">
+        Search for "concert lights" returned <strong style="color:var(--text);">{{ deep.search_count }}</strong> result(s).
+      </div>
+      {% if deep.sample_image_url %}
+      <div style="font-size:12.5px;color:var(--text2);margin-bottom:6px;">
+        Trying to download the first result's actual image file (a different domain than the search API):
+      </div>
+      <div style="font-size:12px;font-family:monospace;color:{% if deep.download_ok %}#22c55e{% else %}#ef4444{% endif %};">
+        {% if deep.download_ok %}✅{% else %}❌{% endif %} {{ deep.download_detail }}
+      </div>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
 <a href="/admin-panel/network-diagnostics/" class="btn btn-secondary btn-sm" style="margin-top:16px;display:inline-block;">🔄 Re-run test</a>
 
 {% endblock %}

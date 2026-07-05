@@ -706,6 +706,36 @@ def network_diagnostics(request):
             results.append({'name': name, 'ok': False, 'detail': f'{type(e).__name__}: {str(e)[:150]} ({elapsed}s)'})
 
     any_failed = any(not r['ok'] for r in results)
+
+    # Deep test: run the ACTUAL functions Fetch Images uses (search, then
+    # download a real result) — connectivity alone isn't enough, because
+    # api.pexels.com (search) and images.pexels.com (actual photo files)
+    # are different domains and a host can allow one but block the other.
+    deep = {'ran': False}
+    if pexels_key:
+        from . import external_fetch as ext
+        deep['ran'] = True
+        try:
+            search_results = ext.pexels_search('concert lights', per_page=3)
+            deep['search_count'] = len(search_results)
+            if search_results:
+                test_url = search_results[0]['full']
+                deep['sample_image_url'] = test_url
+                import urllib.request
+                try:
+                    req = urllib.request.Request(test_url, headers={'User-Agent': 'Mozilla/5.0'})
+                    with urllib.request.urlopen(req, timeout=8) as resp:
+                        content_length = len(resp.read())
+                    deep['download_ok'] = True
+                    deep['download_detail'] = f'Downloaded {content_length} bytes from {test_url.split("/")[2]}'
+                except Exception as e:
+                    deep['download_ok'] = False
+                    deep['download_detail'] = f'{type(e).__name__}: {str(e)[:150]} — image CDN domain ({test_url.split("/")[2] if "://" in test_url else "?"}) may be blocked even though api.pexels.com is not'
+            else:
+                deep['search_count'] = 0
+        except Exception as e:
+            deep['error'] = f'{type(e).__name__}: {str(e)[:200]}'
+
     return render(request, 'admin_panel/network_diagnostics.html', {
-        'results': results, 'any_failed': any_failed,
+        'results': results, 'any_failed': any_failed, 'deep': deep,
     })

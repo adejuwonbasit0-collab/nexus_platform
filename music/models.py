@@ -183,6 +183,23 @@ class Track(models.Model):
             return self.audio_file.url
         return self.audio_url
 
+    def get_edit_json(self):
+        """JSON blob consumed by the admin Edit Track modal so opening it
+        doesn't blank out fields it doesn't explicitly set — previously
+        Published/Premium/Lyrics/Synced Lyrics were silently wiped on any
+        edit+save because the modal always opened empty."""
+        import json
+        data = {
+            'title': self.title,
+            'artist_pk': self.artist_id,
+            'artist_name': self.artist.name if self.artist_id else '',
+            'lyrics': self.lyrics or '',
+            'lyrics_lrc': self.lyrics_lrc or '',
+            'is_published': self.is_published,
+            'is_premium': self.is_premium,
+        }
+        return json.dumps(data)
+
     @property
     def display_banner(self):
         """Banner shown behind the player: explicit banner → artist photo →

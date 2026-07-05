@@ -78,7 +78,7 @@ def platform_home(request):
             'recent':   list(base_qs.order_by('-created_at')[:16]),
             'trending': list(base_qs.order_by('-views')[:12]),
         }
-        cache.set(cache_key, content_data, 300)
+        cache.set(cache_key, content_data, 90)
 
     # ── Categories ─────────────────────────────────────────────────────────────
     categories = []
