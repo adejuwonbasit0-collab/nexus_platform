@@ -50,6 +50,15 @@
 </div>
 {% endif %}
 
+<div class="panel" style="margin-top:16px;">
+  <div class="panel-body" style="padding:16px;font-size:13px;color:var(--text2);">
+    <strong style="color:var(--text);">Note on YouTube trailers/embeds:</strong> those load directly in
+    the visitor's own browser, not through this server — so there's no meaningful "is YouTube reachable
+    from the server" test to run here. If a specific trailer won't embed, that's YouTube (or that video's
+    uploader) refusing it for that visitor/video, not something this server's network access affects.
+  </div>
+</div>
+
 <a href="/admin-panel/network-diagnostics/" class="btn btn-secondary btn-sm" style="margin-top:16px;display:inline-block;">🔄 Re-run test</a>
 
 {% endblock %}

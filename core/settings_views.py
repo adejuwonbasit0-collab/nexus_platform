@@ -646,27 +646,61 @@ def admin_guide(request):
 def network_diagnostics(request):
     """Tests outbound connectivity to every external API Fetch relies on,
     so a PythonAnywhere free-tier network restriction shows up as a clear
-    pass/fail list instead of a silent empty result somewhere else."""
+    pass/fail list instead of a silent empty result somewhere else.
+
+    Uses whatever API key you've actually configured (TMDB, Pexels) so a
+    401 caused by a missing/invalid key is reported separately from a
+    genuine network block — those look identical from the outside
+    otherwise, and conflating them was actively misleading."""
     import urllib.request
+    import urllib.error
     import time
+    from core.models import SiteSettings
+
+    def _key(name):
+        obj = SiteSettings.objects.filter(key=name).first()
+        return obj.value.strip() if obj and obj.value else ''
+
+    tmdb_key = _key('tmdb_api_key')
+    pexels_key = _key('pexels_api_key')
 
     targets = [
-        ('iTunes (music search)', 'https://itunes.apple.com/search?term=test&limit=1'),
-        ('iTunes (charts feed)', 'https://itunes.apple.com/us/rss/topsongs/limit=1/json'),
-        ('TMDB (movies)', 'https://api.themoviedb.org/3/configuration'),
-        ('Pexels (stock photos)', 'https://api.pexels.com/v1/search?query=test&per_page=1'),
-        ('LRCLIB (synced lyrics)', 'https://lrclib.net/api/search?q=test'),
-        ('YouTube (embeds)', 'https://www.youtube.com'),
+        ('iTunes (music search)', 'https://itunes.apple.com/search?term=test&limit=1', {}),
+        ('iTunes (charts feed)', 'https://itunes.apple.com/us/rss/topsongs/limit=1/json', {}),
+        ('TMDB (movies)',
+         f'https://api.themoviedb.org/3/configuration?api_key={tmdb_key}' if tmdb_key else 'https://api.themoviedb.org/3/configuration',
+         {}),
+        ('Pexels (stock photos)', 'https://api.pexels.com/v1/search?query=test&per_page=1',
+         {'Authorization': pexels_key} if pexels_key else {}),
+        ('LRCLIB (synced lyrics)', 'https://lrclib.net/api/search?q=test', {}),
     ]
     results = []
-    for name, url in targets:
+    for name, url, extra_headers in targets:
         start = time.time()
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        headers.update(extra_headers)
+        needs_key_note = ''
+        if name.startswith('TMDB') and not tmdb_key:
+            needs_key_note = ' — no TMDB key saved yet, testing connectivity only'
+        if name.startswith('Pexels') and not pexels_key:
+            needs_key_note = ' — no Pexels key saved yet, testing connectivity only'
         try:
-            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            req = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(req, timeout=8) as resp:
                 status = resp.status
             elapsed = round(time.time() - start, 2)
-            results.append({'name': name, 'ok': status < 500, 'detail': f'HTTP {status} in {elapsed}s'})
+            results.append({'name': name, 'ok': True, 'detail': f'HTTP {status} in {elapsed}s{needs_key_note}'})
+        except urllib.error.HTTPError as e:
+            elapsed = round(time.time() - start, 2)
+            if e.code in (401, 403):
+                # The server answered — connectivity is fine. This is an
+                # auth problem (missing/invalid key), not a network block.
+                results.append({
+                    'name': name, 'ok': True,
+                    'detail': f'Reachable, but got HTTP {e.code} (check your API key){needs_key_note} ({elapsed}s)',
+                })
+            else:
+                results.append({'name': name, 'ok': False, 'detail': f'HTTP {e.code}: {str(e)[:120]} ({elapsed}s)'})
         except Exception as e:
             elapsed = round(time.time() - start, 2)
             results.append({'name': name, 'ok': False, 'detail': f'{type(e).__name__}: {str(e)[:150]} ({elapsed}s)'})
