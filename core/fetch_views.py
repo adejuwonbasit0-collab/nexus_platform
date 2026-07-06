@@ -265,8 +265,9 @@ def fetch_images(request):
 
     configured = ext.pexels_configured()
     results = []
+    search_error = None
     if tab == 'stock' and configured and q:
-        results = ext.pexels_search(q, per_page=18)
+        results, search_error = ext.pexels_search_verbose(q, per_page=18)
 
     target_label = 'Site-wide default banner'
     target_obj = None
@@ -284,6 +285,7 @@ def fetch_images(request):
     return render(request, 'admin_panel/modules/fetch_images.html', {
         'tab': tab, 'q': q, 'results': results, 'pexels_configured': configured,
         'target': target, 'pk': pk, 'target_label': target_label,
+        'search_error': search_error,
     })
 
 

@@ -59,6 +59,23 @@ def _get_json(url, data=None, headers=None, timeout=TIMEOUT):
         return None
 
 
+def _get_json_verbose(url, headers=None, timeout=TIMEOUT):
+    """Same as _get_json but returns (data, error_message) instead of
+    swallowing failures — used where we want to show the admin exactly
+    why a search came back empty (network block vs. bad key vs. a
+    genuinely empty result) rather than a generic 'no results'."""
+    try:
+        req = urllib.request.Request(url, headers=headers or {})
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return json.loads(resp.read().decode('utf-8', errors='ignore')), None
+    except urllib.error.HTTPError as e:
+        if e.code in (401, 403):
+            return None, f'Rejected with HTTP {e.code} — the saved API key is likely invalid or expired.'
+        return None, f'HTTP {e.code} error from the server.'
+    except Exception as e:
+        return None, f'{type(e).__name__}: {str(e)[:150]} — this server likely can\'t reach that domain at all.'
+
+
 # ── Music: iTunes ──────────────────────────────────────────────────────────────
 
 def itunes_search(term, limit=25):
@@ -256,6 +273,27 @@ def pexels_search(query, per_page=15):
     data = _get_json(f'https://api.pexels.com/v1/search?{q}', headers={'Authorization': key})
     if not data:
         return []
+    return _pexels_parse(data)
+
+
+def pexels_search_verbose(query, per_page=15):
+    """Returns (results, error_message). error_message is None on success
+    (even if results is genuinely empty) — used by the interactive Fetch
+    Images page so a failed request looks different from a real zero-hit
+    search instead of both showing a blank 'no results'."""
+    key = _pexels_key()
+    if not key:
+        return [], 'No Pexels API key saved yet.'
+    if not query.strip():
+        return [], None
+    q = urllib.parse.urlencode({'query': query.strip(), 'per_page': per_page, 'orientation': 'landscape'})
+    data, err = _get_json_verbose(f'https://api.pexels.com/v1/search?{q}', headers={'Authorization': key})
+    if err:
+        return [], err
+    return _pexels_parse(data), None
+
+
+def _pexels_parse(data):
     out = []
     for p in data.get('photos', []):
         out.append({

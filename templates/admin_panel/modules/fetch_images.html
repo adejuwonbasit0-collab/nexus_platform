@@ -60,7 +60,10 @@
       </div>
       {% empty %}
       <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text2);">
-        {% if not q %}Search for something above.{% else %}No results — try a different search.{% endif %}
+        {% if search_error %}
+          <div style="color:#ef4444;font-weight:700;margin-bottom:6px;">⚠ Search failed</div>
+          <div style="font-size:12px;font-family:monospace;max-width:480px;margin:0 auto;">{{ search_error }}</div>
+        {% elif not q %}Search for something above.{% else %}No results — try a different search.{% endif %}
       </div>
       {% endfor %}
     </div>
