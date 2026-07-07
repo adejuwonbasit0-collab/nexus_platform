@@ -245,14 +245,15 @@ def fetch_movies_import(request):
 
 @_admin_required
 def fetch_images(request):
-    """Search Pexels stock photos or generate an AI image, then apply the
-    result as the site-wide default player banner, or as the banner/thumbnail
-    for a specific track or movie (pass ?target=track&pk=5 or
-    ?target=movie&pk=5 to open it pre-scoped to that item)."""
+    """Search stock photos (Pexels or Pixabay) or generate an AI image, then
+    apply the result as the site-wide default player banner, or as the
+    banner/thumbnail for a specific track or movie (pass ?target=track&pk=5
+    or ?target=movie&pk=5 to open it pre-scoped to that item)."""
     tab = request.GET.get('tab', 'stock')
     q = request.GET.get('q', '').strip()
     target = request.GET.get('target', 'site')  # site | track | movie
     pk = request.GET.get('pk', '')
+    provider = request.GET.get('provider', 'pexels')  # pexels | pixabay
 
     if request.method == 'POST' and request.POST.get('action') == 'save_pexels_key':
         from core.models import SiteSettings
@@ -261,13 +262,27 @@ def fetch_images(request):
         obj.value = key
         obj.save()
         messages.success(request, 'Pexels API key saved.')
-        return redirect(request.path + f'?tab=stock&target={target}&pk={pk}')
+        return redirect(request.path + f'?tab=stock&provider=pexels&target={target}&pk={pk}')
 
-    configured = ext.pexels_configured()
+    if request.method == 'POST' and request.POST.get('action') == 'save_pixabay_key':
+        from core.models import SiteSettings
+        key = request.POST.get('pixabay_api_key', '').strip()
+        obj, _c = SiteSettings.objects.get_or_create(key='pixabay_api_key', defaults={'label': 'Pixabay API Key', 'group': 'integrations'})
+        obj.value = key
+        obj.save()
+        messages.success(request, 'Pixabay API key saved.')
+        return redirect(request.path + f'?tab=stock&provider=pixabay&target={target}&pk={pk}')
+
+    pexels_configured = ext.pexels_configured()
+    pixabay_configured = ext.pixabay_configured()
+    configured = pexels_configured if provider == 'pexels' else pixabay_configured
     results = []
     search_error = None
     if tab == 'stock' and configured and q:
-        results, search_error = ext.pexels_search_verbose(q, per_page=18)
+        if provider == 'pixabay':
+            results, search_error = ext.pixabay_search_verbose(q, per_page=18)
+        else:
+            results, search_error = ext.pexels_search_verbose(q, per_page=18)
 
     target_label = 'Site-wide default banner'
     target_obj = None
@@ -283,7 +298,9 @@ def fetch_images(request):
             target_label = f'Thumbnail for "{target_obj.title}"'
 
     return render(request, 'admin_panel/modules/fetch_images.html', {
-        'tab': tab, 'q': q, 'results': results, 'pexels_configured': configured,
+        'tab': tab, 'q': q, 'results': results,
+        'pexels_configured': pexels_configured, 'pixabay_configured': pixabay_configured,
+        'provider': provider,
         'target': target, 'pk': pk, 'target_label': target_label,
         'search_error': search_error,
     })

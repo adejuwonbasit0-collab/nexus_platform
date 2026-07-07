@@ -307,6 +307,52 @@ def _pexels_parse(data):
     return out
 
 
+# ── Stock images: Pixabay (alternative source) ──────────────────────────────
+# A second provider so there's a fallback if Pexels' domain happens to be
+# blocked/unreachable for a given host but Pixabay's isn't, or if a Pexels
+# key won't validate for some other reason.
+
+def _pixabay_key():
+    try:
+        from core.models import SiteSettings
+        obj = SiteSettings.objects.filter(key='pixabay_api_key').first()
+        return obj.value.strip() if obj and obj.value else ''
+    except Exception:
+        return ''
+
+
+def pixabay_configured():
+    return bool(_pixabay_key())
+
+
+def pixabay_search_verbose(query, per_page=18):
+    """Returns (results, error_message), same contract as
+    pexels_search_verbose."""
+    key = _pixabay_key()
+    if not key:
+        return [], 'No Pixabay API key saved yet.'
+    if not query.strip():
+        return [], None
+    q = urllib.parse.urlencode({
+        'key': key, 'q': query.strip(), 'image_type': 'photo',
+        'orientation': 'horizontal', 'per_page': max(per_page, 3),
+    })
+    data, err = _get_json_verbose(f'https://pixabay.com/api/?{q}')
+    if err:
+        return [], err
+    out = []
+    for p in data.get('hits', []):
+        out.append({
+            'source': 'Pixabay',
+            'external_id': str(p.get('id', '')),
+            'thumb': p.get('webformatURL', ''),
+            'full': p.get('largeImageURL') or p.get('webformatURL', ''),
+            'photographer': p.get('user', ''),
+            'page_url': p.get('pageURL', ''),
+        })
+    return out, None
+
+
 # ── Lyrics: LRCLIB ────────────────────────────────────────────────────────────
 # Free, keyless, crowd-sourced synced-lyrics database (lrclib.net). Used to
 # auto-fill Track.lyrics_lrc when importing via Fetch Music.
