@@ -640,6 +640,7 @@
       <a href="/admin-panel/notifications/" class="topbar-btn" title="Notifications">
         🔔{% if unread_notifs > 0 %}<span class="notif-dot"></span>{% endif %}
       </a>
+      <a href="/auth/profile/" class="topbar-btn" title="My Profile">👤</a>
       <form method="post" action="/auth/logout/" style="margin:0">{% csrf_token %}
         <button type="submit" class="topbar-btn" title="Sign out">🚪</button>
       </form>

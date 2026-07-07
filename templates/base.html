@@ -787,11 +787,44 @@ input,select,textarea{max-width:100%;font-size:16px} /* prevent iOS zoom */
       </div>
       <div class="sp-topbar-r">
         {% if user.is_authenticated %}
-        <div class="ddwrap">
-          <a href="/dashboard/" class="sp-avatar" title="{{ user.username }}">
+        <div class="ddwrap" id="account-menu-wrap" style="position:relative;">
+          <button type="button" class="sp-avatar" title="{{ user.username }}" onclick="toggleAccountMenu(event)" style="border:none;cursor:pointer;padding:0;">
             {% if user.avatar %}<img src="{{ user.avatar.url }}" alt="">{% else %}{{ user.username|slice:":1"|upper }}{% endif %}
-          </a>
+          </button>
+          <div id="account-menu" style="display:none;position:absolute;right:0;top:calc(100% + 10px);min-width:210px;background:var(--bg2);border:1px solid var(--bd);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.5);overflow:hidden;z-index:600;">
+            <div style="padding:14px 16px;border-bottom:1px solid var(--bd);">
+              <div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ user.username }}</div>
+              <div style="font-size:11px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ user.email }}</div>
+            </div>
+            <a href="/dashboard/" class="account-menu-item">🏠 Dashboard</a>
+            <a href="/auth/profile/" class="account-menu-item">👤 My Profile</a>
+            {% if user.is_admin %}<a href="/admin-panel/" class="account-menu-item">⚙ Admin Panel</a>{% endif %}
+            {% if user.role == 'creator' %}<a href="/creator/" class="account-menu-item">✨ Creator Studio</a>{% endif %}
+            <div style="height:1px;background:var(--bd);margin:4px 0;"></div>
+            <form method="post" action="/auth/logout/" style="margin:0;">
+              {% csrf_token %}
+              <button type="submit" class="account-menu-item" style="width:100%;text-align:left;background:none;border:none;cursor:pointer;color:#ff5c5c;">↪ Log Out</button>
+            </form>
+          </div>
         </div>
+        <style>
+          .account-menu-item{display:block;padding:10px 16px;font-size:13px;color:var(--tx);text-decoration:none;transition:background .15s;}
+          .account-menu-item:hover{background:var(--bg3);}
+        </style>
+        <script>
+          function toggleAccountMenu(e){
+            e.stopPropagation();
+            const m = document.getElementById('account-menu');
+            m.style.display = m.style.display === 'none' ? 'block' : 'none';
+          }
+          document.addEventListener('click', function(e){
+            const wrap = document.getElementById('account-menu-wrap');
+            if(wrap && !wrap.contains(e.target)){
+              const m = document.getElementById('account-menu');
+              if(m) m.style.display = 'none';
+            }
+          });
+        </script>
         {% else %}
         <a href="/auth/register/" class="btn btn-sm" style="background:transparent;color:var(--tx);border:1.5px solid var(--bd2);font-weight:700;">Sign up</a>
         <a href="/auth/login/" class="btn btn-primary btn-sm" style="font-weight:700;border-radius:50px;">Log in</a>
