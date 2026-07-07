@@ -205,7 +205,7 @@ if(g)g.textContent=(h<12?'Good morning':h<18?'Good afternoon':'Good evening')+'{
   <div class="sp-section-head"><div class="sp-section-title">⭐ Featured</div><a href="/browse/" class="sp-section-more">Show all</a></div>
   <div class="sp-row">
     {% for item in featured %}
-    <a href="/content/{{ item.pk }}/" class="sp-card-wide" style="flex-shrink:0">
+    <a href="/content/{{ item.slug }}/" class="sp-card-wide" style="flex-shrink:0">
       <div class="sp-card-wide-cover">
         {% if item.thumbnail %}<img src="{{ item.thumbnail.url }}" alt="{{ item.title }}" loading="lazy">
         {% else %}{% if item.content_type == 'video' %}🎬{% elif item.content_type == 'music' %}🎵{% elif item.content_type == 'image' %}🖼{% else %}📝{% endif %}{% endif %}

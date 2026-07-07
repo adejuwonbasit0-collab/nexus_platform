@@ -16,14 +16,15 @@
   <a class="tab-btn {% if tab == 'ai' %}active{% endif %}" href="?tab=ai&target={{ target }}&pk={{ pk }}" style="text-decoration:none;">✨ AI Generate</a>
 </div>
 
-{% if tab == 'stock' %}
-  {% if not pexels_configured %}
-  <div class="panel" style="margin-bottom:16px;border-color:#f59e0b;">
-    <div class="panel-body" style="padding:16px;">
-      <div style="font-weight:700;margin-bottom:6px;">🔑 Connect Pexels to search stock photos</div>
-      <div style="font-size:12px;color:var(--text2);margin-bottom:12px;">
-        Free, high-quality stock photos — get a free API key at
-        <a href="https://www.pexels.com/api/" target="_blank" style="color:var(--accent);">pexels.com/api</a>.
+<details style="margin-bottom:16px;">
+  <summary style="cursor:pointer;font-size:12.5px;color:var(--text2);padding:8px 0;">
+    🔑 {% if pexels_configured %}Pexels key saved — click to replace it{% else %}Enter Pexels API key{% endif %}
+  </summary>
+  <div class="panel" style="margin-top:8px;">
+    <div class="panel-body" style="padding:14px 16px;">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">
+        Free key at <a href="https://www.pexels.com/api/" target="_blank" style="color:var(--accent);">pexels.com/api</a>.
+        {% if pexels_configured %}Got a "check your key" error? Double-check for extra spaces or an accidentally-copied partial key, then paste the correct one below.{% endif %}
       </div>
       <form method="post" style="display:flex;gap:10px;">
         {% csrf_token %}
@@ -32,6 +33,13 @@
         <button type="submit" class="btn btn-primary btn-sm">Save Key</button>
       </form>
     </div>
+  </div>
+</details>
+
+{% if tab == 'stock' %}
+  {% if not pexels_configured %}
+  <div style="text-align:center;padding:40px;color:var(--text2);font-size:13px;">
+    👆 Save a Pexels API key above to start searching stock photos.
   </div>
   {% else %}
   <div class="panel" style="margin-bottom:16px;">

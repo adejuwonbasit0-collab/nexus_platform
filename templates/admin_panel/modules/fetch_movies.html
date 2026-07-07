@@ -3,23 +3,32 @@
 {% block topbar_title %}📥 Fetch Movies{% endblock %}
 {% block content %}
 
-{% if not tmdb_configured %}
-<div class="panel" style="margin-bottom:16px;border-color:#f59e0b;">
-  <div class="panel-body" style="padding:16px;">
-    <div style="font-weight:700;margin-bottom:6px;">🔑 Connect TMDB to fetch movies</div>
-    <div style="font-size:12px;color:var(--text2);margin-bottom:12px;">
-      Movie metadata, posters, and trailers come from themoviedb.org — free to sign up for an API key at
-      <a href="https://www.themoviedb.org/settings/api" target="_blank" style="color:var(--accent);">themoviedb.org/settings/api</a>.
-      TMDB doesn't host the actual movie files (no legal source does for free) — after importing, add each movie's
-      video file or link yourself before publishing it.
+<details style="margin-bottom:16px;" {% if not tmdb_configured %}open{% endif %}>
+  <summary style="cursor:pointer;font-size:12.5px;color:var(--text2);padding:8px 0;">
+    🔑 {% if tmdb_configured %}TMDB key saved — click to replace it{% else %}Connect TMDB to fetch movies{% endif %}
+  </summary>
+  <div class="panel" style="margin-top:8px;">
+    <div class="panel-body" style="padding:16px;">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px;">
+        Movie metadata, posters, and trailers come from themoviedb.org — free API key at
+        <a href="https://www.themoviedb.org/settings/api" target="_blank" style="color:var(--accent);">themoviedb.org/settings/api</a>.
+        TMDB doesn't host the actual movie files (no legal source does for free) — after importing, add each movie's
+        video file or link yourself before publishing it.
+        {% if tmdb_configured %}Got a "not working" result? Double-check for extra spaces or an accidentally partial copy-paste, then save the correct key below.{% endif %}
+      </div>
+      <form method="post" style="display:flex;gap:10px;">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="save_tmdb_key">
+        <input class="finput" name="tmdb_api_key" placeholder="TMDB API key" style="flex:1;">
+        <button type="submit" class="btn btn-primary btn-sm">Save Key</button>
+      </form>
     </div>
-    <form method="post" style="display:flex;gap:10px;">
-      {% csrf_token %}
-      <input type="hidden" name="action" value="save_tmdb_key">
-      <input class="finput" name="tmdb_api_key" placeholder="TMDB API key" style="flex:1;">
-      <button type="submit" class="btn btn-primary btn-sm">Save Key</button>
-    </form>
   </div>
+</details>
+
+{% if not tmdb_configured %}
+<div style="text-align:center;padding:40px;color:var(--text2);font-size:13px;">
+  👆 Save a TMDB API key above to start fetching movies.
 </div>
 {% else %}
 <div class="panel" style="margin-bottom:16px;">

@@ -10,7 +10,7 @@
 <div class="container" style="padding-top:40px;padding-bottom:60px;">
   <div class="grid-3">
     {% for post in posts %}
-    <a href="/content/{{ post.pk }}/" class="card" style="text-decoration:none;">
+    <a href="/content/{{ post.slug }}/" class="card" style="text-decoration:none;">
       {% if post.thumbnail %}<img src="{{ post.thumbnail.url }}" class="card-img" loading="lazy">
       {% else %}<div class="card-img img-placeholder" style="aspect-ratio:2/1;font-size:2rem;">📝</div>{% endif %}
       <div class="card-body">

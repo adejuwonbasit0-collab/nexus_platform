@@ -18,7 +18,7 @@
   </div>
   <div class="grid-6">
     {% for item in items %}
-    <a href="/content/{{ item.pk }}/" style="text-decoration:none;">
+    <a href="/content/{{ item.slug }}/" style="text-decoration:none;">
       <div class="card">
         <div class="thumb-wrap">
           {% if item.file and item.content_type == 'image' %}<img src="{{ item.file.url }}" class="card-img card-img-square" loading="lazy" alt="{{ item.title }}">

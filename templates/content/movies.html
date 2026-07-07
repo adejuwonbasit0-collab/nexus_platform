@@ -30,7 +30,7 @@
   <div class="section-header"><div class="section-title">🎬 <span>Movies</span></div></div>
   <div class="grid-4">
     {% for item in movies %}
-    <a href="/content/{{ item.pk }}/" class="card" style="text-decoration:none;">
+    <a href="/content/{{ item.slug }}/" class="card" style="text-decoration:none;">
       <div class="thumb-wrap">
         {% if item.thumbnail %}<img src="{{ item.thumbnail.url }}" class="card-img" loading="lazy">{% else %}<div class="card-img img-placeholder">🎬</div>{% endif %}
         <span class="card-badge badge-{{ item.tier }}">{{ item.tier|capfirst }}</span>

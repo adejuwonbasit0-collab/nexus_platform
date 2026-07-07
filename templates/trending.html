@@ -184,7 +184,7 @@
     <div class="stitle"><h2>📈 <span>Popular</span> Content</h2><a href="/content/browse/">Browse all →</a></div>
     <div class="trend-grid">
       {% for c in trending_content %}
-      <a href="/content/{{ c.pk }}/" class="trend-card">
+      <a href="/content/{{ c.slug }}/" class="trend-card">
         <div class="trend-thumb">
           {% if c.thumbnail %}<img src="{{ c.thumbnail.url }}" alt="{{ c.title }}" loading="lazy">
           {% else %}<span style="font-size:36px;">{% if c.content_type == 'video' %}🎬{% elif c.content_type == 'music' %}🎵{% elif c.content_type == 'image' %}🖼{% else %}📝{% endif %}</span>{% endif %}
