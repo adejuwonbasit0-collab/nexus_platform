@@ -25,6 +25,18 @@ def fetch_music(request):
     q = request.GET.get('q', '').strip()
     genre_id = request.GET.get('genre', '')
 
+    if request.method == 'POST' and request.POST.get('action') == 'save_audd_key':
+        from core.models import SiteSettings
+        key = request.POST.get('audd_api_token', '').strip()
+        obj, _c = SiteSettings.objects.get_or_create(key='audd_api_token', defaults={'label': 'AudD API Token', 'group': 'integrations'})
+        obj.value = key
+        obj.save()
+        messages.success(request, 'AudD API token saved — Discover will use it for song identification.')
+        return redirect(request.path + f'?tab={tab}')
+
+    from core.models import SiteSettings
+    audd_configured = SiteSettings.objects.filter(key='audd_api_token').exclude(value='').exists()
+
     results = []
     if tab == 'search':
         if q:
@@ -50,7 +62,7 @@ def fetch_music(request):
     return render(request, 'admin_panel/modules/fetch_music.html', {
         'tab': tab, 'q': q, 'genre_id': genre_id,
         'results': results, 'genres': ext.ITUNES_GENRES,
-        'pending_count': pending_count,
+        'pending_count': pending_count, 'audd_configured': audd_configured,
     })
 
 
@@ -253,7 +265,20 @@ def fetch_images(request):
     q = request.GET.get('q', '').strip()
     target = request.GET.get('target', 'site')  # site | track | movie
     pk = request.GET.get('pk', '')
-    provider = request.GET.get('provider', 'pexels')  # pexels | pixabay
+
+    from core.models import SiteSettings
+    if 'provider' in request.GET:
+        provider = request.GET.get('provider')
+        # Remember this choice so the next visit opens on the same
+        # provider instead of always defaulting back to Pexels.
+        pref, _c = SiteSettings.objects.get_or_create(
+            key='preferred_stock_provider', defaults={'label': 'Preferred Stock Photo Provider', 'group': 'integrations'})
+        if pref.value != provider:
+            pref.value = provider
+            pref.save()
+    else:
+        pref = SiteSettings.objects.filter(key='preferred_stock_provider').first()
+        provider = pref.value if pref and pref.value else 'pexels'
 
     if request.method == 'POST' and request.POST.get('action') == 'save_pexels_key':
         from core.models import SiteSettings
@@ -278,7 +303,13 @@ def fetch_images(request):
     configured = pexels_configured if provider == 'pexels' else pixabay_configured
     results = []
     search_error = None
-    if tab == 'stock' and configured and q:
+    is_random = request.GET.get('random') == '1'
+    if tab == 'stock' and configured and is_random:
+        if provider == 'pixabay':
+            results, search_error = ext.pixabay_random_verbose(per_page=18)
+        else:
+            results, search_error = ext.pexels_curated_verbose(per_page=18)
+    elif tab == 'stock' and configured and q:
         if provider == 'pixabay':
             results, search_error = ext.pixabay_search_verbose(q, per_page=18)
         else:
@@ -300,7 +331,7 @@ def fetch_images(request):
     return render(request, 'admin_panel/modules/fetch_images.html', {
         'tab': tab, 'q': q, 'results': results,
         'pexels_configured': pexels_configured, 'pixabay_configured': pixabay_configured,
-        'provider': provider,
+        'provider': provider, 'is_random': is_random,
         'target': target, 'pk': pk, 'target_label': target_label,
         'search_error': search_error,
     })
@@ -351,18 +382,64 @@ def fetch_images_apply(request):
 
 @_admin_required
 @require_POST
+def fetch_images_import_gallery(request):
+    """Bulk-import selected stock photo search results directly into the
+    Gallery (images.Image), mirroring how Fetch Music/Movies import — with
+    individual or bulk approve afterward from the Images admin table."""
+    approve = request.POST.get('approve') == '1'
+    try:
+        items = _json.loads(request.POST.get('items', '[]'))
+    except Exception:
+        items = []
+
+    from images.models import Image
+
+    created = 0
+    for it in items:
+        title = (it.get('title') or 'Untitled').strip()[:200]
+        image_url = it.get('full') or it.get('thumb') or ''
+        if not image_url:
+            continue
+        if Image.objects.filter(is_fetched=True, title__iexact=title, fetch_source=it.get('source', '')).exists():
+            continue
+        img = Image(
+            title=title,
+            description=f"Photo by {it.get('photographer', 'unknown')} via {it.get('source', 'stock photos')}.",
+            uploaded_by=request.user,
+            is_fetched=True, fetch_source=it.get('source') or '',
+            is_published=approve,
+        )
+        img.save()
+        ok = ext.download_image_into(img, 'image_file', image_url, filename_hint=f'{title}.jpg')
+        if ok:
+            img.save(update_fields=['image_file'])
+        created += 1
+
+    if created:
+        state = 'imported and approved' if approve else 'imported as pending — approve them from Admin → Images'
+        messages.success(request, f'{created} image(s) {state}.')
+    else:
+        messages.info(request, 'Nothing new to import.')
+    return redirect(request.META.get('HTTP_REFERER', '/admin-panel/fetch/images/'))
+
+
+@_admin_required
+@require_POST
 def fetch_bulk_action(request):
-    """Shared bulk endpoint for both Tracks and Movies tables. Expects
-    kind=track|movie, action=approve|reject|delete, pks=comma list."""
+    """Shared bulk endpoint for Tracks, Movies, and Images tables. Expects
+    kind=track|movie|image, action=approve|reject|delete, pks=comma list."""
     kind = request.POST.get('kind', '')
     action = request.POST.get('action', '')
     pks = [p for p in request.POST.get('pks', '').split(',') if p.strip()]
-    if not pks or kind not in ('track', 'movie') or action not in ('approve', 'reject', 'delete', 'fetch_lyrics'):
+    if not pks or kind not in ('track', 'movie', 'image') or action not in ('approve', 'reject', 'delete', 'fetch_lyrics'):
         return JsonResponse({'ok': False, 'error': 'Invalid request'}, status=400)
 
     if kind == 'track':
         from music.models import Track
         qs = Track.objects.filter(pk__in=pks)
+    elif kind == 'image':
+        from images.models import Image
+        qs = Image.objects.filter(pk__in=pks)
     else:
         from movies.models import Movie
         qs = Movie.objects.filter(pk__in=pks)

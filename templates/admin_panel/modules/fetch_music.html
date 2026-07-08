@@ -11,6 +11,30 @@
   </div>
 </div>
 
+<details style="margin-bottom:16px;">
+  <summary style="cursor:pointer;font-size:12.5px;color:var(--text2);padding:8px 0;">
+    🎙 {% if audd_configured %}AudD key saved (powers Discover/song-ID) — click to replace it{% else %}Set up AudD for Discover (song identification){% endif %}
+  </summary>
+  <div class="panel" style="margin-top:8px;">
+    <div class="panel-body" style="padding:14px 16px;">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">
+        The public "Discover" (Shazam-style) feature on your site identifies songs via AudD.io.
+        Without your own key it uses AudD's shared public test token, which only allows
+        10 requests/day <strong>total across every app in the world using it</strong> — in practice
+        that's almost always already used up, which silently makes Discover never find a match.
+        Get your own free token at <a href="https://dashboard.audd.io/" target="_blank" style="color:var(--accent);">dashboard.audd.io</a> (free tier is generous and per-account).
+      </div>
+      <form method="post" style="display:flex;gap:10px;">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="save_audd_key">
+        <input class="finput" name="audd_api_token" placeholder="AudD API token" style="flex:1;">
+        <button type="submit" class="btn btn-primary btn-sm">Save Key</button>
+      </form>
+    </div>
+  </div>
+</details>
+
+
 <div class="tab-bar" style="display:flex;gap:4px;margin-bottom:16px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:4px;flex-wrap:wrap;">
   <a class="tab-btn {% if tab == 'search' %}active{% endif %}" href="?tab=search" style="text-decoration:none;">🔎 Search</a>
   <a class="tab-btn {% if tab == 'trending' %}active{% endif %}" href="?tab=trending" style="text-decoration:none;">🔥 Trending</a>

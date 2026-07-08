@@ -20,8 +20,16 @@
     </form>
   </div></div>
 
+  <div id="image-bulk-bar" style="display:none;gap:8px;align-items:center;margin-bottom:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;">
+    <span id="image-bulk-count" style="font-size:12px;color:var(--text2);"></span>
+    <button type="button" class="btn btn-primary btn-xs" onclick="imageBulk('approve')">✅ Approve</button>
+    <button type="button" class="btn btn-secondary btn-xs" onclick="imageBulk('reject')">↩ Set Draft</button>
+    <button type="button" class="btn btn-danger btn-xs" onclick="imageBulk('delete')">🗑 Delete</button>
+  </div>
+
   <div class="table-wrap"><table class="dt">
     <thead><tr>
+      <th style="width:24px;"><input type="checkbox" onclick="imageToggleAll(this)"></th>
       <th style="width:90px;">Preview</th>
       <th>Title</th>
       <th>Uploader</th>
@@ -34,6 +42,7 @@
     <tbody>
     {% for img in page.object_list %}
     <tr>
+      <td><input type="checkbox" class="image-check" value="{{ img.pk }}" onclick="imageBulkUpdate()"></td>
       <td>
         {% if img.image_file %}<img src="{{ img.image_file.url }}" style="width:76px;height:52px;object-fit:cover;border-radius:6px;cursor:pointer;" onclick="window.open('{{ img.image_file.url }}','_blank')">
         {% elif img.thumbnail %}<img src="{{ img.thumbnail.url }}" style="width:76px;height:52px;object-fit:cover;border-radius:6px;">
@@ -43,6 +52,7 @@
         <div style="font-weight:600;font-size:13px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ img.title }}</div>
         {% if img.is_featured %}<span class="badge badge-yellow" style="font-size:9px;">⭐ Featured</span>{% endif %}
         {% if img.is_premium %}<span class="badge badge-purple" style="font-size:9px;">PRO</span>{% endif %}
+        {% if img.is_fetched %}<span class="badge badge-blue" style="font-size:9px;" title="Imported via Fetch">📥 {{ img.fetch_source }}</span>{% endif %}
       </td>
       <td style="font-size:12px;"><a href="/admin-panel/users/{{ img.uploaded_by.pk }}/" style="color:var(--accent);">{{ img.uploaded_by.username }}</a></td>
       <td style="font-size:12px;color:var(--text2);">{{ img.category.name|default:'—' }}</td>
@@ -65,7 +75,7 @@
       </td>
     </tr>
     {% empty %}
-    <tr><td colspan="8"><div class="empty" style="padding:40px;"><div class="empty-icon">🖼</div><h3>No images yet</h3><p>Upload images using the "Upload Image" tab above.</p></div></td></tr>
+    <tr><td colspan="9"><div class="empty" style="padding:40px;"><div class="empty-icon">🖼</div><h3>No images yet</h3><p>Upload images using the "Upload Image" tab above.</p></div></td></tr>
     {% endfor %}
     </tbody>
   </table></div>
@@ -235,6 +245,28 @@ function openEditImg(pk, title, desc, res, published, premium, featured) {
   const sel = document.getElementById('ei-resolution');
   if (sel) { for (let o of sel.options) { if (o.value === res) { o.selected = true; break; } } }
   document.getElementById('edit-img-modal').style.display = 'flex';
+}
+
+// ── Bulk actions (approve / reject / delete selected images) ───────────────
+function imageToggleAll(box){
+  document.querySelectorAll('.image-check').forEach(c=>c.checked=box.checked);
+  imageBulkUpdate();
+}
+function imageBulkUpdate(){
+  const n = document.querySelectorAll('.image-check:checked').length;
+  const bar = document.getElementById('image-bulk-bar');
+  bar.style.display = n ? 'flex' : 'none';
+  document.getElementById('image-bulk-count').textContent = n + ' selected';
+}
+async function imageBulk(action){
+  const pks = [...document.querySelectorAll('.image-check:checked')].map(c=>c.value);
+  if(!pks.length) return;
+  if(action==='delete' && !confirm('Delete '+pks.length+' image(s)? This cannot be undone.')) return;
+  const fd = new FormData();
+  fd.append('kind','image'); fd.append('action',action); fd.append('pks',pks.join(','));
+  fd.append('csrfmiddlewaretoken', getCsrf());
+  const r = await fetch('/admin-panel/fetch/bulk/', {method:'POST', body:fd});
+  if(r.ok){ location.reload(); } else { alert('Something went wrong — please try again.'); }
 }
 </script>
 {% endblock %}

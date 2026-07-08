@@ -83,7 +83,16 @@
         <input class="finput" name="q" value="{{ q }}" placeholder="e.g. concert lights, city skyline, abstract music" style="flex:1;">
         <button type="submit" class="btn btn-primary btn-sm">Search</button>
       </form>
+      <a href="?tab=stock&provider={{ provider }}&target={{ target }}&pk={{ pk }}&random=1" class="btn btn-secondary btn-sm" style="margin-top:10px;display:inline-block;text-decoration:none;">🎲 Surprise me (random photos, no search needed)</a>
     </div>
+  </div>
+
+  <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;">
+    <label style="font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px;">
+      <input type="checkbox" id="img-select-all" onclick="imgToggleAll(this)"> Select all ({{ results|length }})
+    </label>
+    <button type="button" class="btn btn-secondary btn-xs" onclick="imgBulkGallery(false)">🖼 Import Selected to Gallery (Pending)</button>
+    <button type="button" class="btn btn-primary btn-xs" onclick="imgBulkGallery(true)">✅ Import Selected to Gallery &amp; Approve</button>
   </div>
 
   <form method="post" action="/admin-panel/fetch/images/apply/">
@@ -93,17 +102,19 @@
     <input type="hidden" name="image_url" id="chosen-image-url">
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;">
       {% for r in results %}
-      <div class="panel" style="padding:10px;">
+      <div class="panel" style="padding:10px;position:relative;">
+        <input type="checkbox" class="img-check" style="position:absolute;margin:6px;z-index:2;"
+          data-payload="{{ r.title|default:'Untitled'|escapejs }}|||{{ r.thumb|escapejs }}|||{{ r.full|escapejs }}|||{{ r.photographer|escapejs }}|||{{ r.source|escapejs }}">
         <img src="{{ r.thumb }}" style="width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:8px;margin-bottom:8px;" loading="lazy">
         <div style="font-size:11px;color:var(--text2);margin-bottom:8px;">by {{ r.photographer }}</div>
-        <button type="submit" class="btn btn-primary btn-sm" style="width:100%;" onclick="document.getElementById('chosen-image-url').value='{{ r.full|escapejs }}'">Use this image</button>
+        <button type="submit" class="btn btn-primary btn-sm" style="width:100%;" onclick="document.getElementById('chosen-image-url').value='{{ r.full|escapejs }}'">Use as banner</button>
       </div>
       {% empty %}
       <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text2);">
         {% if search_error %}
           <div style="color:#ef4444;font-weight:700;margin-bottom:6px;">⚠ Search failed</div>
           <div style="font-size:12px;font-family:monospace;max-width:480px;margin:0 auto;">{{ search_error }}</div>
-        {% elif not q %}Search for something above.{% else %}No results — try a different search.{% endif %}
+        {% elif not q and not is_random %}Search for something above, or hit "Surprise me".{% else %}No results — try a different search.{% endif %}
       </div>
       {% endfor %}
     </div>
@@ -153,6 +164,25 @@ async function aiGenerate(){
     }
   }catch(e){ alert('Something went wrong generating the image.'); }
   finally{ btn.disabled = false; btn.textContent = '✨ Generate'; }
+}
+
+// ── Bulk import selected stock photos straight into the Gallery ────────────
+function imgToggleAll(box){
+  document.querySelectorAll('.img-check').forEach(c=>c.checked=box.checked);
+}
+function imgBulkGallery(approve){
+  const items=[];
+  document.querySelectorAll('.img-check:checked').forEach(c=>{
+    const p = c.dataset.payload.split('|||');
+    items.push({title:p[0],thumb:p[1],full:p[2],photographer:p[3],source:p[4]});
+  });
+  if(!items.length){ alert('Select at least one image first.'); return; }
+  const fd = new FormData();
+  fd.append('items', JSON.stringify(items));
+  fd.append('approve', approve ? '1' : '0');
+  fd.append('csrfmiddlewaretoken', getCsrf());
+  fetch('/admin-panel/fetch/images/import-gallery/', {method:'POST', body:fd})
+    .then(()=>location.reload());
 }
 </script>
 {% endblock %}

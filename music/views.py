@@ -600,13 +600,35 @@ def track_lyrics(request, pk):
     from core.utils import get_ai_key
     import json as _json, urllib.request
 
-    # 3. Whisper transcription (if audio file exists and OpenAI key configured)
+    # 3. Whisper transcription (works for both uploaded files and fetched
+    # tracks with only an external audio_url — downloads the remote audio
+    # to a temp file first in that case). Only needs an OpenAI key, not
+    # Claude/Anthropic — this is the "synced lyrics without Claude" path.
     openai_key = get_ai_key('openai')
-    if openai_key and track.audio_file:
+    if openai_key and (track.audio_file or track.audio_url):
+        tmp_path = None
         try:
             from openai import OpenAI
-            client = OpenAI(api_key=openai_key)
-            with open(track.audio_file.path, 'rb') as f:
+            client = OpenAI(api_key=openai_key, timeout=25.0)
+
+            if track.audio_file:
+                audio_source = track.audio_file.path
+            else:
+                # Download the remote preview/audio file to a temp path so
+                # Whisper (which needs a real file object) can read it.
+                import tempfile
+                req = urllib.request.Request(track.audio_url, headers={'User-Agent': 'Mozilla/5.0'})
+                with urllib.request.urlopen(req, timeout=15) as resp:
+                    audio_bytes = resp.read()
+                suffix = '.mp3' if '.mp3' in track.audio_url else '.m4a'
+                tmp = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
+                tmp.write(audio_bytes)
+                tmp.flush()
+                tmp.close()
+                tmp_path = tmp.name
+                audio_source = tmp_path
+
+            with open(audio_source, 'rb') as f:
                 # verbose_json gives us word-level timestamps for LRC
                 transcript = client.audio.transcriptions.create(
                     model='whisper-1',
@@ -637,6 +659,13 @@ def track_lyrics(request, pk):
                 })
         except Exception:
             pass  # fall through to Claude
+        finally:
+            if tmp_path:
+                try:
+                    import os
+                    os.unlink(tmp_path)
+                except Exception:
+                    pass
 
     # 4. Claude AI text generation
     api_key = get_ai_key('anthropic')

@@ -57,6 +57,8 @@ class Image(models.Model):
     downloads_count = models.IntegerField(default=0)
     likes_count     = models.IntegerField(default=0)
     uploaded_by     = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    is_fetched      = models.BooleanField(default=False, help_text='True if imported via the admin Fetch Images tool.')
+    fetch_source    = models.CharField(max_length=50, blank=True, help_text='Where a fetched image came from, e.g. "Pexels".')
     created_at      = models.DateTimeField(auto_now_add=True)
 
     class Meta: ordering = ['-created_at']

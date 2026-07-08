@@ -65,17 +65,29 @@ def whisper_transcribe(audio_bytes: bytes, mime: str = 'audio/webm') -> str:
 def audd_identify(audio_bytes: bytes) -> dict | None:
     """
     Send audio to AudD.io for global fingerprint matching.
-    Free tier: 300 requests/month with no API key.
-    Returns a dict with title/artist/album or None.
+    Uses your own AudD API token if one is configured in Admin → AI Settings
+    (sign up free at audd.io — their free tier is per-account and far more
+    usable than the fallback below). Without one, falls back to AudD's
+    shared public 'test' token, which only allows 10 requests/day TOTAL
+    across every app in the world using it — in practice that's almost
+    always already used up by someone else, which is why identification
+    can silently fail even though the code itself is working correctly.
     """
     import base64, urllib.parse
+
+    try:
+        from core.models import SiteSettings
+        obj = SiteSettings.objects.filter(key='audd_api_token').first()
+        api_token = obj.value.strip() if obj and obj.value else 'test'
+    except Exception:
+        api_token = 'test'
 
     b64 = base64.b64encode(audio_bytes).decode()
 
     data = urllib.parse.urlencode({
         'audio':  b64,
         'return': 'apple_music,spotify',
-        'api_token': 'test',  # 'test' gives 10 free requests/day without account
+        'api_token': api_token,
     }).encode()
 
     try:

@@ -325,6 +325,37 @@ def pixabay_configured():
     return bool(_pixabay_key())
 
 
+def pexels_curated_verbose(per_page=18):
+    """Random/curated photos, no search term needed — Pexels' own
+    hand-picked 'trending right now' feed."""
+    key = _pexels_key()
+    if not key:
+        return [], 'No Pexels API key saved yet.'
+    import random
+    page = random.randint(1, 50)  # different picks each click
+    q = urllib.parse.urlencode({'per_page': per_page, 'page': page})
+    data, err = _get_json_verbose(f'https://api.pexels.com/v1/curated?{q}', headers={'Authorization': key})
+    if err:
+        return [], err
+    return _pexels_parse(data), None
+
+
+_RANDOM_TERMS = [
+    'music', 'concert', 'city skyline', 'nature', 'abstract art', 'neon lights',
+    'ocean', 'mountains', 'studio microphone', 'vinyl records', 'crowd concert',
+    'sunset', 'urban street', 'stage lights', 'headphones', 'guitar',
+]
+
+
+def pixabay_random_verbose(per_page=18):
+    """Pixabay has no curated/random endpoint, so this searches a randomly
+    picked broad term with popularity ordering as a stand-in for 'surprise
+    me'."""
+    import random
+    term = random.choice(_RANDOM_TERMS)
+    return pixabay_search_verbose(term, per_page=per_page)
+
+
 def pixabay_search_verbose(query, per_page=18):
     """Returns (results, error_message), same contract as
     pexels_search_verbose."""

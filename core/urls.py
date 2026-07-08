@@ -26,6 +26,7 @@ urlpatterns = [
     path('fetch/bulk/',                     fetch_views.fetch_bulk_action,   name='fetch_bulk_action'),
     path('fetch/images/',                   fetch_views.fetch_images,        name='fetch_images'),
     path('fetch/images/apply/',             fetch_views.fetch_images_apply,  name='fetch_images_apply'),
+    path('fetch/images/import-gallery/',     fetch_views.fetch_images_import_gallery, name='fetch_images_import_gallery'),
     # Series
     path('series/',                         views.admin_series,           name='admin_series'),
     path('series/create/',                  views.admin_create_series,    name='admin_create_series'),
