@@ -395,18 +395,28 @@ def fetch_images_import_gallery(request):
     from images.models import Image
 
     created = 0
+    skipped_dupes = 0
     for it in items:
-        title = (it.get('title') or 'Untitled').strip()[:200]
         image_url = it.get('full') or it.get('thumb') or ''
         if not image_url:
             continue
-        if Image.objects.filter(is_fetched=True, title__iexact=title, fetch_source=it.get('source', '')).exists():
+        source = it.get('source') or ''
+        external_id = it.get('external_id') or ''
+        # Dedupe by the stock provider's own photo ID, not by title — stock
+        # photos don't have real titles, so using a generic fallback title
+        # for all of them caused every image after the first to look like
+        # a duplicate and get silently skipped.
+        if external_id and Image.objects.filter(is_fetched=True, fetch_source=source, description__contains=f'[id:{external_id}]').exists():
+            skipped_dupes += 1
             continue
+        query = (it.get('query') or 'Photo').strip().title()[:80]
+        photographer = it.get('photographer') or 'Unknown'
+        title = f"{query} — by {photographer}"[:200]
         img = Image(
             title=title,
-            description=f"Photo by {it.get('photographer', 'unknown')} via {it.get('source', 'stock photos')}.",
+            description=f"Photo by {photographer} via {source or 'stock photos'}. [id:{external_id}]",
             uploaded_by=request.user,
-            is_fetched=True, fetch_source=it.get('source') or '',
+            is_fetched=True, fetch_source=source,
             is_published=approve,
         )
         img.save()
@@ -417,7 +427,10 @@ def fetch_images_import_gallery(request):
 
     if created:
         state = 'imported and approved' if approve else 'imported as pending — approve them from Admin → Images'
-        messages.success(request, f'{created} image(s) {state}.')
+        msg = f'{created} image(s) {state}.'
+        if skipped_dupes:
+            msg += f' ({skipped_dupes} already in your Gallery, skipped.)'
+        messages.success(request, msg)
     else:
         messages.info(request, 'Nothing new to import.')
     return redirect(request.META.get('HTTP_REFERER', '/admin-panel/fetch/images/'))

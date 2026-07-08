@@ -960,6 +960,8 @@ input,select,textarea{max-width:100%;font-size:16px} /* prevent iOS zoom */
       <div id="sp-exp-cover" style="width:min(78vw,310px);height:min(78vw,310px);border-radius:14px;overflow:hidden;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:70px;box-shadow:0 30px 76px rgba(0,0,0,.7)">🎵</div>
     </div>
 
+    <div id="sp-exp-current-line" onclick="spOpenLyrics()" style="display:none;cursor:pointer;font-size:17px;font-weight:700;line-height:1.4;color:#fff;text-align:center;padding:0 8px 18px;flex-shrink:0;transition:opacity .25s;"></div>
+
     
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;flex-shrink:0;gap:14px">
       <div style="min-width:0;flex:1">
@@ -1159,6 +1161,14 @@ function _loadTrack(t){
   // Reset like
   const lk=document.getElementById('sp-pl-like');if(lk){lk.textContent='♡';lk.classList.remove('liked')}
   const elk=document.getElementById('sp-exp-like');if(elk)elk.textContent='♡';
+
+  // Auto-load lyrics in the background (was previously only fetched when
+  // the user explicitly opened the Lyrics panel) so the current line can
+  // show inline on the main Now Playing screen as soon as playback starts,
+  // the way Spotify does it — no extra tap needed to see lyrics syncing.
+  const curLine=document.getElementById('sp-exp-current-line');
+  if(curLine)curLine.style.display='none';
+  if(t.pk)_lyrLoad(t.pk);
 }
 
 // ── Public API: playTrack / playMiniTrack (backward compat) ─
@@ -1439,6 +1449,17 @@ function _lyrStartSync(){
         const el=_lrcLines[ni].el;
         const scroll=document.getElementById('lyr-scroll');
         if(scroll)scroll.scrollTo({top:el.offsetTop-scroll.clientHeight/2+el.clientHeight/2,behavior:'smooth'});
+      }
+      // Mirror the active line onto the main Now Playing screen so lyrics
+      // are visible in sync without needing to open the separate panel.
+      const curLine=document.getElementById('sp-exp-current-line');
+      if(curLine){
+        if(ni>=0){
+          curLine.textContent=_lrcLines[ni].el.textContent;
+          curLine.style.display='block';
+        } else {
+          curLine.style.display='none';
+        }
       }
     }
     // Keep the mini bottom transport bar in the lyrics layer in sync too

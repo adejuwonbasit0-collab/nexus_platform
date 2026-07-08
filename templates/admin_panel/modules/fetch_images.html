@@ -104,7 +104,7 @@
       {% for r in results %}
       <div class="panel" style="padding:10px;position:relative;">
         <input type="checkbox" class="img-check" style="position:absolute;margin:6px;z-index:2;"
-          data-payload="{{ r.title|default:'Untitled'|escapejs }}|||{{ r.thumb|escapejs }}|||{{ r.full|escapejs }}|||{{ r.photographer|escapejs }}|||{{ r.source|escapejs }}">
+          data-payload="{{ q|default:'Photo'|escapejs }}|||{{ r.thumb|escapejs }}|||{{ r.full|escapejs }}|||{{ r.photographer|escapejs }}|||{{ r.source|escapejs }}|||{{ r.external_id|escapejs }}">
         <img src="{{ r.thumb }}" style="width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:8px;margin-bottom:8px;" loading="lazy">
         <div style="font-size:11px;color:var(--text2);margin-bottom:8px;">by {{ r.photographer }}</div>
         <button type="submit" class="btn btn-primary btn-sm" style="width:100%;" onclick="document.getElementById('chosen-image-url').value='{{ r.full|escapejs }}'">Use as banner</button>
@@ -174,7 +174,7 @@ function imgBulkGallery(approve){
   const items=[];
   document.querySelectorAll('.img-check:checked').forEach(c=>{
     const p = c.dataset.payload.split('|||');
-    items.push({title:p[0],thumb:p[1],full:p[2],photographer:p[3],source:p[4]});
+    items.push({query:p[0],thumb:p[1],full:p[2],photographer:p[3],source:p[4],external_id:p[5]});
   });
   if(!items.length){ alert('Select at least one image first.'); return; }
   const fd = new FormData();

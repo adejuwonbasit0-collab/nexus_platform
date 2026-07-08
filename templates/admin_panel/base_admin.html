@@ -6,6 +6,7 @@
   <title>{% block admin_title %}Admin{% endblock %} — NEXUS</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer">
   <style>
     /* ── Theme tokens ─────────────────────────────────────────── */
     :root,[data-theme="dark"]{
@@ -636,13 +637,13 @@
       <span class="current">{% block topbar_title %}Dashboard{% endblock %}</span>
     </div>
     <div class="topbar-right">
-      <button class="theme-toggle" id="themeToggle" title="Toggle theme" onclick="toggleTheme()">🌙</button>
-      <a href="/admin-panel/notifications/" class="topbar-btn" title="Notifications">
-        🔔{% if unread_notifs > 0 %}<span class="notif-dot"></span>{% endif %}
+      <button class="theme-toggle" id="themeToggle" title="Toggle theme" onclick="toggleTheme()"><i class="fa-solid fa-moon"></i></button>
+      <a href="/admin-panel/notifications/" class="topbar-btn" title="Notifications" style="box-shadow:0 0 0 1px rgba(245,158,11,.35) inset;">
+        <i class="fa-solid fa-bell" style="color:#f59e0b;"></i>{% if unread_notifs > 0 %}<span class="notif-dot"></span>{% endif %}
       </a>
-      <a href="/auth/profile/" class="topbar-btn" title="My Profile">👤</a>
+      <a href="/auth/profile/" class="topbar-btn" title="My Profile" style="box-shadow:0 0 0 1px rgba(59,130,246,.35) inset;"><i class="fa-solid fa-user" style="color:#3b82f6;"></i></a>
       <form method="post" action="/auth/logout/" style="margin:0">{% csrf_token %}
-        <button type="submit" class="topbar-btn" title="Sign out">🚪</button>
+        <button type="submit" class="topbar-btn" title="Sign out" style="box-shadow:0 0 0 1px rgba(239,68,68,.35) inset;"><i class="fa-solid fa-right-from-bracket" style="color:#ef4444;"></i></button>
       </form>
     </div>
   </header>
@@ -668,7 +669,7 @@ function toggleTheme(){
   const html = document.documentElement;
   const isDark = html.getAttribute('data-theme') === 'dark';
   html.setAttribute('data-theme', isDark ? 'light' : 'dark');
-  document.getElementById('themeToggle').textContent = isDark ? '☀️' : '🌙';
+  document.getElementById('themeToggle').innerHTML = isDark ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
   localStorage.setItem('nexus_admin_theme', isDark ? 'light' : 'dark');
 }
 (function(){
@@ -676,7 +677,7 @@ function toggleTheme(){
   if (saved) {
     document.documentElement.setAttribute('data-theme', saved);
     const btn = document.getElementById('themeToggle');
-    if (btn) btn.textContent = saved === 'light' ? '☀️' : '🌙';
+    if (btn) btn.innerHTML = saved === 'light' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
   }
 })();
 
