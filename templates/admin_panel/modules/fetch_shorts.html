@@ -1,0 +1,108 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Fetch Shorts{% endblock %}
+{% block topbar_title %}📥 Fetch Shorts{% endblock %}
+{% block content %}
+
+<div class="panel" style="margin-bottom:16px;">
+  <div class="panel-body" style="padding:14px 16px;font-size:13px;color:var(--text2);">
+    Search real, playable stock video clips and import them as Shorts. Every import is saved as a
+    <strong>video URL only</strong> — nothing is downloaded to this server, keeping storage usage minimal.
+    {% if pending_count %}<a href="/admin-panel/shorts/" style="color:var(--accent);margin-left:6px;">{{ pending_count }} fetched short{{ pending_count|pluralize }} awaiting approval →</a>{% endif %}
+    <a href="/admin-panel/network-diagnostics/" style="color:var(--accent);margin-left:8px;">Getting no results? Run a network check →</a>
+  </div>
+</div>
+
+<div style="display:flex;gap:8px;margin-bottom:12px;">
+  <a href="?tab=search&provider=pexels&q={{ q }}" class="btn btn-sm {% if provider == 'pexels' %}btn-primary{% else %}btn-secondary{% endif %}">Pexels{% if pexels_configured %} ✓{% endif %}</a>
+  <a href="?tab=search&provider=pixabay&q={{ q }}" class="btn btn-sm {% if provider == 'pixabay' %}btn-primary{% else %}btn-secondary{% endif %}">Pixabay{% if pixabay_configured %} ✓{% endif %}</a>
+</div>
+
+<details style="margin-bottom:16px;">
+  <summary style="cursor:pointer;font-size:12.5px;color:var(--text2);padding:8px 0;">
+    🔑 {% if pexels_configured %}Pexels key saved — click to replace it{% else %}Enter Pexels API key{% endif %} (same key used for Fetch Images)
+  </summary>
+  <div class="panel" style="margin-top:8px;">
+    <div class="panel-body" style="padding:14px 16px;">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">
+        Free key at <a href="https://www.pexels.com/api/" target="_blank" style="color:var(--accent);">pexels.com/api</a> — Pexels' free tier includes real video clips, not just photos.
+      </div>
+      <form method="post" style="display:flex;gap:10px;">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="save_pexels_key">
+        <input class="finput" name="pexels_api_key" placeholder="Pexels API key" style="flex:1;">
+        <button type="submit" class="btn btn-primary btn-sm">Save Key</button>
+      </form>
+    </div>
+  </div>
+</details>
+
+{% if not pexels_configured and provider == 'pexels' %}
+<div style="text-align:center;padding:40px;color:var(--text2);font-size:13px;">👆 Save a Pexels API key above to start searching video clips.</div>
+{% elif not pixabay_configured and provider == 'pixabay' %}
+<div style="text-align:center;padding:40px;color:var(--text2);font-size:13px;">Pixabay key needed — save one from the Fetch Images page (shared setting), then come back here.</div>
+{% else %}
+
+<div class="panel" style="margin-bottom:16px;">
+  <div class="panel-body" style="padding:14px 16px;">
+    <form method="get" style="display:flex;gap:10px;">
+      <input type="hidden" name="tab" value="search">
+      <input type="hidden" name="provider" value="{{ provider }}">
+      <input class="finput" name="q" value="{{ q }}" placeholder="e.g. city timelapse, ocean waves, dance, nature" style="flex:1;">
+      <button type="submit" class="btn btn-primary btn-sm">Search</button>
+    </form>
+    {% if provider == 'pexels' %}
+    <a href="?tab=search&provider=pexels&random=1" class="btn btn-secondary btn-sm" style="margin-top:10px;display:inline-block;text-decoration:none;">🎲 Surprise me (random clips, no search needed)</a>
+    {% endif %}
+  </div>
+</div>
+
+<div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;">
+  <label style="font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px;">
+    <input type="checkbox" id="short-select-all" onclick="shortToggleAll(this)"> Select all ({{ results|length }})
+  </label>
+  <button type="button" class="btn btn-secondary btn-xs" onclick="shortBulkImport(false)">➕ Import Selected as Pending</button>
+  <button type="button" class="btn btn-primary btn-xs" onclick="shortBulkImport(true)">✅ Import &amp; Approve Selected</button>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;">
+  {% for r in results %}
+  <div class="panel" style="padding:10px;position:relative;">
+    <input type="checkbox" class="short-check" style="position:absolute;margin:6px;z-index:2;"
+      data-payload="{{ q|default:'Short'|escapejs }}|||{{ r.video_url|escapejs }}|||{{ r.thumbnail_url|escapejs }}|||{{ r.photographer|escapejs }}|||{{ r.source|escapejs }}|||{{ r.external_id|escapejs }}|||{{ r.duration|default:0 }}">
+    <div style="position:relative;width:100%;aspect-ratio:9/16;border-radius:8px;overflow:hidden;background:#000;margin-bottom:8px;">
+      {% if r.thumbnail_url %}<img src="{{ r.thumbnail_url }}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">{% endif %}
+      <video src="{{ r.video_url }}" muted loop playsinline preload="none" onmouseover="this.play()" onmouseout="this.pause()" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></video>
+      <div style="position:absolute;bottom:4px;right:6px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;padding:2px 6px;border-radius:4px;">{{ r.duration }}s</div>
+    </div>
+    <div style="font-size:11px;color:var(--text2);">by {{ r.photographer }}</div>
+  </div>
+  {% empty %}
+  <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text2);">
+    {% if search_error %}
+      <div style="color:#ef4444;font-weight:700;margin-bottom:6px;">⚠ Search failed</div>
+      <div style="font-size:12px;font-family:monospace;max-width:480px;margin:0 auto;">{{ search_error }}</div>
+    {% elif not q and not is_random %}Search for something above, or hit "Surprise me".{% else %}No results — try a different search.{% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<script>
+function shortToggleAll(box){
+  document.querySelectorAll('.short-check:not(:disabled)').forEach(c=>c.checked=box.checked);
+}
+function shortBulkImport(approve){
+  const items=[];
+  document.querySelectorAll('.short-check:checked').forEach(c=>{
+    const p = c.dataset.payload.split('|||');
+    items.push({query:p[0],video_url:p[1],thumbnail_url:p[2],photographer:p[3],source:p[4],external_id:p[5],duration:p[6]});
+  });
+  if(!items.length){ alert('Select at least one clip first.'); return; }
+  const fd = new FormData();
+  fd.append('items', JSON.stringify(items));
+  fd.append('approve', approve ? '1' : '0');
+  fd.append('csrfmiddlewaretoken', getCsrf());
+  fetch('/admin-panel/fetch/shorts/import/', {method:'POST', body:fd}).then(()=>location.reload());
+}
+</script>
+{% endblock %}

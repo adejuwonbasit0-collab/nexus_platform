@@ -27,6 +27,9 @@ urlpatterns = [
     path('fetch/images/',                   fetch_views.fetch_images,        name='fetch_images'),
     path('fetch/images/apply/',             fetch_views.fetch_images_apply,  name='fetch_images_apply'),
     path('fetch/images/import-gallery/',     fetch_views.fetch_images_import_gallery, name='fetch_images_import_gallery'),
+    path('fetch/shorts/',                    fetch_views.fetch_shorts,        name='fetch_shorts'),
+    path('fetch/shorts/import/',             fetch_views.fetch_shorts_import, name='fetch_shorts_import'),
+    path('shorts/',                          fetch_views.admin_shorts,        name='admin_shorts'),
     # Series
     path('series/',                         views.admin_series,           name='admin_series'),
     path('series/create/',                  views.admin_create_series,    name='admin_create_series'),

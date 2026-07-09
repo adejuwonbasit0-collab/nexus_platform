@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'monetization',
     'movies',
     'music',
+    'shorts',
     'images',
     'blog',
     'cms',

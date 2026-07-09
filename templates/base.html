@@ -721,6 +721,10 @@ input,select,textarea{max-width:100%;font-size:16px} /* prevent iOS zoom */
         <div class="sp-playlist-cover">🎬</div>
         <div class="sp-playlist-info"><div class="sp-playlist-name">Movies</div><div class="sp-playlist-type">Browse</div></div>
       </a>
+      <a href="/shorts/" class="sp-playlist-item">
+        <div class="sp-playlist-cover">📱</div>
+        <div class="sp-playlist-info"><div class="sp-playlist-name">Shorts</div><div class="sp-playlist-type">Watch</div></div>
+      </a>
       <a href="/images/" class="sp-playlist-item">
         <div class="sp-playlist-cover">🖼</div>
         <div class="sp-playlist-info"><div class="sp-playlist-name">Gallery</div><div class="sp-playlist-type">Browse</div></div>
@@ -1002,6 +1006,12 @@ input,select,textarea{max-width:100%;font-size:16px} /* prevent iOS zoom */
     </div>
 
     
+    <div style="display:flex;align-items:center;justify-content:center;gap:32px;flex-shrink:0;margin-bottom:14px;">
+      <button onclick="spShareCurrent()" title="Share" style="background:none;border:none;color:rgba(255,255,255,.55);cursor:pointer;font-size:17px;"><i class="fa-solid fa-arrow-up-from-bracket"></i></button>
+      <button onclick="spOpenLyrics()" title="Lyrics" style="background:none;border:none;color:rgba(255,255,255,.55);cursor:pointer;font-size:17px;"><i class="fa-solid fa-message"></i></button>
+      <button onclick="spOpenQueue()" title="Queue" style="background:none;border:none;color:rgba(255,255,255,.55);cursor:pointer;font-size:17px;"><i class="fa-solid fa-list"></i></button>
+    </div>
+
     <button onclick="spOpenLyrics()" style="width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:13px;color:rgba(255,255,255,.75);cursor:pointer;font-size:14px;font-weight:700;transition:all .18s;flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:8px" onmouseover="this.style.background='rgba(29,185,84,.15)';this.style.borderColor='rgba(29,185,84,.3)';this.style.color='#1db954'" onmouseout="this.style.background='rgba(255,255,255,.08)';this.style.borderColor='rgba(255,255,255,.12)';this.style.color='rgba(255,255,255,.75)'">
       📝 Show Lyrics
     </button>
@@ -1280,6 +1290,39 @@ function showToast(msg,type='s'){
 }
 function getCookie(n){return document.cookie.split(';').map(c=>c.trim()).filter(c=>c.startsWith(n+'=')).map(c=>c.slice(n.length+1))[0]||''}
 function shareContent(title,path){const url=window.location.origin+path;if(navigator.share){navigator.share({title,url}).catch(()=>{});return}navigator.clipboard.writeText(url).then(()=>showToast('Link copied ✓')).catch(()=>prompt('Copy link:',url))}
+
+function spShareCurrent(){
+  const titleEl=document.getElementById('sp-exp-title');
+  shareContent(titleEl?titleEl.textContent:'Check this out', _currentDetail||'/');
+}
+function spOpenQueue(){
+  if(!_queue.length){showToast('Queue is empty','w');return}
+  const rows=_queue.map((t,i)=>`
+    <div onclick="_qi=${i};_loadTrack(_queue[${i}]);spCloseQueue();" style="display:flex;align-items:center;gap:12px;padding:10px 4px;cursor:pointer;${i===_qi?'background:rgba(29,185,84,.1);border-radius:8px;':''}">
+      <div style="width:40px;height:40px;border-radius:6px;overflow:hidden;background:#222;flex-shrink:0;display:flex;align-items:center;justify-content:center;">${t.cover?`<img src="${t.cover}" style="width:100%;height:100%;object-fit:cover">`:'🎵'}</div>
+      <div style="min-width:0;flex:1;">
+        <div style="font-size:13px;font-weight:${i===_qi?'800':'600'};color:${i===_qi?'#1db954':'#fff'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.title||'—'}</div>
+        <div style="font-size:11.5px;color:rgba(255,255,255,.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.artist||'—'}</div>
+      </div>
+    </div>`).join('');
+  let layer=document.getElementById('sp-queue-layer');
+  if(!layer){
+    layer=document.createElement('div');
+    layer.id='sp-queue-layer';
+    layer.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:900;display:flex;align-items:flex-end;justify-content:center;';
+    layer.onclick=(e)=>{if(e.target===layer)spCloseQueue()};
+    document.body.appendChild(layer);
+  }
+  layer.innerHTML=`<div style="background:#161616;width:100%;max-width:480px;max-height:75vh;border-radius:16px 16px 0 0;padding:18px;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div style="font-weight:800;color:#fff;font-size:15px;">Queue</div>
+      <button onclick="spCloseQueue()" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:20px;cursor:pointer;">&times;</button>
+    </div>
+    ${rows}
+  </div>`;
+  layer.style.display='flex';
+}
+function spCloseQueue(){const l=document.getElementById('sp-queue-layer');if(l)l.style.display='none'}
 function toggleSiteTheme(){const h=document.documentElement;const next=h.getAttribute('data-theme')==='light'?'dark':'light';h.setAttribute('data-theme',next);localStorage.setItem('nexus_theme',next)}
 (function(){const s=localStorage.getItem('nexus_theme');if(s)document.documentElement.setAttribute('data-theme',s)})();
 // Auto-dismiss toasts

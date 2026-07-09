@@ -25,6 +25,7 @@ urlpatterns = [
     path('admin-panel/', include('core.urls')),
     # Creator area
     path('creator/', include('core.creator_urls')),
+    path('shorts/',  include('shorts.urls')),
     # SEO endpoints
     path('robots.txt',    cms_robots_txt,  name='robots_txt'),
     path('sitemap.xml',   cms_sitemap_xml, name='sitemap_xml'),

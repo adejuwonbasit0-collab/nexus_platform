@@ -384,7 +384,88 @@ def pixabay_search_verbose(query, per_page=18):
     return out, None
 
 
-# ── Lyrics: LRCLIB ────────────────────────────────────────────────────────────
+# ── Video shorts: Pexels Videos ──────────────────────────────────────────────
+# Real stock video clips with direct mp4 URLs — used for Fetch Shorts. Saved
+# as a URL (video_url), never downloaded to this server, to keep storage
+# usage minimal.
+
+def pexels_videos_search_verbose(query, per_page=15):
+    """Returns (results, error_message). Each result has a direct .mp4 URL
+    (video_url) plus a thumbnail image URL — nothing is ever downloaded to
+    this server, only the link is stored."""
+    key = _pexels_key()
+    if not key:
+        return [], 'No Pexels API key saved yet.'
+    if not query.strip():
+        return [], None
+    q = urllib.parse.urlencode({'query': query.strip(), 'per_page': per_page, 'orientation': 'portrait'})
+    data, err = _get_json_verbose(f'https://api.pexels.com/videos/search?{q}', headers={'Authorization': key})
+    if err:
+        return [], err
+    return _pexels_videos_parse(data), None
+
+
+def pexels_videos_popular_verbose(per_page=15):
+    """Random/popular videos, no search term needed — 'surprise me'."""
+    key = _pexels_key()
+    if not key:
+        return [], 'No Pexels API key saved yet.'
+    import random
+    page = random.randint(1, 30)
+    q = urllib.parse.urlencode({'per_page': per_page, 'page': page})
+    data, err = _get_json_verbose(f'https://api.pexels.com/videos/popular?{q}', headers={'Authorization': key})
+    if err:
+        return [], err
+    return _pexels_videos_parse(data), None
+
+
+def _pexels_videos_parse(data):
+    out = []
+    for v in data.get('videos', []):
+        files = v.get('video_files', [])
+        # Prefer a reasonably small vertical/portrait file over the largest
+        # available — these are meant to stream instantly on mobile.
+        files_sorted = sorted(files, key=lambda f: f.get('width', 9999))
+        best = next((f for f in files_sorted if f.get('height', 0) >= f.get('width', 1)), None) or (files_sorted[0] if files_sorted else None)
+        if not best:
+            continue
+        out.append({
+            'source': 'Pexels',
+            'external_id': str(v.get('id', '')),
+            'video_url': best.get('link', ''),
+            'thumbnail_url': v.get('image', ''),
+            'duration': v.get('duration', 0),
+            'photographer': v.get('user', {}).get('name', ''),
+        })
+    return out
+
+
+def pixabay_videos_search_verbose(query, per_page=18):
+    """Same contract, Pixabay video source as a second option."""
+    key = _pixabay_key()
+    if not key:
+        return [], 'No Pixabay API key saved yet.'
+    if not query.strip():
+        return [], None
+    q = urllib.parse.urlencode({'key': key, 'q': query.strip(), 'per_page': max(per_page, 3)})
+    data, err = _get_json_verbose(f'https://pixabay.com/api/videos/?{q}')
+    if err:
+        return [], err
+    out = []
+    for v in data.get('hits', []):
+        videos = v.get('videos', {})
+        best = videos.get('medium') or videos.get('small') or videos.get('large') or {}
+        if not best.get('url'):
+            continue
+        out.append({
+            'source': 'Pixabay',
+            'external_id': str(v.get('id', '')),
+            'video_url': best.get('url', ''),
+            'thumbnail_url': f"https://i.vimeocdn.com/video/{v.get('picture_id','')}_640x360.jpg" if v.get('picture_id') else '',
+            'duration': v.get('duration', 0),
+            'photographer': v.get('user', ''),
+        })
+    return out, None
 # Free, keyless, crowd-sourced synced-lyrics database (lrclib.net). Used to
 # auto-fill Track.lyrics_lrc when importing via Fetch Music.
 

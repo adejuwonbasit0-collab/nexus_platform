@@ -1,0 +1,142 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% block admin_title %}Shorts{% endblock %}
+{% block topbar_title %}📱 Shorts{% endblock %}
+{% block content %}
+
+<div class="panel" style="margin-bottom:16px;">
+  <div class="panel-body" style="padding:14px 16px;font-size:13px;color:var(--text2);">
+    Manage your short-form vertical videos. Fetch new ones from
+    <a href="/admin-panel/fetch/shorts/" style="color:var(--accent);">Fetch Shorts</a>, or edit any entry to
+    link it to a Series/episode number so it plays back-to-back with the rest of that series in the public feed.
+  </div>
+</div>
+
+<div id="short-bulk-bar" style="display:none;gap:8px;align-items:center;margin-bottom:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;">
+  <span id="short-bulk-count" style="font-size:12px;color:var(--text2);"></span>
+  <button type="button" class="btn btn-primary btn-xs" onclick="shortAdminBulk('approve')">✅ Approve</button>
+  <button type="button" class="btn btn-secondary btn-xs" onclick="shortAdminBulk('reject')">↩ Set Draft</button>
+  <button type="button" class="btn btn-danger btn-xs" onclick="shortAdminBulk('delete')">🗑 Delete</button>
+</div>
+
+<div class="table-wrap"><table class="dt">
+  <thead><tr>
+    <th style="width:24px;"><input type="checkbox" onclick="shortAdminToggleAll(this)"></th>
+    <th style="width:70px;">Preview</th>
+    <th>Title</th>
+    <th>Series / Ep</th>
+    <th>Views</th>
+    <th>Likes</th>
+    <th>Status</th>
+    <th>Actions</th>
+  </tr></thead>
+  <tbody>
+  {% for s in page.object_list %}
+  <tr>
+    <td><input type="checkbox" class="short-admin-check" value="{{ s.pk }}" onclick="shortAdminBulkUpdate()"></td>
+    <td>
+      {% if s.thumbnail_url %}<img src="{{ s.thumbnail_url }}" style="width:44px;height:60px;object-fit:cover;border-radius:6px;">
+      {% else %}<div style="width:44px;height:60px;background:rgba(29,185,84,.08);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;">📱</div>{% endif %}
+    </td>
+    <td>
+      <div style="font-weight:600;font-size:13px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ s.title }}</div>
+      {% if s.is_fetched %}<span class="badge badge-blue" style="font-size:9px;">📥 {{ s.fetch_source }}</span>{% endif %}
+      {% if s.is_premium %}<span class="badge badge-purple" style="font-size:9px;">PRO</span>{% endif %}
+    </td>
+    <td style="font-size:12px;color:var(--text2);">{% if s.series %}{{ s.series.title }}{% if s.episode_number %} · Ep {{ s.episode_number }}{% endif %}{% else %}—{% endif %}</td>
+    <td>{{ s.view_count }}</td>
+    <td>{{ s.like_count }}</td>
+    <td>
+      <form method="post" style="display:inline;">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="toggle_publish">
+        <input type="hidden" name="pk" value="{{ s.pk }}">
+        <button type="submit" class="badge {% if s.is_published %}badge-green{% else %}badge-gray{% endif %}" style="border:none;cursor:pointer;">
+          {% if s.is_published %}● Live{% else %}○ Draft{% endif %}
+        </button>
+      </form>
+    </td>
+    <td style="white-space:nowrap;">
+      <button class="btn btn-ghost btn-xs" onclick='openEditShort({{ s.pk }}, {{ s.get_edit_json|default:"{}" }})'>Edit</button>
+      <form method="post" style="display:inline;" onsubmit="return confirm('Delete this short?');">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="delete_short">
+        <input type="hidden" name="pk" value="{{ s.pk }}">
+        <button type="submit" class="btn btn-ghost btn-xs" style="color:#ef4444;">Delete</button>
+      </form>
+    </td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="8"><div class="empty" style="padding:40px;"><div class="empty-icon">📱</div><h3>No shorts yet</h3><p>Import some from Fetch Shorts.</p></div></td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+
+<!-- Edit Short Modal -->
+<div id="edit-short-modal" class="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:800;align-items:center;justify-content:center;">
+  <div class="panel" style="max-width:520px;width:92%;max-height:85vh;overflow-y:auto;">
+    <div class="panel-body" style="padding:20px;">
+      <h3 style="margin-bottom:14px;">Edit Short</h3>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="edit_short">
+        <input type="hidden" name="pk" id="es-pk">
+        <div class="fg"><label>Title</label><input class="finput" name="title" id="es-title"></div>
+        <div class="fg"><label>Description</label><textarea class="finput" name="description" id="es-description" rows="2"></textarea></div>
+        <div class="fg"><label>Video URL</label><input class="finput" name="video_url" id="es-video-url"></div>
+        <div class="fg"><label>Thumbnail URL</label><input class="finput" name="thumbnail_url" id="es-thumbnail-url"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="fg">
+            <label>Series (optional)</label>
+            <select class="finput" name="series_pk" id="es-series">
+              <option value="">— Standalone —</option>
+              {% for sr in series_list %}<option value="{{ sr.pk }}">{{ sr.title }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="fg"><label>Episode #</label><input class="finput" type="number" name="episode_number" id="es-episode"></div>
+        </div>
+        <label class="fcheck"><input type="checkbox" name="is_published" id="es-published"> Published</label>
+        <label class="fcheck"><input type="checkbox" name="is_premium" id="es-premium"> Premium</label>
+        <div style="display:flex;gap:10px;margin-top:16px;">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('edit-short-modal').style.display='none'">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function openEditShort(pk, data){
+  document.getElementById('es-pk').value = pk;
+  document.getElementById('es-title').value = data.title || '';
+  document.getElementById('es-description').value = data.description || '';
+  document.getElementById('es-video-url').value = data.video_url || '';
+  document.getElementById('es-thumbnail-url').value = data.thumbnail_url || '';
+  document.getElementById('es-series').value = data.series_pk || '';
+  document.getElementById('es-episode').value = data.episode_number || '';
+  document.getElementById('es-published').checked = !!data.is_published;
+  document.getElementById('es-premium').checked = !!data.is_premium;
+  document.getElementById('edit-short-modal').style.display = 'flex';
+}
+function shortAdminToggleAll(box){
+  document.querySelectorAll('.short-admin-check').forEach(c=>c.checked=box.checked);
+  shortAdminBulkUpdate();
+}
+function shortAdminBulkUpdate(){
+  const n = document.querySelectorAll('.short-admin-check:checked').length;
+  const bar = document.getElementById('short-bulk-bar');
+  bar.style.display = n ? 'flex' : 'none';
+  document.getElementById('short-bulk-count').textContent = n + ' selected';
+}
+async function shortAdminBulk(action){
+  const pks = [...document.querySelectorAll('.short-admin-check:checked')].map(c=>c.value);
+  if(!pks.length) return;
+  if(action==='delete' && !confirm('Delete '+pks.length+' short(s)? This cannot be undone.')) return;
+  const fd = new FormData();
+  fd.append('kind','short'); fd.append('action',action); fd.append('pks',pks.join(','));
+  fd.append('csrfmiddlewaretoken', getCsrf());
+  const r = await fetch('/admin-panel/fetch/bulk/', {method:'POST', body:fd});
+  if(r.ok){ location.reload(); } else { alert('Something went wrong — please try again.'); }
+}
+</script>
+{% endblock %}

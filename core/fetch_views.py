@@ -437,14 +437,152 @@ def fetch_images_import_gallery(request):
 
 
 @_admin_required
+def fetch_shorts(request):
+    """Search real stock video clips (Pexels/Pixabay) and import them as
+    Shorts — always saved as a video_url, never downloaded, to keep
+    storage minimal."""
+    tab = request.GET.get('tab', 'search')
+    q = request.GET.get('q', '').strip()
+    provider = request.GET.get('provider', 'pexels')
+    is_random = request.GET.get('random') == '1'
+
+    if request.method == 'POST' and request.POST.get('action') == 'save_pexels_key':
+        from core.models import SiteSettings
+        key = request.POST.get('pexels_api_key', '').strip()
+        obj, _c = SiteSettings.objects.get_or_create(key='pexels_api_key', defaults={'label': 'Pexels API Key', 'group': 'integrations'})
+        obj.value = key
+        obj.save()
+        messages.success(request, 'Pexels API key saved.')
+        return redirect(request.path + '?tab=search&provider=pexels')
+
+    pexels_configured = ext.pexels_configured()
+    pixabay_configured = ext.pixabay_configured()
+    configured = pexels_configured if provider == 'pexels' else pixabay_configured
+
+    results = []
+    search_error = None
+    if configured and is_random and provider == 'pexels':
+        results, search_error = ext.pexels_videos_popular_verbose(per_page=18)
+    elif configured and q:
+        if provider == 'pixabay':
+            results, search_error = ext.pixabay_videos_search_verbose(q, per_page=18)
+        else:
+            results, search_error = ext.pexels_videos_search_verbose(q, per_page=18)
+
+    from shorts.models import Short
+    pending_count = Short.objects.filter(is_fetched=True, is_published=False).count()
+
+    return render(request, 'admin_panel/modules/fetch_shorts.html', {
+        'tab': tab, 'q': q, 'provider': provider, 'is_random': is_random,
+        'results': results, 'search_error': search_error,
+        'pexels_configured': pexels_configured, 'pixabay_configured': pixabay_configured,
+        'pending_count': pending_count,
+    })
+
+
+@_admin_required
+@require_POST
+def fetch_shorts_import(request):
+    """Import selected video-clip search results as Shorts — video_url only,
+    nothing downloaded, matching how Track.audio_url / Movie.video_url work
+    for externally-linked media elsewhere in Fetch."""
+    approve = request.POST.get('approve') == '1'
+    try:
+        items = _json.loads(request.POST.get('items', '[]'))
+    except Exception:
+        items = []
+
+    from shorts.models import Short
+
+    created = 0
+    skipped_dupes = 0
+    for it in items:
+        video_url = it.get('video_url') or ''
+        if not video_url:
+            continue
+        source = it.get('source') or ''
+        external_id = it.get('external_id') or ''
+        if external_id and Short.objects.filter(is_fetched=True, fetch_source=source, description__contains=f'[id:{external_id}]').exists():
+            skipped_dupes += 1
+            continue
+        query = (it.get('query') or 'Short').strip().title()[:80]
+        photographer = it.get('photographer') or 'Unknown'
+        title = f"{query} — by {photographer}"[:200]
+        short = Short(
+            title=title,
+            description=f"Clip by {photographer} via {source or 'stock video'}. [id:{external_id}]",
+            video_url=video_url,
+            thumbnail_url=it.get('thumbnail_url', ''),
+            duration_seconds=int(it.get('duration') or 0),
+            uploaded_by=request.user,
+            is_fetched=True, fetch_source=source,
+            is_published=approve,
+        )
+        short.save()
+        created += 1
+
+    if created:
+        state = 'imported and approved' if approve else 'imported as pending — approve them from Admin → Shorts'
+        msg = f'{created} short(s) {state}.'
+        if skipped_dupes:
+            msg += f' ({skipped_dupes} already imported, skipped.)'
+        messages.success(request, msg)
+    else:
+        messages.info(request, 'Nothing new to import.')
+    return redirect('/admin-panel/fetch/shorts/')
+
+
+@_admin_required
+def admin_shorts(request):
+    """Shorts management — list, edit, bulk approve/reject/delete."""
+    from shorts.models import Short
+    from movies.models import Series
+
+    if request.method == 'POST':
+        from django.core.cache import cache
+        cache.delete('trending_page_v2')
+        action = request.POST.get('action', '')
+        if action == 'toggle_publish':
+            s = get_object_or_404(Short, pk=request.POST.get('pk'))
+            s.is_published = not s.is_published
+            s.save(update_fields=['is_published'])
+        elif action == 'delete_short':
+            get_object_or_404(Short, pk=request.POST.get('pk')).delete()
+            messages.success(request, 'Short deleted.')
+        elif action == 'edit_short':
+            s = get_object_or_404(Short, pk=request.POST.get('pk'))
+            s.title = request.POST.get('title', s.title)
+            s.description = request.POST.get('description', s.description)
+            s.video_url = request.POST.get('video_url', s.video_url)
+            s.thumbnail_url = request.POST.get('thumbnail_url', s.thumbnail_url)
+            series_pk = request.POST.get('series_pk')
+            s.series_id = series_pk or None
+            ep = request.POST.get('episode_number')
+            s.episode_number = int(ep) if ep and ep.isdigit() else None
+            s.is_published = request.POST.get('is_published') == 'on'
+            s.is_premium = request.POST.get('is_premium') == 'on'
+            s.save()
+            messages.success(request, f'"{s.title}" updated.')
+        return redirect('/admin-panel/shorts/')
+
+    qs = Short.objects.all().select_related('series', 'uploaded_by').order_by('-created_at')
+    from django.core.paginator import Paginator
+    page = Paginator(qs, 30).get_page(request.GET.get('page'))
+    return render(request, 'admin_panel/modules/shorts.html', {
+        'page': page, 'series_list': Series.objects.all().order_by('-created_at'),
+    })
+
+
+@_admin_required
 @require_POST
 def fetch_bulk_action(request):
-    """Shared bulk endpoint for Tracks, Movies, and Images tables. Expects
-    kind=track|movie|image, action=approve|reject|delete, pks=comma list."""
+    """Shared bulk endpoint for Tracks, Movies, Images, and Shorts tables.
+    Expects kind=track|movie|image|short, action=approve|reject|delete,
+    pks=comma list."""
     kind = request.POST.get('kind', '')
     action = request.POST.get('action', '')
     pks = [p for p in request.POST.get('pks', '').split(',') if p.strip()]
-    if not pks or kind not in ('track', 'movie', 'image') or action not in ('approve', 'reject', 'delete', 'fetch_lyrics'):
+    if not pks or kind not in ('track', 'movie', 'image', 'short') or action not in ('approve', 'reject', 'delete', 'fetch_lyrics'):
         return JsonResponse({'ok': False, 'error': 'Invalid request'}, status=400)
 
     if kind == 'track':
@@ -453,6 +591,9 @@ def fetch_bulk_action(request):
     elif kind == 'image':
         from images.models import Image
         qs = Image.objects.filter(pk__in=pks)
+    elif kind == 'short':
+        from shorts.models import Short
+        qs = Short.objects.filter(pk__in=pks)
     else:
         from movies.models import Movie
         qs = Movie.objects.filter(pk__in=pks)

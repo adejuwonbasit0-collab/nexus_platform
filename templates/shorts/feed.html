@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+{% block title %}Shorts — NEXUS{% endblock %}
+{% block content %}
+<div id="shorts-root" style="position:fixed;inset:0;background:#000;z-index:400;overflow-y:scroll;scroll-snap-type:y mandatory;">
+  <a href="/" style="position:fixed;top:16px;left:16px;z-index:410;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;color:#fff;text-decoration:none;font-size:16px;"><i class="fa-solid fa-arrow-left"></i></a>
+
+  {% for s in shorts %}
+  <section class="short-slide" data-pk="{{ s.pk }}" data-youtube="{{ s.is_youtube|yesno:'1,0' }}" data-video="{{ s.video_url }}"
+    style="position:relative;height:100vh;width:100%;scroll-snap-align:start;display:flex;align-items:center;justify-content:center;background:#000;overflow:hidden;">
+
+    {% if s.is_youtube %}
+      <div class="short-yt-wrap" style="width:100%;height:100%;"></div>
+    {% else %}
+      <video class="short-video" src="{{ s.video_url }}" loop playsinline muted
+        style="width:100%;height:100%;object-fit:cover;" poster="{{ s.thumbnail_url }}"></video>
+    {% endif %}
+
+    <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15) 0%,transparent 25%,transparent 55%,rgba(0,0,0,.75) 100%);pointer-events:none;"></div>
+
+    <div style="position:absolute;left:16px;right:80px;bottom:26px;color:#fff;">
+      {% if s.series %}<div style="font-size:11px;font-weight:700;color:#1db954;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">{{ s.series.title }}{% if s.episode_number %} · Ep {{ s.episode_number }}{% endif %}</div>{% endif %}
+      <div style="font-weight:800;font-size:15px;margin-bottom:4px;">{{ s.title|default:"Untitled" }}</div>
+      {% if s.description %}<div style="font-size:12.5px;color:rgba(255,255,255,.8);max-width:85%;">{{ s.description|truncatechars:120 }}</div>{% endif %}
+    </div>
+
+    <div style="position:absolute;right:12px;bottom:30px;display:flex;flex-direction:column;align-items:center;gap:22px;color:#fff;">
+      <button class="short-like-btn" data-pk="{{ s.pk }}" onclick="shortToggleLike({{ s.pk }}, this)" style="background:none;border:none;color:{% if s.pk in liked_ids %}#1db954{% else %}#fff{% endif %};font-size:26px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;">
+        <i class="fa-solid fa-heart"></i>
+        <span class="short-like-count" style="font-size:11px;font-weight:700;">{{ s.like_count }}</span>
+      </button>
+      <button onclick="shareContent('{{ s.title|escapejs }}','/shorts/#{{ s.slug }}')" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;">
+        <i class="fa-solid fa-arrow-up-from-bracket"></i>
+        <span style="font-size:11px;font-weight:700;">Share</span>
+      </button>
+      <div style="font-size:11px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:2px;">
+        <i class="fa-solid fa-eye"></i>
+        <span>{{ s.view_count }}</span>
+      </div>
+    </div>
+
+    <button class="short-mute-btn" onclick="shortToggleMute(this)" style="position:absolute;top:16px;right:16px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.5);border:none;color:#fff;font-size:15px;cursor:pointer;">
+      <i class="fa-solid fa-volume-xmark"></i>
+    </button>
+  </section>
+  {% empty %}
+  <div style="height:100vh;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.5);flex-direction:column;gap:10px;">
+    <div style="font-size:40px;">🎬</div>
+    <div>No shorts yet — check back soon.</div>
+  </div>
+  {% endfor %}
+</div>
+
+<style>
+  body{overflow:hidden;}
+  .short-slide iframe{width:100%;height:100%;border:none;}
+</style>
+
+<script>
+(function(){
+  const root = document.getElementById('shorts-root');
+  const slides = [...document.querySelectorAll('.short-slide')];
+  let ytPlayers = {};
+  let ytApiReady = false;
+  let muted = true;
+
+  // Load YouTube iframe API only if at least one short needs it
+  if(slides.some(s=>s.dataset.youtube==='1')){
+    const tag=document.createElement('script'); tag.src='https://www.youtube.com/iframe_api';
+    document.body.appendChild(tag);
+    window.onYouTubeIframeAPIReady = function(){ ytApiReady = true; initYT(); };
+  }
+
+  function ytId(url){
+    const m = url.match(/(?:v=|youtu\.be\/|\/shorts\/|\/embed\/)([A-Za-z0-9_-]{11})/);
+    return m ? m[1] : '';
+  }
+
+  function initYT(){
+    slides.forEach(slide=>{
+      if(slide.dataset.youtube!=='1') return;
+      const wrap = slide.querySelector('.short-yt-wrap');
+      if(!wrap || wrap.dataset.ready) return;
+      wrap.dataset.ready='1';
+      const id = ytId(slide.dataset.video);
+      const div = document.createElement('div');
+      wrap.appendChild(div);
+      ytPlayers[slide.dataset.pk] = new YT.Player(div, {
+        videoId: id,
+        playerVars: {controls:0, loop:1, playlist:id, playsinline:1, mute:1, rel:0, modestbranding:1},
+      });
+    });
+  }
+
+  function playSlide(slide){
+    const video = slide.querySelector('.short-video');
+    if(video){ video.muted = muted; video.play().catch(()=>{}); }
+    const pk = slide.dataset.pk;
+    if(ytPlayers[pk]){ try{ytPlayers[pk].playVideo(); if(muted)ytPlayers[pk].mute(); else ytPlayers[pk].unMute();}catch(e){} }
+    // Count a view once per slide activation
+    if(!slide.dataset.viewed){
+      slide.dataset.viewed='1';
+      fetch(`/shorts/${pk}/view/`, {method:'POST', headers:{'X-CSRFToken':getCookie('csrftoken')}});
+    }
+  }
+  function pauseSlide(slide){
+    const video = slide.querySelector('.short-video');
+    if(video) video.pause();
+    const pk = slide.dataset.pk;
+    if(ytPlayers[pk]){ try{ytPlayers[pk].pauseVideo();}catch(e){} }
+  }
+
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(entry=>{
+      if(entry.isIntersecting && entry.intersectionRatio > 0.6) playSlide(entry.target);
+      else pauseSlide(entry.target);
+    });
+  }, {threshold:[0,0.6,1]});
+  slides.forEach(s=>io.observe(s));
+
+  // Kick off the first slide immediately (observer needs a scroll/paint tick)
+  if(slides.length) setTimeout(()=>playSlide(slides[0]), 200);
+
+  window.shortToggleMute = function(btn){
+    muted = !muted;
+    document.querySelectorAll('.short-video').forEach(v=>v.muted=muted);
+    Object.values(ytPlayers).forEach(p=>{try{muted?p.mute():p.unMute();}catch(e){}});
+    document.querySelectorAll('.short-mute-btn i').forEach(i=>{
+      i.className = muted ? 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high';
+    });
+  };
+
+  window.shortToggleLike = async function(pk, btn){
+    const fd = new FormData(); fd.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+    try{
+      const r = await fetch(`/shorts/${pk}/like/`, {method:'POST', body:fd});
+      if(r.status === 302 || r.redirected){ window.location.href='/auth/login/?next=/shorts/'; return; }
+      const d = await r.json();
+      btn.style.color = d.liked ? '#1db954' : '#fff';
+      btn.querySelector('.short-like-count').textContent = d.like_count;
+    }catch(e){}
+  };
+
+  function getCookie(name){
+    const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return v ? v.pop() : '';
+  }
+
+  // Clean up the fixed overlay + restore scroll when navigating away
+  window.addEventListener('beforeunload', ()=>{ document.body.style.overflow=''; });
+})();
+</script>
+{% endblock %}
