@@ -558,6 +558,12 @@
       <a class="sb-item {% if '/admin-panel/fetch/images' in request.path %}active{% endif %}" href="/admin-panel/fetch/images/">
         <span class="sb-icon">🖼</span> Fetch Images
       </a>
+      <a class="sb-item {% if request.path == '/admin-panel/shorts/' %}active{% endif %}" href="/admin-panel/shorts/">
+        <span class="sb-icon">📱</span> Shorts
+      </a>
+      <a class="sb-item {% if '/admin-panel/fetch/shorts' in request.path %}active{% endif %}" href="/admin-panel/fetch/shorts/">
+        <span class="sb-icon">📥</span> Fetch Shorts
+      </a>
       <a class="sb-item {% if '/admin-panel/blog' in request.path %}active{% endif %}" href="/admin-panel/blog/">
         <span class="sb-icon">📝</span> Blog
       </a>
