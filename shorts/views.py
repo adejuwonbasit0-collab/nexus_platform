@@ -6,15 +6,18 @@ from django.views.decorators.http import require_POST
 from .models import Short, ShortLike
 
 
-def _ordered_feed(queryset):
-    """Builds the scroll order: standalone shorts stay in normal recency
-    order, but if a short belongs to a Series, all of that series'
-    episodes are pulled in immediately after it in episode order — so a
-    movie broken into episodes plays back-to-back like consecutive shorts
-    instead of being scattered through the feed."""
+def _ordered_feed(queryset, seed=None):
+    """Builds the scroll order: standalone shorts stay in a shuffled order
+    (seeded so it differs per user/session and changes on each fresh visit,
+    instead of everyone seeing the exact same fixed list forever), but if a
+    short belongs to a Series, all of that series' episodes are pulled in
+    immediately after it in episode order — so a movie broken into
+    episodes plays back-to-back like consecutive shorts instead of being
+    scattered through the feed."""
+    import random
     items = list(queryset.select_related('series'))
     seen_series = set()
-    ordered = []
+    groups = []
     for item in items:
         if item.series_id:
             if item.series_id in seen_series:
@@ -24,15 +27,35 @@ def _ordered_feed(queryset):
                 [i for i in items if i.series_id == item.series_id],
                 key=lambda x: (x.episode_number or 0)
             )
-            ordered.extend(episodes)
+            groups.append(episodes)
         else:
-            ordered.append(item)
+            groups.append([item])
+
+    rng = random.Random(seed) if seed is not None else random.Random()
+    rng.shuffle(groups)
+
+    ordered = []
+    for g in groups:
+        ordered.extend(g)
     return ordered
 
 
 def shorts_feed(request):
+    # A fresh shuffle seed each time this page loads (so refreshing or
+    # logging back in gives a different order, not the exact same list
+    # forever), but unique per user so two people don't see identical
+    # orderings at the same moment.
+    import time
+    if request.user.is_authenticated:
+        identity = f'user-{request.user.pk}'
+    else:
+        if not request.session.session_key:
+            request.session.save()
+        identity = f'anon-{request.session.session_key}'
+    seed = f'{identity}-{int(time.time() // 1)}'
+
     qs = Short.objects.filter(is_published=True).order_by('-created_at')[:60]
-    feed = _ordered_feed(qs)
+    feed = _ordered_feed(qs, seed=seed)
     liked_ids = set()
     if request.user.is_authenticated:
         liked_ids = set(ShortLike.objects.filter(user=request.user, short__in=feed).values_list('short_id', flat=True))

@@ -11,7 +11,12 @@
     {% if s.is_youtube %}
       <div class="short-yt-wrap" style="width:100%;height:100%;"></div>
     {% else %}
-      <video class="short-video" src="{{ s.video_url }}" loop playsinline muted
+      <div class="short-fallback" style="display:none;position:absolute;inset:0;background:#141414;align-items:center;justify-content:center;flex-direction:column;gap:8px;color:rgba(255,255,255,.4);">
+        <div style="font-size:32px;">🎬</div>
+        <div style="font-size:12px;">Couldn't load this clip</div>
+      </div>
+      <video class="short-video" src="{{ s.video_url }}" loop playsinline muted preload="metadata"
+        onerror="this.style.display='none';this.previousElementSibling.style.display='flex';"
         style="width:100%;height:100%;object-fit:cover;" poster="{{ s.thumbnail_url }}"></video>
     {% endif %}
 

@@ -50,6 +50,22 @@ def download_image_into(instance, field_name, url, filename_hint='cover.jpg'):
         return False
 
 
+def _fix_escaped_unicode(s):
+    """Apple's RSS chart feed sometimes contains literal \\u002D-style escape
+    text inside the JSON string values themselves (not real JSON escapes,
+    so json.loads doesn't decode them) — this shows up as genre names like
+    'Afro\\u002DPop' instead of 'Afro-Pop'. Clean those up."""
+    if not s or '\\u' not in s:
+        return s
+    import re
+    def repl(m):
+        try:
+            return chr(int(m.group(1), 16))
+        except Exception:
+            return m.group(0)
+    return re.sub(r'\\u([0-9a-fA-F]{4})', repl, s)
+
+
 def _get_json(url, data=None, headers=None, timeout=TIMEOUT):
     try:
         req = urllib.request.Request(url, data=data, headers=headers or {})
@@ -110,8 +126,8 @@ def itunes_chart(genre_id='', feed='topsongs', limit=50):
     out = []
     for e in entries:
         try:
-            title = e['im:name']['label']
-            artist = e['im:artist']['label']
+            title = _fix_escaped_unicode(e['im:name']['label'])
+            artist = _fix_escaped_unicode(e['im:artist']['label'])
             images = e.get('im:image', [])
             cover = images[-1]['label'] if images else ''
             if cover:
@@ -121,7 +137,7 @@ def itunes_chart(genre_id='', feed='topsongs', limit=50):
                 'source': 'iTunes', 'external_id': itunes_id,
                 'title': title, 'artist': artist, 'album': '',
                 'cover': cover, 'preview_url': '',
-                'genre': e.get('category', {}).get('attributes', {}).get('label', ''),
+                'genre': _fix_escaped_unicode(e.get('category', {}).get('attributes', {}).get('label', '')),
                 'release_year': '',
             })
         except Exception:
@@ -154,12 +170,12 @@ def _itunes_to_result(r):
     return {
         'source': 'iTunes',
         'external_id': str(r.get('trackId', '')),
-        'title': r.get('trackName', ''),
-        'artist': r.get('artistName', ''),
-        'album': r.get('collectionName', ''),
+        'title': _fix_escaped_unicode(r.get('trackName', '')),
+        'artist': _fix_escaped_unicode(r.get('artistName', '')),
+        'album': _fix_escaped_unicode(r.get('collectionName', '')),
         'cover': (r.get('artworkUrl100') or '').replace('100x100', '600x600'),
         'preview_url': r.get('previewUrl', ''),
-        'genre': r.get('primaryGenreName', ''),
+        'genre': _fix_escaped_unicode(r.get('primaryGenreName', '')),
         'release_year': (r.get('releaseDate') or '')[:4],
         'duration_ms': r.get('trackTimeMillis', 0),
     }
@@ -461,7 +477,7 @@ def pixabay_videos_search_verbose(query, per_page=18):
             'source': 'Pixabay',
             'external_id': str(v.get('id', '')),
             'video_url': best.get('url', ''),
-            'thumbnail_url': f"https://i.vimeocdn.com/video/{v.get('picture_id','')}_640x360.jpg" if v.get('picture_id') else '',
+            'thumbnail_url': best.get('thumbnail', ''),
             'duration': v.get('duration', 0),
             'photographer': v.get('user', ''),
         })
