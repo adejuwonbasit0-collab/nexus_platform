@@ -15,6 +15,7 @@
   <span id="short-bulk-count" style="font-size:12px;color:var(--text2);"></span>
   <button type="button" class="btn btn-primary btn-xs" onclick="shortAdminBulk('approve')">✅ Approve</button>
   <button type="button" class="btn btn-secondary btn-xs" onclick="shortAdminBulk('reject')">↩ Set Draft</button>
+  <button type="button" class="btn btn-secondary btn-xs" onclick="shortAdminBulk('refresh_link')">🔄 Refresh Broken Links (Pexels)</button>
   <button type="button" class="btn btn-danger btn-xs" onclick="shortAdminBulk('delete')">🗑 Delete</button>
 </div>
 
@@ -136,7 +137,13 @@ async function shortAdminBulk(action){
   fd.append('kind','short'); fd.append('action',action); fd.append('pks',pks.join(','));
   fd.append('csrfmiddlewaretoken', getCsrf());
   const r = await fetch('/admin-panel/fetch/bulk/', {method:'POST', body:fd});
-  if(r.ok){ location.reload(); } else { alert('Something went wrong — please try again.'); }
+  if(r.ok){
+    if(action === 'refresh_link'){
+      const d = await r.json();
+      alert(`Refreshed ${d.refreshed} of ${d.count} link(s). (Only Pexels-sourced shorts can be refreshed this way.)`);
+    }
+    location.reload();
+  } else { alert('Something went wrong — please try again.'); }
 }
 </script>
 {% endblock %}

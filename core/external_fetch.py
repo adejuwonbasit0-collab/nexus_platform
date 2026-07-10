@@ -405,6 +405,23 @@ def pixabay_search_verbose(query, per_page=18):
 # as a URL (video_url), never downloaded to this server, to keep storage
 # usage minimal.
 
+def pexels_video_refresh(external_id):
+    """Pexels video file links are temporary, signed Vimeo URLs that expire
+    after a while — even though the video itself is permanent, the link we
+    saved stops working. Re-fetching the video by its Pexels ID returns a
+    fresh, currently-valid link. Returns a new video_url or '' on failure."""
+    key = _pexels_key()
+    if not key or not external_id:
+        return ''
+    data = _get_json(f'https://api.pexels.com/videos/videos/{external_id}', headers={'Authorization': key})
+    if not data:
+        return ''
+    files = data.get('video_files', [])
+    files_sorted = sorted(files, key=lambda f: f.get('width', 9999))
+    best = next((f for f in files_sorted if f.get('height', 0) >= f.get('width', 1)), None) or (files_sorted[0] if files_sorted else None)
+    return best.get('link', '') if best else ''
+
+
 def pexels_videos_search_verbose(query, per_page=15):
     """Returns (results, error_message). Each result has a direct .mp4 URL
     (video_url) plus a thumbnail image URL — nothing is ever downloaded to

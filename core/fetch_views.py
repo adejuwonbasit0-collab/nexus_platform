@@ -443,7 +443,7 @@ def fetch_shorts(request):
     storage minimal."""
     tab = request.GET.get('tab', 'search')
     q = request.GET.get('q', '').strip()
-    provider = request.GET.get('provider', 'pexels')
+    provider = request.GET.get('provider', 'pixabay')
     is_random = request.GET.get('random') == '1'
 
     if request.method == 'POST' and request.POST.get('action') == 'save_pexels_key':
@@ -582,7 +582,7 @@ def fetch_bulk_action(request):
     kind = request.POST.get('kind', '')
     action = request.POST.get('action', '')
     pks = [p for p in request.POST.get('pks', '').split(',') if p.strip()]
-    if not pks or kind not in ('track', 'movie', 'image', 'short') or action not in ('approve', 'reject', 'delete', 'fetch_lyrics'):
+    if not pks or kind not in ('track', 'movie', 'image', 'short') or action not in ('approve', 'reject', 'delete', 'fetch_lyrics', 'refresh_link'):
         return JsonResponse({'ok': False, 'error': 'Invalid request'}, status=400)
 
     if kind == 'track':
@@ -599,6 +599,24 @@ def fetch_bulk_action(request):
         qs = Movie.objects.filter(pk__in=pks)
 
     count = qs.count()
+    if action == 'refresh_link' and kind == 'short':
+        # Pexels video links are temporary signed URLs that expire — this
+        # re-fetches a fresh one for each short originally sourced from
+        # Pexels, using the saved external ID (stashed in the description).
+        import re
+        refreshed = 0
+        for s in qs:
+            if s.fetch_source != 'Pexels':
+                continue
+            m = re.search(r'\[id:(\d+)\]', s.description or '')
+            if not m:
+                continue
+            new_url = ext.pexels_video_refresh(m.group(1))
+            if new_url:
+                s.video_url = new_url
+                s.save(update_fields=['video_url'])
+                refreshed += 1
+        return JsonResponse({'ok': True, 'count': count, 'action': action, 'refreshed': refreshed})
     if action == 'approve':
         qs.update(is_published=True)
     elif action == 'reject':
