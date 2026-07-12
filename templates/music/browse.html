@@ -7,28 +7,48 @@ const browseQueue = [{% for t in tracks %}
 if(typeof setPlayerQueue==='function' && browseQueue.length) setPlayerQueue(browseQueue);
 </script>
 {% endblock %}
-{% block head %}<style>body{background:#0a0d12;}.track-row{display:flex;align-items:center;gap:14px;padding:10px 16px;background:#111;border-radius:8px;cursor:pointer;transition:background 0.18s;}.track-row:hover{background:#171717;}</style>{% endblock %}
+{% block head %}<style>
+body{background:#0a0d12;}
+.mbrowse-select{appearance:none;-webkit-appearance:none;background:#0d1118 url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="6"><path d="M0 0l5 6 5-6z" fill="%23888"/></svg>') no-repeat right 12px center;border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:9px 30px 9px 16px;color:#fff;font-size:0.82rem;cursor:pointer;}
+.mbrowse-input{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:9px 16px;color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.84rem;outline:none;}
+.mbrowse-filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.track-row{display:flex;align-items:center;gap:14px;padding:10px 16px;background:#111;border-radius:8px;cursor:pointer;transition:background 0.18s, transform .15s;}
+.track-row:hover{background:#171717;transform:translateY(-1px);}
+@media(max-width:640px){
+  .mbrowse-input{width:100%!important;}
+  .mbrowse-filters > *{flex:1 1 auto;min-width:0;}
+  .mbrowse-filters form{width:100%;}
+  .tr-meta-extra{display:none!important;}
+}
+@media(max-width:420px){
+  .tr-genre-col{display:none!important;}
+}
+</style>{% endblock %}
 {% block content %}
 <div style="background:#0a0d12;min-height:100vh;color:#fff;padding-bottom:80px;">
 <div style="background:#0d1118;border-bottom:1px solid rgba(255,255,255,0.06);padding:24px 0;">
   <div class="container">
     <h1 style="font-family:'Space Grotesk',sans-serif;font-size:1.6rem;font-weight:800;margin-bottom:16px;">🎵 Browse Music</h1>
-    <form method="get" style="display:flex;gap:8px;flex-wrap:wrap;">
-      <input name="q" value="{{ q }}" placeholder="Search tracks, artists…" style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 14px;color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.84rem;outline:none;width:220px;">
-      <select name="genre" style="background:#0d1118;border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px 12px;color:#fff;font-size:0.82rem;" onchange="this.form.submit()">
+    <form method="get" class="mbrowse-filters">
+      <input class="mbrowse-input" name="q" value="{{ q }}" placeholder="Search tracks, artists…" style="width:220px;">
+      <select name="genre" class="mbrowse-select" onchange="this.form.submit()">
         <option value="">All Genres</option>{% for g in genres %}<option value="{{ g.slug }}" {% if active_genre == g.slug %}selected{% endif %}>{{ g.name }}</option>{% endfor %}
       </select>
-      <select name="artist" style="background:#0d1118;border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px 12px;color:#fff;font-size:0.82rem;" onchange="this.form.submit()">
+      <select name="artist" class="mbrowse-select" onchange="this.form.submit()">
         <option value="">All Artists</option>{% for a in artists %}<option value="{{ a.slug }}" {% if active_artist == a.slug %}selected{% endif %}>{{ a.name }}</option>{% endfor %}
       </select>
-      <select name="sort" style="background:#0d1118;border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px 12px;color:#fff;font-size:0.82rem;" onchange="this.form.submit()">
-        <option value="-trend_score">Trending</option>
-        <option value="-created_at">Newest</option>
-        <option value="-plays_count">Most Played</option>
-        <option value="-downloads_count">Most Downloaded</option>
-        <option value="-likes_count">Most Liked</option>
+      <select name="sort" class="mbrowse-select" onchange="this.form.submit()">
+        <option value="-trend_score" {% if active_sort == '-trend_score' %}selected{% endif %}>Trending</option>
+        <option value="-created_at" {% if active_sort == '-created_at' %}selected{% endif %}>Newest</option>
+        <option value="-plays_count" {% if active_sort == '-plays_count' %}selected{% endif %}>Most Played</option>
+        <option value="-downloads_count" {% if active_sort == '-downloads_count' %}selected{% endif %}>Most Downloaded</option>
+        <option value="-likes_count" {% if active_sort == '-likes_count' %}selected{% endif %}>Most Liked</option>
+        <option value="title" {% if active_sort == 'title' %}selected{% endif %}>Title (A–Z)</option>
+        <option value="-title" {% if active_sort == '-title' %}selected{% endif %}>Title (Z–A)</option>
+        <option value="-duration" {% if active_sort == '-duration' %}selected{% endif %}>Longest</option>
+        <option value="duration" {% if active_sort == 'duration' %}selected{% endif %}>Shortest</option>
       </select>
-      <button type="submit" class="btn btn-sm" style="background:#1db954;color:var(--tx);font-weight:700;">Search</button>
+      <button type="submit" class="btn btn-sm" style="background:#1db954;color:var(--tx);font-weight:700;border-radius:20px;">Search</button>
     </form>
   </div>
 </div>
@@ -48,13 +68,13 @@ if(typeof setPlayerQueue==='function' && browseQueue.length) setPlayerQueue(brow
           {% if t.album %} · <a href="/music/album/{{ t.album.slug }}/" onclick="event.stopPropagation()" style="color:rgba(255,255,255,0.35);text-decoration:none;">{{ t.album.title }}</a>{% endif %}
         </div>
       </div>
-      {% if t.genre %}<span style="font-size:0.7rem;color:rgba(255,255,255,0.3);white-space:nowrap;">{{ t.genre.name }}</span>{% endif %}
-      <span style="font-size:0.72rem;color:rgba(255,255,255,0.3);">{{ t.release_year }}</span>
-      <span style="font-size:0.72rem;color:rgba(255,255,255,0.3);">{{ t.duration_str }}</span>
-      <span style="font-size:0.72rem;color:rgba(255,255,255,0.3);">▶ {{ t.plays_count }}</span>
+      {% if t.genre %}<span class="tr-genre-col" style="font-size:0.7rem;color:rgba(255,255,255,0.3);white-space:nowrap;">{{ t.genre.name }}</span>{% endif %}
+      <span class="tr-meta-extra" style="font-size:0.72rem;color:rgba(255,255,255,0.3);">{{ t.release_year }}</span>
+      <span class="tr-meta-extra" style="font-size:0.72rem;color:rgba(255,255,255,0.3);">{{ t.duration_str }}</span>
+      <span class="tr-meta-extra" style="font-size:0.72rem;color:rgba(255,255,255,0.3);">▶ {{ t.plays_count }}</span>
       {% if t.is_premium %}<span style="background:rgba(245,166,35,0.15);color:#f5a623;border:1px solid rgba(245,166,35,0.25);padding:2px 7px;border-radius:20px;font-size:0.65rem;white-space:nowrap;">⭐ Pro</span>{% endif %}
-      <a href="/music/track/{{ t.slug }}/" onclick="event.stopPropagation()" style="font-size:0.7rem;color:rgba(255,255,255,0.3);text-decoration:none;padding:4px;white-space:nowrap;">Details</a>
-      <a href="/music/download/{{ t.pk }}/" onclick="event.stopPropagation()" class="btn btn-sm" style="background:rgba(29,185,84,0.15);color:#1db954;border:1px solid rgba(29,185,84,0.2);white-space:nowrap;flex-shrink:0;">⬇ MP3</a>
+      <a href="/music/track/{{ t.slug }}/" onclick="event.stopPropagation()" class="tr-meta-extra" style="font-size:0.7rem;color:rgba(255,255,255,0.3);text-decoration:none;padding:4px;white-space:nowrap;">Details</a>
+      <a href="/music/download/{{ t.pk }}/" onclick="event.stopPropagation()" class="btn btn-sm" style="background:rgba(29,185,84,0.15);color:#1db954;border:1px solid rgba(29,185,84,0.2);white-space:nowrap;flex-shrink:0;">⬇</a>
     </div>
     {% empty %}
     <div style="text-align:center;padding:80px 0;color:rgba(255,255,255,0.3);">
@@ -64,11 +84,4 @@ if(typeof setPlayerQueue==='function' && browseQueue.length) setPlayerQueue(brow
   </div>
 </div>
 </div>
-{% endblock %}
-{% block scripts %}
-<script>
-  if (typeof playMiniTrack === 'function') playMiniTrack(url, title, artist, cover, detailUrl||null, pk||null);
-  showToast('▶ '+title);
-}
-</script>
 {% endblock %}

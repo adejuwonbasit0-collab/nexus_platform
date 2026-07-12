@@ -88,10 +88,3 @@ if(typeof setPlayerQueue==='function' && albumQueue.length) setPlayerQueue(album
 
 </div>
 {% endblock %}
-{% block scripts %}
-<script>
-  if (typeof playMiniTrack === 'function') playMiniTrack(url, title, artist, cover, detailUrl||null, pk||null);
-  showToast('▶ '+title);
-}
-</script>
-{% endblock %}

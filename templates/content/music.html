@@ -42,10 +42,3 @@
   </div>
 </div>
 {% endblock %}
-{% block scripts %}
-<script>
-  if (typeof playMiniTrack === 'function') playMiniTrack(url, title, artist, thumb);
-  showToast('Now playing: ' + title);
-}
-</script>
-{% endblock %}

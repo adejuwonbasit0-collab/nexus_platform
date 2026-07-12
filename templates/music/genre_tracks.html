@@ -21,7 +21,7 @@ body{background:#060810;}
 </div>
 <div class="container" style="padding:24px 20px 100px;">
   {% for t in tracks %}
-  <div class="track-row" onclick="playMiniTrack('{% if t.has_audio %}{{ t.playable_url }}{% endif %}','{{ t.title|escapejs }}','{{ t.artist.name|escapejs }}','{{ t.display_banner|escapejs }}','/music/track/{{ t.slug }}/',{{ t.pk }})">
+  <div class="track-row" onclick="playMiniTrack('{% if t.has_audio %}{{ t.playable_url|escapejs }}{% endif %}','{{ t.title|escapejs }}','{{ t.artist.name|escapejs }}','{{ t.display_banner|escapejs }}','/music/track/{{ t.slug }}/',{{ t.pk }})">
     {% if t.cover_image %}<img class="track-cover" src="{{ t.cover_image.url }}" alt="">
     {% elif t.album and t.album.cover_image %}<img class="track-cover" src="{{ t.album.cover_image.url }}" alt="">
     {% else %}<div class="track-cover">🎵</div>{% endif %}
@@ -37,7 +37,7 @@ body{background:#060810;}
   {% endfor %}
 </div>
 <script>
-const queueData = [{% for t in tracks %}{'url':'{% if t.has_audio %}{{ t.playable_url }}{% endif %}','title':'{{ t.title|escapejs }}','artist':'{{ t.artist.name|escapejs }}','cover':'{{ t.display_banner|escapejs }}','detail':'/music/track/{{ t.slug }}/','pk':{{ t.pk }}}{% if not forloop.last %},{% endif %}{% endfor %}];
+const queueData = [{% for t in tracks %}{'url':'{% if t.has_audio %}{{ t.playable_url|escapejs }}{% endif %}','title':'{{ t.title|escapejs }}','artist':'{{ t.artist.name|escapejs }}','cover':'{{ t.display_banner|escapejs }}','detail':'/music/track/{{ t.slug }}/','pk':{{ t.pk }}}{% if not forloop.last %},{% endif %}{% endfor %}];
 function playAll(){if(!queueData.length)return;setPlayerQueue(queueData);const t=queueData[0];if(typeof playMiniTrack==='function')playMiniTrack(t.url,t.title,t.artist,t.cover,t.detail,t.pk);}
 </script>
 {% endblock %}

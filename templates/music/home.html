@@ -89,11 +89,20 @@
 {% if genres %}
 <div class="sp-sec">
   <div class="sp-section-head"><div class="sp-section-title">🎸 Genres</div></div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px">
+  <div class="genre-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px">
     {% for g in genres %}
-    <a href="/music/genre/{{ g.slug }}/" style="border-radius:var(--r2);padding:18px;text-decoration:none;color:#fff;font-weight:700;font-size:15px;min-height:90px;display:flex;align-items:flex-end;background:{% cycle '#3d0c7b' '#7b0c4a' '#0c5a7b' '#7b4a0c' '#0c7b3d' '#4a0c7b' %}">{{ g.name }}</a>
+    <a href="/music/genre/{{ g.slug }}/" class="genre-tile-sm" style="border-radius:var(--r2);padding:16px;text-decoration:none;color:#fff;font-weight:700;font-size:14px;min-height:80px;display:flex;align-items:flex-end;background:{% cycle '#3d0c7b' '#7b0c4a' '#0c5a7b' '#7b4a0c' '#0c7b3d' '#4a0c7b' %};overflow-wrap:break-word;word-break:break-word;line-height:1.25;">{{ g.name }}</a>
     {% endfor %}
   </div>
 </div>
+<style>
+@media(max-width:480px){
+  .genre-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))!important;gap:8px!important;}
+  .genre-tile-sm{padding:12px!important;min-height:64px!important;font-size:12.5px!important;}
+}
+@media(max-width:340px){
+  .genre-grid{grid-template-columns:1fr 1fr!important;}
+}
+</style>
 {% endif %}
 {% endblock %}

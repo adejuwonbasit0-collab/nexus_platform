@@ -116,7 +116,8 @@ def music_browse(request):
     if artist_slug: qs = qs.filter(artist__slug=artist_slug)
     if year:        qs = qs.filter(release_year=year)
 
-    allowed_sorts = ('-trend_score', '-plays_count', '-created_at', '-downloads_count', '-likes_count')
+    allowed_sorts = ('-trend_score', '-plays_count', '-created_at', '-downloads_count', '-likes_count',
+                      'title', '-title', 'duration', '-duration')
     if sort in allowed_sorts:
         qs = qs.order_by(sort)
 
@@ -132,6 +133,7 @@ def music_browse(request):
         'branding':      branding,
         'active_genre':  genre_slug,
         'active_artist': artist_slug,
+        'active_sort':   sort,
     })
 
 
