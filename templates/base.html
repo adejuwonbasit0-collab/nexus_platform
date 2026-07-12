@@ -734,6 +734,12 @@ input,select,textarea{max-width:100%;font-size:16px} /* prevent iOS zoom */
         <div class="sp-playlist-info"><div class="sp-playlist-name">Blog</div><div class="sp-playlist-type">Articles</div></div>
       </a>
       {% if user.is_authenticated %}
+      <a href="/library/" class="sp-playlist-item">
+        <div class="sp-playlist-cover">📥</div>
+        <div class="sp-playlist-info"><div class="sp-playlist-name">Your Library</div><div class="sp-playlist-type">Downloads</div></div>
+      </a>
+      {% endif %}
+      {% if user.is_authenticated %}
       <div style="height:1px;background:var(--bd);margin:10px 0"></div>
       {% if user_playlists %}
       {% for pl in user_playlists %}
@@ -802,6 +808,7 @@ input,select,textarea{max-width:100%;font-size:16px} /* prevent iOS zoom */
             </div>
             <a href="/dashboard/" class="account-menu-item">🏠 Dashboard</a>
             <a href="/auth/profile/" class="account-menu-item">👤 My Profile</a>
+            <a href="/library/" class="account-menu-item">📥 Your Library</a>
             {% if user.is_admin %}<a href="/admin-panel/" class="account-menu-item">⚙ Admin Panel</a>{% endif %}
             {% if user.role == 'creator' %}<a href="/creator/" class="account-menu-item">✨ Creator Studio</a>{% endif %}
             <div style="height:1px;background:var(--bd);margin:4px 0;"></div>

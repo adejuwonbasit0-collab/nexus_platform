@@ -165,6 +165,11 @@ def download_movie(request, pk):
     if not movie.has_video:
         raise Http404
     Movie.objects.filter(pk=pk).update(downloads_count=movie.downloads_count + 1)
+    from accounts.models import DownloadHistory
+    DownloadHistory.objects.create(
+        user=request.user, content_type='movie', object_id=movie.pk,
+        file_url=movie.video_url or '', ip_address=request.META.get('REMOTE_ADDR'),
+    )
     if movie.is_external_video:
         # No local copy to serve — send the user to the source link directly.
         return redirect(movie.video_url)

@@ -300,11 +300,37 @@ def fetch_images(request):
 
     pexels_configured = ext.pexels_configured()
     pixabay_configured = ext.pixabay_configured()
-    configured = pexels_configured if provider == 'pexels' else pixabay_configured
+    configured = (pexels_configured or pixabay_configured) if provider == 'all' else (pexels_configured if provider == 'pexels' else pixabay_configured)
     results = []
     search_error = None
     is_random = request.GET.get('random') == '1'
-    if tab == 'stock' and configured and is_random:
+
+    if provider == 'all':
+        # Search every configured provider at once and merge the results —
+        # no need to know or care which one actually has a working key,
+        # just pick from whichever pulled real results.
+        errors = []
+        if is_random and pexels_configured:
+            r, e = ext.pexels_curated_verbose(per_page=12)
+            results += r
+            if e: errors.append(f'Pexels: {e}')
+        if is_random and pixabay_configured:
+            r, e = ext.pixabay_random_verbose(per_page=12)
+            results += r
+            if e: errors.append(f'Pixabay: {e}')
+        if q and pexels_configured:
+            r, e = ext.pexels_search_verbose(q, per_page=12)
+            results += r
+            if e: errors.append(f'Pexels: {e}')
+        if q and pixabay_configured:
+            r, e = ext.pixabay_search_verbose(q, per_page=12)
+            results += r
+            if e: errors.append(f'Pixabay: {e}')
+        if not pexels_configured and not pixabay_configured:
+            search_error = 'No stock photo provider configured yet — save a Pexels or Pixabay key below.'
+        elif not results and errors:
+            search_error = ' | '.join(errors)
+    elif tab == 'stock' and configured and is_random:
         if provider == 'pixabay':
             results, search_error = ext.pixabay_random_verbose(per_page=18)
         else:
@@ -582,7 +608,7 @@ def fetch_bulk_action(request):
     kind = request.POST.get('kind', '')
     action = request.POST.get('action', '')
     pks = [p for p in request.POST.get('pks', '').split(',') if p.strip()]
-    if not pks or kind not in ('track', 'movie', 'image', 'short') or action not in ('approve', 'reject', 'delete', 'fetch_lyrics', 'refresh_link'):
+    if not pks or kind not in ('track', 'movie', 'image', 'short', 'blog') or action not in ('approve', 'reject', 'delete', 'fetch_lyrics', 'refresh_link'):
         return JsonResponse({'ok': False, 'error': 'Invalid request'}, status=400)
 
     if kind == 'track':
@@ -594,6 +620,9 @@ def fetch_bulk_action(request):
     elif kind == 'short':
         from shorts.models import Short
         qs = Short.objects.filter(pk__in=pks)
+    elif kind == 'blog':
+        from blog.models import Post
+        qs = Post.objects.filter(pk__in=pks)
     else:
         from movies.models import Movie
         qs = Movie.objects.filter(pk__in=pks)
@@ -618,9 +647,15 @@ def fetch_bulk_action(request):
                 refreshed += 1
         return JsonResponse({'ok': True, 'count': count, 'action': action, 'refreshed': refreshed})
     if action == 'approve':
-        qs.update(is_published=True)
+        if kind == 'blog':
+            qs.update(status='published')
+        else:
+            qs.update(is_published=True)
     elif action == 'reject':
-        qs.update(is_published=False)
+        if kind == 'blog':
+            qs.update(status='draft')
+        else:
+            qs.update(is_published=False)
     elif action == 'delete':
         qs.delete()
     elif action == 'fetch_lyrics' and kind == 'track':

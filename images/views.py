@@ -72,6 +72,12 @@ def download_image(request, pk):
     if not image.has_image:
         raise Http404
     Image.objects.filter(pk=pk).update(downloads_count=image.downloads_count + 1)
+    from accounts.models import DownloadHistory
+    DownloadHistory.objects.create(
+        user=request.user, content_type='image', object_id=image.pk,
+        file_url=image.display_url if hasattr(image, 'display_url') else '',
+        ip_address=request.META.get('REMOTE_ADDR'),
+    )
     if image.is_external_image:
         # No local copy to serve — send the user to the source link directly.
         return redirect(image.image_url)

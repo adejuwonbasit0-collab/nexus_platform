@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block title %}Your Library — NEXUS{% endblock %}
+{% block content %}
+<div style="padding:20px 0;">
+  <div class="sp-section-title" style="margin-bottom:4px;">📥 Your Library</div>
+  <div style="font-size:12.5px;color:var(--tx2);margin-bottom:18px;">Everything you've downloaded — music, movies, and images, all in one place.</div>
+
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+    <a href="?type=all&sort={{ sort }}" class="btn btn-sm {% if content_type == 'all' %}btn-primary{% else %}btn-secondary{% endif %}">All ({{ counts.all }})</a>
+    <a href="?type=music&sort={{ sort }}" class="btn btn-sm {% if content_type == 'music' %}btn-primary{% else %}btn-secondary{% endif %}">🎵 Music ({{ counts.music }})</a>
+    <a href="?type=movie&sort={{ sort }}" class="btn btn-sm {% if content_type == 'movie' %}btn-primary{% else %}btn-secondary{% endif %}">🎬 Movies ({{ counts.movie }})</a>
+    <a href="?type=image&sort={{ sort }}" class="btn btn-sm {% if content_type == 'image' %}btn-primary{% else %}btn-secondary{% endif %}">🖼 Images ({{ counts.image }})</a>
+  </div>
+
+  <form method="get" style="margin-bottom:16px;">
+    <input type="hidden" name="type" value="{{ content_type }}">
+    <select name="sort" onchange="this.form.submit()" style="background:#0d1118;border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:8px 16px;color:#fff;font-size:0.82rem;">
+      <option value="recent" {% if sort == 'recent' %}selected{% endif %}>Recently downloaded</option>
+      <option value="title_asc" {% if sort == 'title_asc' %}selected{% endif %}>Title (A–Z)</option>
+      <option value="title_desc" {% if sort == 'title_desc' %}selected{% endif %}>Title (Z–A)</option>
+      <option value="length_desc" {% if sort == 'length_desc' %}selected{% endif %}>Length (longest first)</option>
+      <option value="length_asc" {% if sort == 'length_asc' %}selected{% endif %}>Length (shortest first)</option>
+    </select>
+  </form>
+
+  {% if items %}
+  <div style="display:flex;flex-direction:column;gap:2px;">
+    {% for item in items %}
+    <div class="track-row" style="display:flex;align-items:center;gap:14px;padding:10px 14px;background:#111;border-radius:8px;{% if item.kind == 'music' %}cursor:pointer;{% endif %}"
+      {% if item.kind == 'music' %}onclick="playTrack('{% if item.obj.has_audio %}{{ item.obj.playable_url|escapejs }}{% endif %}','{{ item.obj.title|escapejs }}','{{ item.obj.artist.name|escapejs }}','{{ item.obj.display_banner|escapejs }}','/music/track/{{ item.obj.slug }}/',{{ item.obj.pk }})"{% endif %}>
+
+      {% if item.kind == 'music' %}
+        <div style="width:44px;height:44px;border-radius:6px;overflow:hidden;background:#0a2010;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+          {% if item.obj.cover_image %}<img src="{{ item.obj.cover_image.url }}" style="width:100%;height:100%;object-fit:cover;">{% else %}🎵{% endif %}
+        </div>
+        <div style="min-width:0;flex:1;">
+          <div style="font-size:0.86rem;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ item.obj.title }}</div>
+          <div style="font-size:0.72rem;color:rgba(255,255,255,0.45);">{{ item.obj.artist.name }} · {{ item.obj.duration_str }}</div>
+        </div>
+        <a href="/music/download/{{ item.obj.pk }}/" onclick="event.stopPropagation()" class="btn btn-sm" style="background:rgba(29,185,84,.15);color:#1db954;">⬇</a>
+
+      {% elif item.kind == 'movie' %}
+        <a href="/movies/film/{{ item.obj.slug }}/" style="display:flex;align-items:center;gap:14px;flex:1;min-width:0;text-decoration:none;">
+          <div style="width:52px;height:34px;border-radius:6px;overflow:hidden;background:#1a0808;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+            {% if item.obj.thumbnail %}<img src="{{ item.obj.thumbnail.url }}" style="width:100%;height:100%;object-fit:cover;">{% else %}🎬{% endif %}
+          </div>
+          <div style="min-width:0;flex:1;">
+            <div style="font-size:0.86rem;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ item.obj.title }}</div>
+            <div style="font-size:0.72rem;color:rgba(255,255,255,0.45);">{{ item.obj.release_year }}</div>
+          </div>
+        </a>
+        <a href="/movies/download/{{ item.obj.pk }}/" onclick="event.stopPropagation()" class="btn btn-sm" style="background:rgba(229,9,20,.15);color:#e50914;">⬇</a>
+
+      {% elif item.kind == 'image' %}
+        <a href="/images/view/{{ item.obj.slug }}/" style="display:flex;align-items:center;gap:14px;flex:1;min-width:0;text-decoration:none;">
+          <div style="width:44px;height:44px;border-radius:6px;overflow:hidden;background:#161616;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+            {% if item.obj.has_image %}<img src="{{ item.obj.display_url }}" style="width:100%;height:100%;object-fit:cover;">{% else %}🖼{% endif %}
+          </div>
+          <div style="min-width:0;flex:1;">
+            <div style="font-size:0.86rem;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ item.obj.title }}</div>
+            <div style="font-size:0.72rem;color:rgba(255,255,255,0.45);">Downloaded {{ item.downloaded_at|date:"M j, Y" }}</div>
+          </div>
+        </a>
+        <a href="/images/download/{{ item.obj.pk }}/" onclick="event.stopPropagation()" class="btn btn-sm" style="background:rgba(59,130,246,.15);color:#3b82f6;">⬇</a>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:60px 20px;color:var(--tx2);">
+    <div style="font-size:2.5rem;margin-bottom:10px;">📥</div>
+    <div>Nothing downloaded yet — anything you download from Music, Movies, or Images shows up here.</div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -3,10 +3,10 @@
 {% block topbar_title %}📝 Blog Management{% endblock %}
 {% block head %}<style>
 @media(max-width:700px){
-  .dt thead th:nth-child(4),
-  .dt td:nth-child(4),
   .dt thead th:nth-child(5),
-  .dt td:nth-child(5){display:none}
+  .dt td:nth-child(5),
+  .dt thead th:nth-child(6),
+  .dt td:nth-child(6){display:none}
 }
 @media(max-width:500px){
   div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
@@ -28,11 +28,19 @@
   </form>
 </div></div>
 
+<div id="blog-bulk-bar" style="display:none;gap:8px;align-items:center;margin-bottom:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;">
+  <span id="blog-bulk-count" style="font-size:12px;color:var(--text2);"></span>
+  <button type="button" class="btn btn-primary btn-xs" onclick="blogBulk('approve')">✅ Publish</button>
+  <button type="button" class="btn btn-secondary btn-xs" onclick="blogBulk('reject')">↩ Set Draft</button>
+  <button type="button" class="btn btn-danger btn-xs" onclick="blogBulk('delete')">🗑 Delete</button>
+</div>
+
 <div class="table-wrap"><table class="dt">
-  <thead><tr><th style="width:70px;">Image</th><th>Title</th><th>Author</th><th>Category</th><th>Views</th><th>Status</th><th>Actions</th></tr></thead>
+  <thead><tr><th style="width:24px;"><input type="checkbox" onclick="blogToggleAll(this)"></th><th style="width:70px;">Image</th><th>Title</th><th>Author</th><th>Category</th><th>Views</th><th>Status</th><th>Actions</th></tr></thead>
   <tbody>
   {% for post in page.object_list %}
   <tr>
+    <td><input type="checkbox" class="blog-check" value="{{ post.pk }}" onclick="blogBulkUpdate()"></td>
     <td>
       {% if post.featured_img %}<img src="{{ post.featured_img.url }}" style="width:60px;height:40px;object-fit:cover;border-radius:5px;">
       {% else %}<div style="width:60px;height:40px;background:rgba(0,212,170,.08);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:18px;">📝</div>{% endif %}
@@ -60,7 +68,7 @@
     </td>
   </tr>
   {% empty %}
-  <tr><td colspan="7"><div class="empty" style="padding:40px;"><div class="empty-icon">📝</div><h3>No posts yet</h3></div></td></tr>
+  <tr><td colspan="8"><div class="empty" style="padding:40px;"><div class="empty-icon">📝</div><h3>No posts yet</h3></div></td></tr>
   {% endfor %}
   </tbody>
 </table></div>
@@ -117,6 +125,27 @@ function blogToggle(action, pk, btnId) {
         btn.textContent = feat ? '★' : '☆';
       }
     }).catch(() => window.location.reload());
+}
+
+function blogToggleAll(box){
+  document.querySelectorAll('.blog-check').forEach(c=>c.checked=box.checked);
+  blogBulkUpdate();
+}
+function blogBulkUpdate(){
+  const n = document.querySelectorAll('.blog-check:checked').length;
+  const bar = document.getElementById('blog-bulk-bar');
+  bar.style.display = n ? 'flex' : 'none';
+  document.getElementById('blog-bulk-count').textContent = n + ' selected';
+}
+async function blogBulk(action){
+  const pks = [...document.querySelectorAll('.blog-check:checked')].map(c=>c.value);
+  if(!pks.length) return;
+  if(action==='delete' && !confirm('Delete '+pks.length+' post(s)? This cannot be undone.')) return;
+  const fd = new FormData();
+  fd.append('kind','blog'); fd.append('action',action); fd.append('pks',pks.join(','));
+  fd.append('csrfmiddlewaretoken', getCsrf());
+  const r = await fetch('/admin-panel/fetch/bulk/', {method:'POST', body:fd});
+  if(r.ok){ location.reload(); } else { alert('Something went wrong — please try again.'); }
 }
 </script>
 {% endblock %}

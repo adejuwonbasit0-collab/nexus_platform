@@ -18,6 +18,7 @@
 
 {% if tab == 'stock' %}
 <div style="display:flex;gap:8px;margin-bottom:12px;">
+  <a href="?tab=stock&provider=all&q={{ q }}&target={{ target }}&pk={{ pk }}" class="btn btn-sm {% if provider == 'all' %}btn-primary{% else %}btn-secondary{% endif %}">🔀 All Providers</a>
   <a href="?tab=stock&provider=pexels&q={{ q }}&target={{ target }}&pk={{ pk }}" class="btn btn-sm {% if provider == 'pexels' %}btn-primary{% else %}btn-secondary{% endif %}">Pexels{% if pexels_configured %} ✓{% endif %}</a>
   <a href="?tab=stock&provider=pixabay&q={{ q }}&target={{ target }}&pk={{ pk }}" class="btn btn-sm {% if provider == 'pixabay' %}btn-primary{% else %}btn-secondary{% endif %}">Pixabay{% if pixabay_configured %} ✓{% endif %}</a>
 </div>

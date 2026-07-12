@@ -325,3 +325,76 @@ def subscriptions_view(request):
         pass
 
     return render(request, 'subscriptions.html', {'plans': plans, 'faq': []})
+
+@login_required
+def library_view(request):
+    """My Downloads / Library — everything the user has downloaded, across
+    music, movies, and images, in one place with sort options (alphabetical,
+    time added, length)."""
+    from accounts.models import DownloadHistory
+    from music.models import Track
+    from movies.models import Movie
+    from images.models import Image
+
+    content_type = request.GET.get('type', 'all')  # all | music | movie | image
+    sort = request.GET.get('sort', 'recent')
+
+    history_qs = DownloadHistory.objects.filter(user=request.user)
+    if content_type != 'all':
+        history_qs = history_qs.order_by('-downloaded_at')
+        history_qs = history_qs.filter(content_type=content_type)
+    else:
+        history_qs = history_qs.order_by('-downloaded_at')
+
+    # Keep only the most recent download per item (no duplicate rows if
+    # something was downloaded more than once).
+    seen = set()
+    entries = []
+    for h in history_qs.only('content_type', 'object_id', 'downloaded_at'):
+        key = (h.content_type, h.object_id)
+        if key in seen:
+            continue
+        seen.add(key)
+        entries.append(h)
+
+    # Resolve each entry to its real object, skipping any since deleted.
+    items = []
+    for h in entries:
+        obj = None
+        kind = h.content_type
+        try:
+            if kind == 'music':
+                obj = Track.objects.select_related('artist').get(pk=h.object_id)
+            elif kind == 'movie':
+                obj = Movie.objects.get(pk=h.object_id)
+            elif kind == 'image':
+                obj = Image.objects.get(pk=h.object_id)
+        except Exception:
+            continue
+        if not obj:
+            continue
+        items.append({
+            'kind': kind,
+            'obj': obj,
+            'title': getattr(obj, 'title', ''),
+            'downloaded_at': h.downloaded_at,
+            'length': getattr(obj, 'duration', 0) or 0,
+        })
+
+    if sort == 'title_asc':
+        items.sort(key=lambda x: x['title'].lower())
+    elif sort == 'title_desc':
+        items.sort(key=lambda x: x['title'].lower(), reverse=True)
+    elif sort == 'length_desc':
+        items.sort(key=lambda x: x['length'], reverse=True)
+    elif sort == 'length_asc':
+        items.sort(key=lambda x: x['length'])
+    # 'recent' is already the default order from the query above
+
+    counts = {'all': len(entries)}
+    for k in ('music', 'movie', 'image'):
+        counts[k] = sum(1 for h in entries if h.content_type == k)
+
+    return render(request, 'library.html', {
+        'items': items, 'content_type': content_type, 'sort': sort, 'counts': counts,
+    })
