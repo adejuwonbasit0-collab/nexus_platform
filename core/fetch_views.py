@@ -483,11 +483,29 @@ def fetch_shorts(request):
 
     pexels_configured = ext.pexels_configured()
     pixabay_configured = ext.pixabay_configured()
-    configured = pexels_configured if provider == 'pexels' else pixabay_configured
+    configured = (pexels_configured or pixabay_configured) if provider == 'all' else (pexels_configured if provider == 'pexels' else pixabay_configured)
 
     results = []
     search_error = None
-    if configured and is_random and provider == 'pexels':
+    if provider == 'all':
+        errors = []
+        if is_random and pexels_configured:
+            r, e = ext.pexels_videos_popular_verbose(per_page=10)
+            results += r
+            if e: errors.append(f'Pexels: {e}')
+        if q and pexels_configured:
+            r, e = ext.pexels_videos_search_verbose(q, per_page=10)
+            results += r
+            if e: errors.append(f'Pexels: {e}')
+        if q and pixabay_configured:
+            r, e = ext.pixabay_videos_search_verbose(q, per_page=10)
+            results += r
+            if e: errors.append(f'Pixabay: {e}')
+        if not pexels_configured and not pixabay_configured:
+            search_error = 'No stock video provider configured yet — save a Pexels or Pixabay key below.'
+        elif not results and errors:
+            search_error = ' | '.join(errors)
+    elif configured and is_random and provider == 'pexels':
         results, search_error = ext.pexels_videos_popular_verbose(per_page=18)
     elif configured and q:
         if provider == 'pixabay':
@@ -608,7 +626,7 @@ def fetch_bulk_action(request):
     kind = request.POST.get('kind', '')
     action = request.POST.get('action', '')
     pks = [p for p in request.POST.get('pks', '').split(',') if p.strip()]
-    if not pks or kind not in ('track', 'movie', 'image', 'short', 'blog') or action not in ('approve', 'reject', 'delete', 'fetch_lyrics', 'refresh_link'):
+    if not pks or kind not in ('track', 'movie', 'image', 'short', 'blog', 'series') or action not in ('approve', 'reject', 'delete', 'fetch_lyrics', 'refresh_link'):
         return JsonResponse({'ok': False, 'error': 'Invalid request'}, status=400)
 
     if kind == 'track':
@@ -623,6 +641,9 @@ def fetch_bulk_action(request):
     elif kind == 'blog':
         from blog.models import Post
         qs = Post.objects.filter(pk__in=pks)
+    elif kind == 'series':
+        from movies.models import Series
+        qs = Series.objects.filter(pk__in=pks)
     else:
         from movies.models import Movie
         qs = Movie.objects.filter(pk__in=pks)

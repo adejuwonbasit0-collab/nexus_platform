@@ -22,6 +22,7 @@
 </div>
 
 <div style="display:flex;gap:8px;margin-bottom:12px;">
+  <a href="?tab=search&provider=all&q={{ q }}" class="btn btn-sm {% if provider == 'all' %}btn-primary{% else %}btn-secondary{% endif %}">🔀 All Providers</a>
   <a href="?tab=search&provider=pexels&q={{ q }}" class="btn btn-sm {% if provider == 'pexels' %}btn-primary{% else %}btn-secondary{% endif %}">Pexels{% if pexels_configured %} ✓{% endif %}</a>
   <a href="?tab=search&provider=pixabay&q={{ q }}" class="btn btn-sm {% if provider == 'pixabay' %}btn-primary{% else %}btn-secondary{% endif %}">Pixabay (recommended){% if pixabay_configured %} ✓{% endif %}</a>
 </div>

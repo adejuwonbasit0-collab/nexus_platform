@@ -60,10 +60,17 @@
 
 {# ─── SERIES LIST ─── #}
 <div class="tab-panel {% if request.GET.tab == 'series' %}active{% endif %}" data-group="mv" data-id="series">
+  <div id="series-bulk-bar" style="display:none;gap:8px;align-items:center;margin-bottom:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;">
+    <span id="series-bulk-count" style="font-size:12px;color:var(--text2);"></span>
+    <button type="button" class="btn btn-primary btn-xs" onclick="seriesBulk('approve')">✅ Approve</button>
+    <button type="button" class="btn btn-secondary btn-xs" onclick="seriesBulk('reject')">↩ Set Draft</button>
+    <button type="button" class="btn btn-danger btn-xs" onclick="seriesBulk('delete')">🗑 Delete</button>
+  </div>
   {% for s in all_series %}
   <div class="panel" style="margin-bottom:14px;">
     <div class="panel-head" style="display:flex;justify-content:space-between;align-items:center;">
       <div style="display:flex;align-items:center;gap:12px;">
+        <input type="checkbox" class="series-check" value="{{ s.pk }}" onclick="seriesBulkUpdate()">
         {% if s.thumbnail %}<img src="{{ s.thumbnail.url }}" style="width:48px;height:72px;object-fit:cover;border-radius:7px;flex-shrink:0;">{% endif %}
         <div>
           <span class="panel-title">{{ s.title }}</span>
@@ -325,6 +332,28 @@ async function movieBulk(action){
   if(action==='delete' && !confirm('Delete '+pks.length+' movie(s)? This cannot be undone.')) return;
   const fd = new FormData();
   fd.append('kind','movie'); fd.append('action',action); fd.append('pks',pks.join(','));
+  fd.append('csrfmiddlewaretoken', getCsrf());
+  const r = await fetch('/admin-panel/fetch/bulk/', {method:'POST', body:fd});
+  if(r.ok){ location.reload(); } else { alert('Something went wrong — please try again.'); }
+}
+
+function seriesToggleAll(box){
+  document.querySelectorAll('.series-check').forEach(c=>c.checked=box.checked);
+  seriesBulkUpdate();
+}
+function seriesBulkUpdate(){
+  const n = document.querySelectorAll('.series-check:checked').length;
+  const bar = document.getElementById('series-bulk-bar');
+  if(bar) bar.style.display = n ? 'flex' : 'none';
+  const countEl = document.getElementById('series-bulk-count');
+  if(countEl) countEl.textContent = n + ' selected';
+}
+async function seriesBulk(action){
+  const pks = [...document.querySelectorAll('.series-check:checked')].map(c=>c.value);
+  if(!pks.length) return;
+  if(action==='delete' && !confirm('Delete '+pks.length+' series (and all their episodes)? This cannot be undone.')) return;
+  const fd = new FormData();
+  fd.append('kind','series'); fd.append('action',action); fd.append('pks',pks.join(','));
   fd.append('csrfmiddlewaretoken', getCsrf());
   const r = await fetch('/admin-panel/fetch/bulk/', {method:'POST', body:fd});
   if(r.ok){ location.reload(); } else { alert('Something went wrong — please try again.'); }
