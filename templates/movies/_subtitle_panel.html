@@ -23,7 +23,10 @@
     </div>
 
     <div id="sub-body" style="display:none;">
-      <div id="sub-text" style="font-size:14px;line-height:1.9;color:rgba(255,255,255,.78);white-space:pre-wrap;font-family:monospace;"></div>
+      <div id="sub-scroll" style="max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;mask-image:linear-gradient(180deg,transparent 0%,#fff 8%,#fff 88%,transparent 100%);-webkit-mask-image:linear-gradient(180deg,transparent 0%,#fff 8%,#fff 88%,transparent 100%);display:none;">
+        <div id="sub-lines" style="padding:22vh 8px;text-align:center;"></div>
+      </div>
+      <div id="sub-text" style="display:none;font-size:14px;line-height:1.9;color:rgba(255,255,255,.78);white-space:pre-wrap;font-family:monospace;"></div>
     </div>
 
     <div id="sub-error" style="display:none;text-align:center;padding:60px 0;color:rgba(255,255,255,.3);">
@@ -41,6 +44,100 @@
 
 <script>
 let _subLoaded = null; // { type, pk } — prevents re-fetching same content
+let _subCues = [];     // [{time, el}] when subtitles are timed (SRT/VTT)
+let _subActiveIdx = -1;
+let _subVideoEl = null;
+let _subTimeHandler = null;
+
+function _subFindVideo(type) {
+  return document.getElementById(type === 'movie' ? 'movie-player' : 'ep-player');
+}
+
+function _subToSeconds(t) {
+  t = t.replace(',', '.').trim();
+  const p = t.split(':');
+  if (p.length === 3) return (+p[0]) * 3600 + (+p[1]) * 60 + parseFloat(p[2]);
+  if (p.length === 2) return (+p[0]) * 60 + parseFloat(p[1]);
+  return parseFloat(t) || 0;
+}
+
+// Parses either SRT or WebVTT — both use the same "00:00:01,000 --> 00:00:04,000"
+// (or ".000" for VTT) timing line, so one parser covers both formats.
+function _subParseTimedCues(raw) {
+  const blocks = raw.replace(/\r/g, '').split(/\n\s*\n/);
+  const cues = [];
+  for (const block of blocks) {
+    const lines = block.trim().split('\n').filter(l => l.trim() !== 'WEBVTT');
+    const timeLine = lines.find(l => l.includes('-->'));
+    if (!timeLine) continue;
+    const [startRaw, endRaw] = timeLine.split('-->');
+    const start = _subToSeconds(startRaw);
+    const textLines = lines.slice(lines.indexOf(timeLine) + 1).filter(l => !/^\d+$/.test(l.trim()));
+    const text = textLines.join(' ').trim();
+    if (!text) continue;
+    cues.push({ time: start, text });
+  }
+  return cues;
+}
+
+function _subRenderTimedCues(cues, video) {
+  const container = document.getElementById('sub-lines');
+  container.innerHTML = '';
+  _subCues = [];
+  _subActiveIdx = -1;
+  cues.forEach(cue => {
+    const el = document.createElement('div');
+    el.className = 'lyr-line';
+    el.textContent = cue.text;
+    el.onclick = () => { if (video) { video.currentTime = cue.time; video.play().catch(() => {}); } };
+    container.appendChild(el);
+    _subCues.push({ time: cue.time, el });
+  });
+  document.getElementById('sub-scroll').style.display = 'block';
+  document.getElementById('sub-text').style.display = 'none';
+  _subStartSync(video);
+}
+
+function _subRenderPlainText(text) {
+  cancelSubSync();
+  document.getElementById('sub-scroll').style.display = 'none';
+  const el = document.getElementById('sub-text');
+  el.textContent = text;
+  el.style.display = 'block';
+}
+
+function _subStartSync(video) {
+  cancelSubSync();
+  if (!video || !_subCues.length) return;
+  _subVideoEl = video;
+  _subTimeHandler = () => {
+    const ct = video.currentTime;
+    let ni = -1;
+    for (let i = _subCues.length - 1; i >= 0; i--) {
+      if (ct >= _subCues[i].time) { ni = i; break; }
+    }
+    if (ni === _subActiveIdx) return;
+    _subActiveIdx = ni;
+    _subCues.forEach(({ el }, i) => {
+      el.classList.remove('active', 'past', 'next');
+      if (i < ni) el.classList.add('past');
+      else if (i === ni) el.classList.add('active');
+      else if (i === ni + 1) el.classList.add('next');
+    });
+    if (ni >= 0) {
+      const el = _subCues[ni].el;
+      const scroll = document.getElementById('sub-scroll');
+      if (scroll) scroll.scrollTo({ top: el.offsetTop - scroll.clientHeight / 2 + el.clientHeight / 2, behavior: 'smooth' });
+    }
+  };
+  video.addEventListener('timeupdate', _subTimeHandler);
+}
+
+function cancelSubSync() {
+  if (_subVideoEl && _subTimeHandler) _subVideoEl.removeEventListener('timeupdate', _subTimeHandler);
+  _subVideoEl = null;
+  _subTimeHandler = null;
+}
 
 async function openSubtitles(type, pk, title) {
   const panel = document.getElementById('sub-panel');
@@ -53,10 +150,13 @@ async function openSubtitles(type, pk, title) {
   document.getElementById('sub-error').style.display = 'none';
   document.getElementById('sub-ai-badge').style.display = 'none';
 
+  const video = _subFindVideo(type);
+
   // Don't re-fetch if same content
   if (_subLoaded && _subLoaded.type === type && _subLoaded.pk === pk) {
     document.getElementById('sub-loading').style.display = 'none';
     document.getElementById('sub-body').style.display = 'block';
+    if (_subCues.length) _subStartSync(video);
     return;
   }
 
@@ -73,11 +173,25 @@ async function openSubtitles(type, pk, title) {
 
     if (d.ok) {
       _subLoaded = { type, pk };
-      document.getElementById('sub-text').textContent = d.subtitles;
       document.getElementById('sub-body').style.display = 'block';
 
+      // Real SRT/VTT subtitles have timing lines ("-->") — when present,
+      // sync them to the video the same way lyrics sync to the music
+      // player instead of just dumping the whole transcript as one block.
+      const looksTimed = !d.ai_generated && /\d{2}:\d{2}:\d{2}[,.]\d{2,3}\s*-->/.test(d.subtitles);
+      if (looksTimed) {
+        const cues = _subParseTimedCues(d.subtitles);
+        if (cues.length) {
+          _subRenderTimedCues(cues, video);
+        } else {
+          _subRenderPlainText(d.subtitles);
+        }
+      } else {
+        _subRenderPlainText(d.subtitles);
+      }
+
       const typeLabel = d.type === 'stored'
-        ? '✅ Official subtitles'
+        ? (looksTimed ? '✅ Synced subtitles — follows the video' : '✅ Official subtitles')
         : '✨ AI-generated scene summary';
       document.getElementById('sub-type-label').textContent = typeLabel;
 
@@ -99,6 +213,7 @@ async function openSubtitles(type, pk, title) {
 function closeSubtitles() {
   document.getElementById('sub-panel').style.display = 'none';
   document.body.style.overflow = '';
+  cancelSubSync();
 }
 
 // Esc key closes panels

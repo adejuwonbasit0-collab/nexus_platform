@@ -97,7 +97,7 @@ video{width:100%;border-radius:10px;background:#000;display:block}
     <div class="mv-panel" style="margin-bottom:20px" id="player">
       <div class="mv-panel-head">▶ Watch</div>
       <div class="mv-panel-body">
-        <video controls preload="metadata">
+        <video id="movie-player" controls preload="metadata">
           <source src="/movies/stream/movie/{{ movie.pk }}/" type="video/mp4">
         </video>
         <a href="/movies/download/{{ movie.pk }}/" class="btn btn-outline" style="margin-top:14px;color:#fff;width:100%;justify-content:center;">⬇ Download</a>

@@ -1,0 +1,57 @@
+{% for s in shorts %}
+<section class="short-slide" data-pk="{{ s.pk }}" data-youtube="{{ s.is_youtube|yesno:'1,0' }}" data-video="{{ s.video_url }}"
+  style="position:relative;height:100vh;width:100%;scroll-snap-align:start;display:flex;align-items:center;justify-content:center;background:#000;overflow:hidden;">
+
+  {% if s.is_youtube %}
+    <div class="short-yt-wrap" style="width:100%;height:100%;"></div>
+  {% else %}
+    <div class="short-fallback" style="display:none;position:absolute;inset:0;background:#141414;align-items:center;justify-content:center;flex-direction:column;gap:8px;color:rgba(255,255,255,.4);">
+      <div style="font-size:32px;">🎬</div>
+      <div style="font-size:12px;">Couldn't load this clip</div>
+    </div>
+    <video class="short-video" src="{{ s.video_url }}" loop playsinline muted preload="metadata"
+      onerror="this.style.display='none';this.previousElementSibling.style.display='flex';"
+      style="width:100%;height:100%;object-fit:cover;" poster="{{ s.thumbnail_url }}"></video>
+  {% endif %}
+
+  <div class="short-tap-layer" onclick="shortTapToggle(this)" style="position:absolute;inset:0;z-index:2;"></div>
+  <div class="short-pause-icon" style="display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:56px;color:rgba(255,255,255,.85);pointer-events:none;z-index:3;"><i class="fa-solid fa-play"></i></div>
+
+  <div class="short-seek-wrap" onclick="shortSeek(event, this)" style="position:absolute;left:0;right:0;bottom:0;height:22px;display:flex;align-items:flex-end;cursor:pointer;z-index:4;padding:0 0 2px;">
+    <div style="width:100%;height:3px;background:rgba(255,255,255,.25);position:relative;">
+      <div class="short-seek-fill" style="height:100%;width:0%;background:#1db954;"></div>
+    </div>
+  </div>
+
+  <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15) 0%,transparent 25%,transparent 55%,rgba(0,0,0,.75) 100%);pointer-events:none;"></div>
+
+  <div style="position:absolute;left:16px;right:80px;bottom:26px;color:#fff;z-index:5;">
+    {% if s.series %}<div style="font-size:11px;font-weight:700;color:#1db954;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">{{ s.series.title }}{% if s.episode_number %} · Ep {{ s.episode_number }}{% endif %}</div>{% endif %}
+    <div style="font-weight:800;font-size:15px;margin-bottom:4px;">{{ s.title|default:"Untitled" }}</div>
+    {% if s.description %}<div style="font-size:12.5px;color:rgba(255,255,255,.8);max-width:85%;">{{ s.description|truncatechars:120 }}</div>{% endif %}
+  </div>
+
+  <div style="position:absolute;right:12px;bottom:30px;display:flex;flex-direction:column;align-items:center;gap:22px;color:#fff;z-index:5;">
+    <button class="short-like-btn" data-pk="{{ s.pk }}" onclick="shortToggleLike({{ s.pk }}, this)" style="background:none;border:none;color:{% if s.pk in liked_ids %}#1db954{% else %}#fff{% endif %};font-size:26px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;">
+      <i class="fa-solid fa-heart"></i>
+      <span class="short-like-count" style="font-size:11px;font-weight:700;">{{ s.like_count }}</span>
+    </button>
+    <button onclick="shortOpenComments({{ s.pk }})" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;">
+      <i class="fa-solid fa-comment"></i>
+      <span style="font-size:11px;font-weight:700;">{{ s.comment_count }}</span>
+    </button>
+    <button onclick="shareContent('{{ s.title|escapejs }}','/shorts/#{{ s.slug }}')" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;">
+      <i class="fa-solid fa-arrow-up-from-bracket"></i>
+      <span style="font-size:11px;font-weight:700;">Share</span>
+    </button>
+    <div style="font-size:11px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:2px;">
+      <i class="fa-solid fa-eye"></i>
+      <span>{{ s.view_count }}</span>
+    </div>
+  </div>
+
+  <button class="short-mute-btn" onclick="shortToggleMute(this)" style="position:absolute;top:16px;right:16px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.5);border:none;color:#fff;font-size:15px;cursor:pointer;z-index:5;">
+    <i class="fa-solid fa-volume-xmark"></i>
+  </button>
+</section>
+{% endfor %}

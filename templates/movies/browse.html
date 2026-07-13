@@ -67,7 +67,7 @@
       <div class="poster-grid">
         {% for m in movies %}
         <a href="/movies/film/{{ m.slug }}/" class="pcard-poster">
-          {% if m.thumbnail %}<img src="{{ m.thumbnail.url }}" alt="{{ m.title }}">
+          {% if m.thumbnail %}<img src="{{ m.thumbnail.url }}" alt="{{ m.title }}" loading="lazy">
           {% else %}<div class="ph">🎬</div>{% endif %}
           {% if m.is_premium %}<span class="pcard-badge pro">PRO</span>{% endif %}
           <div class="pcard-info">
@@ -100,7 +100,7 @@
       <div class="poster-grid">
         {% for s in series %}
         <a href="/movies/series/{{ s.slug }}/" class="pcard-poster">
-          {% if s.thumbnail %}<img src="{{ s.thumbnail.url }}" alt="{{ s.title }}">
+          {% if s.thumbnail %}<img src="{{ s.thumbnail.url }}" alt="{{ s.title }}" loading="lazy">
           {% else %}<div class="ph">📺</div>{% endif %}
           <span class="pcard-badge series">SERIES</span>
           {% if s.is_premium %}<span class="pcard-badge pro" style="left:auto;right:6px;">PRO</span>{% endif %}

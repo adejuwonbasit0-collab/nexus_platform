@@ -4,68 +4,17 @@
 <div id="shorts-root" style="position:fixed;inset:0;background:#000;z-index:400;overflow-y:scroll;scroll-snap-type:y mandatory;">
   <a href="/" style="position:fixed;top:16px;left:16px;z-index:410;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;color:#fff;text-decoration:none;font-size:16px;"><i class="fa-solid fa-arrow-left"></i></a>
 
-  {% for s in shorts %}
-  <section class="short-slide" data-pk="{{ s.pk }}" data-youtube="{{ s.is_youtube|yesno:'1,0' }}" data-video="{{ s.video_url }}"
-    style="position:relative;height:100vh;width:100%;scroll-snap-align:start;display:flex;align-items:center;justify-content:center;background:#000;overflow:hidden;">
+  <div id="short-tap-hint" style="position:fixed;top:64px;right:16px;z-index:411;background:rgba(0,0,0,.65);color:#fff;font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:16px;pointer-events:none;opacity:0;transition:opacity .3s;white-space:nowrap;">🔊 Tap the speaker for sound</div>
 
-    {% if s.is_youtube %}
-      <div class="short-yt-wrap" style="width:100%;height:100%;"></div>
-    {% else %}
-      <div class="short-fallback" style="display:none;position:absolute;inset:0;background:#141414;align-items:center;justify-content:center;flex-direction:column;gap:8px;color:rgba(255,255,255,.4);">
-        <div style="font-size:32px;">🎬</div>
-        <div style="font-size:12px;">Couldn't load this clip</div>
-      </div>
-      <video class="short-video" src="{{ s.video_url }}" loop playsinline muted preload="metadata"
-        onerror="this.style.display='none';this.previousElementSibling.style.display='flex';"
-        style="width:100%;height:100%;object-fit:cover;" poster="{{ s.thumbnail_url }}"></video>
-    {% endif %}
-
-    <div class="short-tap-layer" onclick="shortTapToggle(this)" style="position:absolute;inset:0;z-index:2;"></div>
-    <div class="short-pause-icon" style="display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:56px;color:rgba(255,255,255,.85);pointer-events:none;z-index:3;"><i class="fa-solid fa-play"></i></div>
-
-    <div class="short-seek-wrap" onclick="shortSeek(event, this)" style="position:absolute;left:0;right:0;bottom:0;height:22px;display:flex;align-items:flex-end;cursor:pointer;z-index:4;padding:0 0 2px;">
-      <div style="width:100%;height:3px;background:rgba(255,255,255,.25);position:relative;">
-        <div class="short-seek-fill" style="height:100%;width:0%;background:#1db954;"></div>
-      </div>
-    </div>
-
-    <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15) 0%,transparent 25%,transparent 55%,rgba(0,0,0,.75) 100%);pointer-events:none;"></div>
-
-    <div style="position:absolute;left:16px;right:80px;bottom:26px;color:#fff;z-index:5;">
-      {% if s.series %}<div style="font-size:11px;font-weight:700;color:#1db954;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">{{ s.series.title }}{% if s.episode_number %} · Ep {{ s.episode_number }}{% endif %}</div>{% endif %}
-      <div style="font-weight:800;font-size:15px;margin-bottom:4px;">{{ s.title|default:"Untitled" }}</div>
-      {% if s.description %}<div style="font-size:12.5px;color:rgba(255,255,255,.8);max-width:85%;">{{ s.description|truncatechars:120 }}</div>{% endif %}
-    </div>
-
-    <div style="position:absolute;right:12px;bottom:30px;display:flex;flex-direction:column;align-items:center;gap:22px;color:#fff;z-index:5;">
-      <button class="short-like-btn" data-pk="{{ s.pk }}" onclick="shortToggleLike({{ s.pk }}, this)" style="background:none;border:none;color:{% if s.pk in liked_ids %}#1db954{% else %}#fff{% endif %};font-size:26px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;">
-        <i class="fa-solid fa-heart"></i>
-        <span class="short-like-count" style="font-size:11px;font-weight:700;">{{ s.like_count }}</span>
-      </button>
-      <button onclick="shortOpenComments({{ s.pk }})" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;">
-        <i class="fa-solid fa-comment"></i>
-        <span style="font-size:11px;font-weight:700;">{{ s.comment_count }}</span>
-      </button>
-      <button onclick="shareContent('{{ s.title|escapejs }}','/shorts/#{{ s.slug }}')" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;">
-        <i class="fa-solid fa-arrow-up-from-bracket"></i>
-        <span style="font-size:11px;font-weight:700;">Share</span>
-      </button>
-      <div style="font-size:11px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:2px;">
-        <i class="fa-solid fa-eye"></i>
-        <span>{{ s.view_count }}</span>
-      </div>
-    </div>
-
-    <button class="short-mute-btn" onclick="shortToggleMute(this)" style="position:absolute;top:16px;right:16px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.5);border:none;color:#fff;font-size:15px;cursor:pointer;z-index:5;">
-      <i class="fa-solid fa-volume-xmark"></i>
-    </button>
-  </section>
-  {% empty %}
+  {% if shorts %}
+  <div id="short-slides">{% include 'shorts/_slides.html' %}</div>
+  {% else %}
   <div style="height:100vh;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.5);flex-direction:column;gap:10px;">
     <div style="font-size:40px;">🎬</div>
     <div>No shorts yet — check back soon.</div>
   </div>
-  {% endfor %}
+  {% endif %}
+  <div id="short-loading-more" style="display:none;height:60px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.4);font-size:12px;">Loading more…</div>
 </div>
 
 <style>
@@ -78,17 +27,45 @@
 <script>
 (function(){
   const root = document.getElementById('shorts-root');
-  const slides = [...document.querySelectorAll('.short-slide')];
+  const slidesWrap = document.getElementById('short-slides');
+  let slides = [...document.querySelectorAll('.short-slide')];
   let ytPlayers = {};
   let ytApiReady = false;
-  let muted = true;
+
+  // Sound preference persists across visits (localStorage), not just this
+  // page load — previously every fresh visit silently reset to muted with
+  // no obvious way to tell that was even the state, which is why shorts
+  // "never" seemed to have sound. We still have to start every autoplay
+  // muted (mobile browsers block unmuted autoplay outright), but we
+  // restore the user's choice the moment the page is interactive.
+  let muted = localStorage.getItem('nexus_shorts_muted') !== '0';
+
+  function setMuteIcon(){
+    document.querySelectorAll('.short-mute-btn i').forEach(i=>{
+      i.className = muted ? 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high';
+    });
+  }
+  setMuteIcon();
+
+  // Nudge new visitors toward the sound button once, since it's a small
+  // top-right icon that's easy to miss entirely.
+  if(muted && !localStorage.getItem('nexus_shorts_hint_seen')){
+    const hint = document.getElementById('short-tap-hint');
+    setTimeout(()=>{ hint.style.opacity = '1'; }, 700);
+    setTimeout(()=>{ hint.style.opacity = '0'; }, 4200);
+    localStorage.setItem('nexus_shorts_hint_seen', '1');
+  }
 
   // Load YouTube iframe API only if at least one short needs it
-  if(slides.some(s=>s.dataset.youtube==='1')){
+  function maybeLoadYT(){
+    if(window.__nexusYtLoading) { if(ytApiReady) initYT(); return; }
+    if(!slides.some(s=>s.dataset.youtube==='1')) return;
+    window.__nexusYtLoading = true;
     const tag=document.createElement('script'); tag.src='https://www.youtube.com/iframe_api';
     document.body.appendChild(tag);
     window.onYouTubeIframeAPIReady = function(){ ytApiReady = true; initYT(); };
   }
+  maybeLoadYT();
 
   function ytId(url){
     const m = url.match(/(?:v=|youtu\.be\/|\/shorts\/|\/embed\/)([A-Za-z0-9_-]{11})/);
@@ -177,33 +154,86 @@
     showControls(slide, !slide.dataset.paused || slide.dataset.paused === '0');
   };
 
-  // Keep each slide's seek-bar fill in sync with playback
-  document.querySelectorAll('.short-video').forEach(video=>{
+  function bindVideo(video){
     video.addEventListener('timeupdate', ()=>{
       if(!video.duration) return;
       const fill = video.closest('.short-slide').querySelector('.short-seek-fill');
       if(fill) fill.style.width = (video.currentTime / video.duration * 100) + '%';
     });
-  });
+  }
 
   const io = new IntersectionObserver((entries)=>{
     entries.forEach(entry=>{
-      if(entry.isIntersecting && entry.intersectionRatio > 0.6) playSlide(entry.target);
+      if(entry.isIntersecting && entry.intersectionRatio > 0.6){
+        playSlide(entry.target);
+        maybeLoadMore(entry.target);
+      }
       else pauseSlide(entry.target);
     });
   }, {threshold:[0,0.6,1]});
-  slides.forEach(s=>io.observe(s));
+
+  function wireUpSlides(newSlides){
+    newSlides.forEach(slide=>{
+      const video = slide.querySelector('.short-video');
+      if(video) bindVideo(video);
+      io.observe(slide);
+    });
+  }
+  wireUpSlides(slides);
+  maybeLoadYT();
 
   // Kick off the first slide immediately (observer needs a scroll/paint tick)
   if(slides.length) setTimeout(()=>playSlide(slides[0]), 200);
 
+  // ── Infinite scroll ──────────────────────────────────────────────────
+  // The feed used to hard-stop after a fixed batch (it would only ever
+  // surface the 60 newest shorts, then dead-end with nothing left to
+  // scroll to). Now it keeps fetching further batches as the visitor
+  // nears the end, and loops back to the start of the same shuffled
+  // order once every short has been shown — same endless-scroll feel as
+  // TikTok/Reels instead of stopping short.
+  let offset = slides.length;
+  let loadingMore = false;
+  let hasMore = {{ has_more|yesno:'true,false' }};
+  const loadingIndicator = document.getElementById('short-loading-more');
+
+  function maybeLoadMore(activeSlide){
+    if(loadingMore || !hasMore) return;
+    const all = document.querySelectorAll('.short-slide');
+    const idx = [...all].indexOf(activeSlide);
+    if(idx < all.length - 3) return; // only fetch once we're near the end
+    loadingMore = true;
+    if(loadingIndicator) loadingIndicator.style.display = 'flex';
+    fetch(`/shorts/more/?offset=${offset}`)
+      .then(r=>r.json())
+      .then(d=>{
+        if(d.ok && d.html){
+          const tmp = document.createElement('div');
+          tmp.innerHTML = d.html;
+          const added = [...tmp.querySelectorAll('.short-slide')];
+          added.forEach(s=>slidesWrap.appendChild(s));
+          offset += added.length;
+          hasMore = d.has_more;
+          wireUpSlides(added);
+          maybeLoadYT();
+        } else {
+          hasMore = false;
+        }
+      })
+      .catch(()=>{})
+      .finally(()=>{
+        loadingMore = false;
+        if(loadingIndicator) loadingIndicator.style.display = 'none';
+      });
+  }
+
   window.shortToggleMute = function(btn){
     muted = !muted;
+    localStorage.setItem('nexus_shorts_muted', muted ? '1' : '0');
+    document.getElementById('short-tap-hint').style.opacity = '0';
     document.querySelectorAll('.short-video').forEach(v=>v.muted=muted);
     Object.values(ytPlayers).forEach(p=>{try{muted?p.mute():p.unMute();}catch(e){}});
-    document.querySelectorAll('.short-mute-btn i').forEach(i=>{
-      i.className = muted ? 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high';
-    });
+    setMuteIcon();
   };
 
   window.shortToggleLike = async function(pk, btn){

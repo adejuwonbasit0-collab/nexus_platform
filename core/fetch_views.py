@@ -493,6 +493,10 @@ def fetch_shorts(request):
             r, e = ext.pexels_videos_popular_verbose(per_page=10)
             results += r
             if e: errors.append(f'Pexels: {e}')
+        if is_random and pixabay_configured:
+            r, e = ext.pixabay_videos_popular_verbose(per_page=10)
+            results += r
+            if e: errors.append(f'Pixabay: {e}')
         if q and pexels_configured:
             r, e = ext.pexels_videos_search_verbose(q, per_page=10)
             results += r
@@ -507,6 +511,8 @@ def fetch_shorts(request):
             search_error = ' | '.join(errors)
     elif configured and is_random and provider == 'pexels':
         results, search_error = ext.pexels_videos_popular_verbose(per_page=18)
+    elif configured and is_random and provider == 'pixabay':
+        results, search_error = ext.pixabay_videos_popular_verbose(per_page=18)
     elif configured and q:
         if provider == 'pixabay':
             results, search_error = ext.pixabay_videos_search_verbose(q, per_page=18)

@@ -60,9 +60,7 @@
       <input class="finput" name="q" value="{{ q }}" placeholder="e.g. city timelapse, ocean waves, dance, nature" style="flex:1;">
       <button type="submit" class="btn btn-primary btn-sm">Search</button>
     </form>
-    {% if provider == 'pexels' %}
-    <a href="?tab=search&provider=pexels&random=1" class="btn btn-secondary btn-sm" style="margin-top:10px;display:inline-block;text-decoration:none;">🎲 Surprise me (random clips, no search needed)</a>
-    {% endif %}
+    <a href="?tab=search&provider={{ provider }}&random=1{% if q %}&q={{ q }}{% endif %}" class="btn btn-secondary btn-sm" style="margin-top:10px;display:inline-block;text-decoration:none;">🎲 Surprise me (random clips, no search needed)</a>
   </div>
 </div>
 
@@ -80,7 +78,7 @@
     <input type="checkbox" class="short-check" style="position:absolute;margin:6px;z-index:2;"
       data-payload="{{ q|default:'Short'|escapejs }}|||{{ r.video_url|escapejs }}|||{{ r.thumbnail_url|escapejs }}|||{{ r.photographer|escapejs }}|||{{ r.source|escapejs }}|||{{ r.external_id|escapejs }}|||{{ r.duration|default:0 }}">
     <div style="position:relative;width:100%;aspect-ratio:9/16;border-radius:8px;overflow:hidden;background:#000;margin-bottom:8px;">
-      {% if r.thumbnail_url %}<img src="{{ r.thumbnail_url }}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">{% endif %}
+      {% if r.thumbnail_url %}<img src="{{ r.thumbnail_url }}" style="width:100%;height:100%;object-fit:cover;" loading="lazy" onerror="this.style.display='none'">{% endif %}
       <video src="{{ r.video_url }}" muted loop playsinline preload="none" onmouseover="this.play()" onmouseout="this.pause()" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></video>
       <div style="position:absolute;bottom:4px;right:6px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;padding:2px 6px;border-radius:4px;">{{ r.duration }}s</div>
     </div>

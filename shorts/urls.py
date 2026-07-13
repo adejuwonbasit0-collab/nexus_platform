@@ -3,6 +3,7 @@ from . import views
 
 urlpatterns = [
     path('',                  views.shorts_feed,  name='shorts_feed'),
+    path('more/',             views.shorts_more,  name='shorts_more'),
     path('<int:pk>/view/',    views.track_view,   name='short_track_view'),
     path('<int:pk>/like/',    views.toggle_like,  name='short_toggle_like'),
     path('<int:pk>/comments/',      views.list_comments, name='short_list_comments'),

@@ -40,6 +40,8 @@
 .rcard img,.rcard .rph{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:9px;display:block;background:rgba(29,185,84,.1);transition:transform .3s;}
 .rcard:hover img{transform:scale(1.05);}
 @media(max-width:768px){.hero-content{flex-direction:column;gap:18px;}.series-poster{width:130px;}}
+.sd-body{max-width:1100px;padding:28px 20px 80px;display:grid;grid-template-columns:1fr 300px;gap:24px;margin:0 auto;}
+@media(max-width:860px){.sd-body{grid-template-columns:1fr!important;padding:20px 16px 60px!important;}}
 </style>
 {% endblock %}
 {% block content %}
@@ -72,7 +74,7 @@
   </div>
 </div>
 
-<div class="container" style="max-width:1100px;padding:28px 20px 80px;display:grid;grid-template-columns:1fr 300px;gap:24px;">
+<div class="sd-body">
 
   <div>
     {# SEASONS & EPISODES #}
@@ -92,7 +94,7 @@
         <div class="ep-row">
           <div class="ep-num">{{ ep.number }}</div>
           <div class="ep-thumb">
-            {% if ep.thumbnail %}<img src="{{ ep.thumbnail.url }}" alt="">
+            {% if ep.thumbnail %}<img src="{{ ep.thumbnail.url }}" alt="" loading="lazy">
             {% else %}🎬{% endif %}
           </div>
           <div class="ep-info">
@@ -144,7 +146,7 @@
       <div class="related-grid">
         {% for r in related %}
         <a href="/movies/series/{{ r.slug }}/" class="rcard">
-          {% if r.thumbnail %}<img src="{{ r.thumbnail.url }}" alt="{{ r.title }}">
+          {% if r.thumbnail %}<img src="{{ r.thumbnail.url }}" alt="{{ r.title }}" loading="lazy">
           {% else %}<div class="rph" style="aspect-ratio:2/3;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:2.5rem;background:rgba(29,185,84,.1);">📺</div>{% endif %}
           <div style="font-size:12px;font-weight:600;color:var(--tx);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ r.title }}</div>
           <div style="font-size:11px;color:var(--tx2);">{{ r.release_year }}</div>

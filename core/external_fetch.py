@@ -473,6 +473,24 @@ def _pexels_videos_parse(data):
     return out
 
 
+def pixabay_videos_popular_verbose(per_page=18):
+    """Random/popular Pixabay clips, no search term needed — 'surprise me'.
+    Pixabay's API doesn't have a dedicated 'popular' endpoint like Pexels
+    does, but the same /videos/ endpoint returns results without a query
+    when sorted by popularity, and jumping to a random page keeps repeat
+    clicks from always showing the exact same set."""
+    key = _pixabay_key()
+    if not key:
+        return [], 'No Pixabay API key saved yet.'
+    import random
+    page = random.randint(1, 20)
+    q = urllib.parse.urlencode({'key': key, 'order': 'popular', 'per_page': max(per_page, 3), 'page': page})
+    data, err = _get_json_verbose(f'https://pixabay.com/api/videos/?{q}')
+    if err:
+        return [], err
+    return _pixabay_videos_parse(data), None
+
+
 def pixabay_videos_search_verbose(query, per_page=18):
     """Same contract, Pixabay video source as a second option."""
     key = _pixabay_key()
@@ -484,17 +502,32 @@ def pixabay_videos_search_verbose(query, per_page=18):
     data, err = _get_json_verbose(f'https://pixabay.com/api/videos/?{q}')
     if err:
         return [], err
+    return _pixabay_videos_parse(data), None
+
+
+def _pixabay_videos_parse(data):
     out = []
     for v in data.get('hits', []):
         videos = v.get('videos', {})
         best = videos.get('medium') or videos.get('small') or videos.get('large') or {}
         if not best.get('url'):
             continue
+        # Pixabay's video API doesn't actually put a 'thumbnail' key on each
+        # size object (unlike the assumption this code used to make, which
+        # is why imported clips kept showing up with a broken-image icon
+        # instead of a preview). What it does give is a top-level
+        # 'picture_id', which Pixabay's own docs say to build a thumbnail
+        # from via the vimeocdn pattern below.
+        thumb = best.get('thumbnail', '')
+        if not thumb:
+            picture_id = v.get('picture_id', '')
+            if picture_id:
+                thumb = f'https://i.vimeocdn.com/video/{picture_id}_295x166.jpg'
         out.append({
             'source': 'Pixabay',
             'external_id': str(v.get('id', '')),
             'video_url': best.get('url', ''),
-            'thumbnail_url': best.get('thumbnail', ''),
+            'thumbnail_url': thumb,
             'duration': v.get('duration', 0),
             'photographer': v.get('user', ''),
         })

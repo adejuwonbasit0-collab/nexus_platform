@@ -40,32 +40,72 @@ def _ordered_feed(queryset, seed=None):
     return ordered
 
 
-def shorts_feed(request):
-    from django.db.models import Count
-    # A fresh shuffle seed each time this page loads (so refreshing or
-    # logging back in gives a different order, not the exact same list
-    # forever), but unique per user so two people don't see identical
-    # orderings at the same moment.
-    import time
-    if request.user.is_authenticated:
-        identity = f'user-{request.user.pk}'
-    else:
-        if not request.session.session_key:
-            request.session.save()
-        identity = f'anon-{request.session.session_key}'
-    seed = f'{identity}-{int(time.time() // 1)}'
+PAGE_SIZE = 12  # shorts served per batch, both on first load and on infinite-scroll
 
+
+def _feed_seed(request, fresh=False):
+    """A shuffle seed that's stable for the length of one Shorts session (so
+    paging further into the feed keeps building on the SAME shuffled order
+    instead of re-shuffling under the user's feet on every request — that
+    used to be reseeded every single second, which is why only a fixed 60
+    items ever surfaced and pagination wasn't possible), but generates a
+    fresh shuffle each time the feed is opened from scratch."""
+    if not request.session.session_key:
+        request.session.save()
+    if fresh or not request.session.get('shorts_feed_seed'):
+        import random
+        request.session['shorts_feed_seed'] = random.randint(1, 2_000_000_000)
+    return request.session['shorts_feed_seed']
+
+
+def _full_feed_order(seed):
+    """The full shuffled order across EVERY published short (not just the
+    most recent 60), so the feed keeps offering new content instead of
+    dead-ending once the first batch of items has been scrolled through."""
+    from django.db.models import Count
     qs = (Short.objects.filter(is_published=True)
-          .annotate(comment_count=Count('comments'))
-          .order_by('-created_at')[:60])
-    feed = _ordered_feed(qs, seed=seed)
-    liked_ids = set()
+          .annotate(comment_count=Count('comments')))
+    return _ordered_feed(qs, seed=seed)
+
+
+def _liked_ids_for(request, shorts):
     if request.user.is_authenticated:
-        liked_ids = set(ShortLike.objects.filter(user=request.user, short__in=feed).values_list('short_id', flat=True))
+        return set(ShortLike.objects.filter(user=request.user, short__in=shorts).values_list('short_id', flat=True))
+    return set()
+
+
+def shorts_feed(request):
+    seed = _feed_seed(request, fresh=True)
+    ordered = _full_feed_order(seed)
+    feed = ordered[:PAGE_SIZE]
     return render(request, 'shorts/feed.html', {
         'shorts': feed,
-        'liked_ids': liked_ids,
+        'liked_ids': _liked_ids_for(request, feed),
+        'has_more': len(ordered) > 0,  # even a single short can loop forever
     })
+
+
+def shorts_more(request):
+    """Infinite-scroll batch: returns the next PAGE_SIZE shorts as a
+    rendered HTML fragment. Once every short has been shown, it wraps back
+    to the start of the same shuffled order rather than dead-ending — same
+    endless-scroll behavior as TikTok/Reels."""
+    seed = _feed_seed(request)
+    ordered = _full_feed_order(seed)
+    if not ordered:
+        return JsonResponse({'ok': True, 'html': '', 'has_more': False})
+    try:
+        offset = int(request.GET.get('offset', 0))
+    except ValueError:
+        offset = 0
+    start = offset % len(ordered)
+    batch = (ordered[start:] + ordered[:start])[:PAGE_SIZE]
+    from django.template.loader import render_to_string
+    html = render_to_string('shorts/_slides.html', {
+        'shorts': batch,
+        'liked_ids': _liked_ids_for(request, batch),
+    }, request=request)
+    return JsonResponse({'ok': True, 'html': html, 'has_more': True})
 
 
 @require_POST

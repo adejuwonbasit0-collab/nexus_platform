@@ -393,6 +393,8 @@ input,select,textarea,button{font-family:inherit;font-size:inherit}
   background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
 }
 .sp-lyrics-btn:hover{background:rgba(29,185,84,.12);border-color:rgba(29,185,84,.3);color:var(--sp-green)}
+.lyr-close-btn:hover{background:rgba(255,255,255,.16)}
+.lyr-close-btn:active{background:rgba(255,255,255,.22);transform:scale(.92)}
 
 /* Mini playing-now equalizer bars beside the title when playing */
 .sp-eq{display:none;align-items:flex-end;gap:2px;height:13px;margin-right:6px;flex-shrink:0}
@@ -1032,7 +1034,7 @@ input,select,textarea{max-width:100%;font-size:16px} /* prevent iOS zoom */
 
   
   <div style="position:relative;z-index:5;display:flex;align-items:center;justify-content:space-between;padding:max(16px,env(safe-area-inset-top)) 22px 12px;flex-shrink:0">
-    <button onclick="spCloseLyrics()" style="background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.8);font-size:20px;cursor:pointer;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%">⌄</button>
+    <button onclick="spCloseLyrics()" aria-label="Close lyrics" class="lyr-close-btn" style="background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.85);font-size:15px;cursor:pointer;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:background .15s,transform .1s;flex-shrink:0;"><i class="fa-solid fa-chevron-down"></i></button>
     <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;justify-content:center">
       <div id="lyr-header-cover" style="width:32px;height:32px;border-radius:6px;overflow:hidden;flex-shrink:0;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:14px">🎵</div>
       <div style="min-width:0;text-align:left">
