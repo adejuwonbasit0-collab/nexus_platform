@@ -34,7 +34,90 @@ def _clear_cache():
         cache.delete(k)
 
 
-# ── Branding ──────────────────────────────────────────────────────────────────
+def cms_manifest_json(request):
+    """Dynamic PWA manifest — pulls the site's own name/colors/favicon from
+    BrandingConfig + ThemeConfig, so there's nothing extra to upload or
+    maintain. Falls back to the bundled default icon if no favicon has
+    been set in admin yet."""
+    branding = BrandingConfig.get()
+    theme = ThemeConfig.get()
+    base = f'{request.scheme}://{request.get_host()}'
+
+    if branding.favicon:
+        icon_url = branding.favicon.url
+        if icon_url.startswith('/'):
+            icon_url = base + icon_url
+        icons = [
+            {"src": icon_url, "sizes": "192x192", "type": "image/png", "purpose": "any"},
+            {"src": icon_url, "sizes": "512x512", "type": "image/png", "purpose": "any"},
+        ]
+    else:
+        icons = [
+            {"src": f"{base}/static/icons/default-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+            {"src": f"{base}/static/icons/default-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+            {"src": f"{base}/static/icons/default-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+        ]
+
+    manifest = {
+        "name": branding.site_name or "NEXUS",
+        "short_name": (branding.site_name or "NEXUS")[:12],
+        "description": branding.site_tagline or branding.site_description or "",
+        "start_url": "/?source=pwa",
+        "scope": "/",
+        "display": "standalone",
+        "orientation": "portrait",
+        "background_color": theme.background_color or "#0a0a0a",
+        "theme_color": theme.primary_color or "#1db954",
+        "icons": icons,
+    }
+    return JsonResponse(manifest, content_type="application/manifest+json")
+
+
+def cms_service_worker_js(request):
+    """Minimal, safe-by-default service worker: caches the static app shell
+    (CSS/JS/icons) for instant repeat loads and offline resilience, but
+    deliberately never caches media/streaming URLs, API responses, or admin
+    pages — this keeps device storage tiny and avoids ever serving stale
+    video/audio or stale account state."""
+    js = """
+const CACHE_NAME = 'nexus-shell-v1';
+const SHELL_PREFIXES = ['/static/'];
+
+self.addEventListener('install', event => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+    )
+  );
+  self.clients.claim();
+});
+
+self.addEventListener('fetch', event => {
+  const url = new URL(event.request.url);
+  if (event.request.method !== 'GET') return;
+  const isShell = SHELL_PREFIXES.some(p => url.pathname.startsWith(p));
+  if (!isShell) return; // let everything else (pages, media, API, admin) hit the network normally
+
+  event.respondWith(
+    caches.open(CACHE_NAME).then(async cache => {
+      const cached = await cache.match(event.request);
+      const network = fetch(event.request).then(res => {
+        if (res && res.status === 200) cache.put(event.request, res.clone());
+        return res;
+      }).catch(() => cached);
+      return cached || network;
+    })
+  );
+});
+""".strip()
+    return HttpResponse(js, content_type="application/javascript")
+
+
+
 
 @_admin_required
 def cms_branding(request):
