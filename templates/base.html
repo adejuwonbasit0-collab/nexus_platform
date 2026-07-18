@@ -482,23 +482,28 @@ input,select,textarea,button{font-family:inherit;font-size:inherit}
 /* Track list */
 .sp-tracklist{width:100%}
 .sp-track-row{
-  display:grid;grid-template-columns:36px 1fr auto auto;
-  align-items:center;gap:14px;
-  padding:7px 14px;border-radius:var(--r);
+  display:grid;grid-template-columns:32px 40px 1fr auto;
+  align-items:center;gap:12px;
+  padding:8px 14px;border-radius:var(--r);
   cursor:pointer;transition:background .12s;
   text-decoration:none;color:inherit;
 }
 .sp-track-row:hover{background:rgba(255,255,255,.07)}
 .sp-track-row.playing .sp-track-num{color:var(--sp-green)}
 .sp-track-row.playing .sp-track-title{color:var(--sp-green)}
-.sp-track-num{font-size:15px;color:var(--tx2);text-align:center;font-variant-numeric:tabular-nums}
+.sp-track-num{font-size:14px;color:var(--tx2);text-align:center;font-variant-numeric:tabular-nums;font-weight:700}
 .sp-track-thumb{width:40px;height:40px;border-radius:4px;overflow:hidden;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
 .sp-track-thumb img{width:100%;height:100%;object-fit:cover}
-.sp-track-info{min-width:0}
-.sp-track-title{font-size:14px;font-weight:500;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sp-track-artist{font-size:12px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sp-track-dur{font-size:12px;color:var(--tx2);font-variant-numeric:tabular-nums}
-.sp-track-plays{font-size:12px;color:var(--tx2);font-variant-numeric:tabular-nums;text-align:right}
+.sp-track-info{min-width:0;text-align:left}
+.sp-track-title{font-size:14px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}
+.sp-track-artist{font-size:12px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}
+.sp-track-dur{font-size:12px;color:var(--tx2);font-variant-numeric:tabular-nums;text-align:left}
+.sp-track-plays{font-size:12px;color:var(--tx2);font-variant-numeric:tabular-nums;text-align:left}
+
+/* Top Chart — clearer rank hierarchy for the top 3 */
+.sp-chart .sp-track-row:nth-child(1) .sp-track-num{color:#ffd54a;font-size:17px}
+.sp-chart .sp-track-row:nth-child(2) .sp-track-num{color:#d9d9e0;font-size:16px}
+.sp-chart .sp-track-row:nth-child(3) .sp-track-num{color:#e0a672;font-size:16px}
 
 /* Badge */
 .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}

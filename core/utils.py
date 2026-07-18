@@ -156,14 +156,36 @@ def get_client_ip(request):
 
 # AI helper functions
 def get_ai_key(provider):
-    """Get API key for AI provider (OpenAI or Anthropic)"""
+    """Get the API key for an AI provider. Checks the admin-configured
+    DB record first (AIProviderSettings, set via Admin → Settings → AI —
+    this used to be skipped entirely, which is why a key saved in admin
+    never actually took effect), then falls back to an environment
+    variable / settings.py value for self-hosters who prefer that route."""
+    from core.models import AIProviderSettings
+    db_key = AIProviderSettings.get_key(provider)
+    if db_key:
+        return db_key
     import os
     from django.conf import settings
-    if provider.lower() == 'openai':
-        return os.environ.get('OPENAI_API_KEY', getattr(settings, 'OPENAI_API_KEY', ''))
-    elif provider.lower() == 'anthropic':
-        return os.environ.get('ANTHROPIC_API_KEY', getattr(settings, 'ANTHROPIC_API_KEY', ''))
-    return ''
+    env_names = {
+        'openai':     'OPENAI_API_KEY',
+        'anthropic':  'ANTHROPIC_API_KEY',
+        'gemini':     'GEMINI_API_KEY',
+        'openrouter': 'OPENROUTER_API_KEY',
+        'stability':  'STABILITY_API_KEY',
+    }
+    env_name = env_names.get(provider.lower())
+    if not env_name:
+        return ''
+    return os.environ.get(env_name, getattr(settings, env_name, ''))
+
+
+def get_ai_model(provider, default=''):
+    """Get the admin-configured model name for a provider, falling back
+    to a sane default (e.g. so the platform still works before anyone has
+    typed a model name into the settings form)."""
+    from core.models import AIProviderSettings
+    return AIProviderSettings.get_model(provider, default)
 
 def is_demo_mode(provider='openai'):
     return not get_ai_key(provider)

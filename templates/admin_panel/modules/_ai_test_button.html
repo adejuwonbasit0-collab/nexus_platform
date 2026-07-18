@@ -1,0 +1,10 @@
+<div class="fg" style="margin-top:4px;">
+  <button type="button" class="btn btn-secondary btn-sm" onclick="testAIProvider('{{ provider }}', this)">🔌 Test connection</button>
+  {% if p and p.last_test_message %}
+  <div style="font-size:11.5px;margin-top:6px;color:{% if p.last_test_ok %}var(--sp-green,#1db954){% else %}#e0245e{% endif %};">
+    {% if p.last_test_ok %}✅{% else %}❌{% endif %} {{ p.last_test_message }}
+    <span style="color:var(--tx2,#888);">({{ p.last_tested_at|timesince }} ago)</span>
+  </div>
+  {% endif %}
+  <div id="ai-test-result-{{ provider }}" style="display:none;font-size:11.5px;margin-top:6px;"></div>
+</div>

@@ -199,9 +199,9 @@
 
 {# ══════════════ AI ══════════════ #}
 <div class="tab-panel {% if active_tab == 'ai' %}active{% endif %}" data-group="settings" data-id="ai">
-<div class="alert alert-warning"><span class="alert-icon">⚠️</span> API keys are stored in the database. For production, prefer environment variables (ANTHROPIC_API_KEY, OPENAI_API_KEY, STABILITY_API_KEY).</div>
+<div class="alert alert-warning"><span class="alert-icon">⚠️</span> API keys are stored in the database. For production, prefer environment variables (ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, OPENROUTER_API_KEY, STABILITY_API_KEY). Click <strong>Test connection</strong> on any provider after saving to confirm the key actually works — the exact error (bad key, wrong model name, network issue) shows right there instead of only surfacing later when a feature silently fails.</div>
 <form method="post"><input type="hidden" name="_action" value="ai">{% csrf_token %}
-<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;">
 
   {# Anthropic #}
   {% with p=ai_providers.anthropic %}
@@ -209,6 +209,27 @@
     <div class="fg"><label>API Key</label><input class="finput" type="password" name="anthropic_key" placeholder="{% if p and p.api_key %}••••••••{% else %}sk-ant-…{% endif %}"><div class="hint">Leave blank to keep existing</div></div>
     <div class="fg"><label>Model</label><input class="finput" name="anthropic_model" value="{{ p.model_name|default:'claude-sonnet-4-5' }}" placeholder="claude-sonnet-4-5"></div>
     <div class="fg"><label class="fcheck"><input type="checkbox" name="anthropic_active" {% if p and p.is_active %}checked{% endif %}> Active</label></div>
+    {% include 'admin_panel/modules/_ai_test_button.html' with provider='anthropic' p=p %}
+  </div></div>
+  {% endwith %}
+
+  {# Gemini #}
+  {% with p=ai_providers.gemini %}
+  <div class="panel"><div class="panel-head"><span class="panel-title">🔵 Google Gemini</span><span class="badge {% if p and p.is_active %}badge-green{% else %}badge-gray{% endif %}">{% if p and p.is_active %}Active{% else %}Off{% endif %}</span></div><div class="panel-body">
+    <div class="fg"><label>API Key</label><input class="finput" type="password" name="gemini_key" placeholder="{% if p and p.api_key %}••••••••{% else %}AIza…{% endif %}"><div class="hint">Get a free key at aistudio.google.com</div></div>
+    <div class="fg"><label>Text model</label><input class="finput" name="gemini_model" value="{{ p.model_name|default:'gemini-2.5-flash' }}" placeholder="gemini-2.5-flash"><div class="hint">Use gemini-2.5-pro for higher quality, or gemini-2.5-flash-image for image generation</div></div>
+    <div class="fg"><label class="fcheck"><input type="checkbox" name="gemini_active" {% if p and p.is_active %}checked{% endif %}> Active</label></div>
+    {% include 'admin_panel/modules/_ai_test_button.html' with provider='gemini' p=p %}
+  </div></div>
+  {% endwith %}
+
+  {# OpenRouter #}
+  {% with p=ai_providers.openrouter %}
+  <div class="panel"><div class="panel-head"><span class="panel-title">🟣 OpenRouter</span><span class="badge {% if p and p.is_active %}badge-green{% else %}badge-gray{% endif %}">{% if p and p.is_active %}Active{% else %}Off{% endif %}</span></div><div class="panel-body">
+    <div class="fg"><label>API Key</label><input class="finput" type="password" name="openrouter_key" placeholder="{% if p and p.api_key %}••••••••{% else %}sk-or-…{% endif %}"><div class="hint">One key, 100+ models — get one at openrouter.ai</div></div>
+    <div class="fg"><label>Model</label><input class="finput" name="openrouter_model" value="{{ p.model_name|default:'openai/gpt-4o-mini' }}" placeholder="openai/gpt-4o-mini"><div class="hint">Any OpenRouter model id, e.g. google/gemini-2.5-flash, meta-llama/llama-3.3-70b</div></div>
+    <div class="fg"><label class="fcheck"><input type="checkbox" name="openrouter_active" {% if p and p.is_active %}checked{% endif %}> Active</label></div>
+    {% include 'admin_panel/modules/_ai_test_button.html' with provider='openrouter' p=p %}
   </div></div>
   {% endwith %}
 
@@ -218,6 +239,7 @@
     <div class="fg"><label>API Key</label><input class="finput" type="password" name="openai_key" placeholder="{% if p and p.api_key %}••••••••{% else %}sk-…{% endif %}"></div>
     <div class="fg"><label>Model</label><input class="finput" name="openai_model" value="{{ p.model_name|default:'gpt-4o' }}" placeholder="gpt-4o"></div>
     <div class="fg"><label class="fcheck"><input type="checkbox" name="openai_active" {% if p and p.is_active %}checked{% endif %}> Active</label></div>
+    {% include 'admin_panel/modules/_ai_test_button.html' with provider='openai' p=p %}
   </div></div>
   {% endwith %}
 
@@ -227,13 +249,47 @@
     <div class="fg"><label>API Key</label><input class="finput" type="password" name="stability_key" placeholder="{% if p and p.api_key %}••••••••{% else %}sk-…{% endif %}"></div>
     <div class="fg"><label>Model</label><input class="finput" name="stability_model" value="{{ p.model_name|default:'stable-diffusion-xl-1024-v1-0' }}" placeholder="stable-diffusion-xl-1024-v1-0"></div>
     <div class="fg"><label class="fcheck"><input type="checkbox" name="stability_active" {% if p and p.is_active %}checked{% endif %}> Active</label></div>
+    {% include 'admin_panel/modules/_ai_test_button.html' with provider='stability' p=p %}
   </div></div>
   {% endwith %}
 
 </div>
-<button type="submit" class="btn btn-primary">💾 Save AI Settings</button>
+<button type="submit" class="btn btn-primary" style="margin-top:16px;">💾 Save AI Settings</button>
 </form>
 </div>
+
+<script>
+async function testAIProvider(provider, btn) {
+  const resultEl = document.getElementById('ai-test-result-' + provider);
+  const original = btn.textContent;
+  btn.textContent = 'Testing…';
+  btn.disabled = true;
+  resultEl.style.display = 'none';
+  try {
+    const res = await fetch('/admin-panel/settings/ai-test/', {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': document.querySelector('input[name=csrfmiddlewaretoken]').value,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: 'provider=' + encodeURIComponent(provider),
+    });
+    const data = await res.json();
+    resultEl.textContent = (data.ok ? '✅ ' : '❌ ') + data.message;
+    resultEl.style.color = data.ok ? 'var(--sp-green,#1db954)' : '#e0245e';
+    resultEl.style.display = 'block';
+  } catch (e) {
+    resultEl.textContent = '❌ Network error while testing: ' + e;
+    resultEl.style.color = '#e0245e';
+    resultEl.style.display = 'block';
+  } finally {
+    btn.textContent = original;
+    btn.disabled = false;
+  }
+}
+</script>
+
+
 
 {% endblock %}
 {% block extra_scripts %}

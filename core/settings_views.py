@@ -586,7 +586,7 @@ def settings_hub(request):
 
         # AI
         elif action == 'ai':
-            for prov in ['openai','anthropic','stability']:
+            for prov in ['openai','anthropic','gemini','openrouter','stability']:
                 key = request.POST.get(f'{prov}_key','').strip()
                 model = request.POST.get(f'{prov}_model','').strip()
                 active = request.POST.get(f'{prov}_active')=='on'
@@ -739,3 +739,31 @@ def network_diagnostics(request):
     return render(request, 'admin_panel/network_diagnostics.html', {
         'results': results, 'any_failed': any_failed, 'deep': deep,
     })
+
+
+@_admin
+@require_POST
+def ai_test_connection(request):
+    """Admin clicks 'Test connection' next to a provider — makes a real,
+    cheap call to that provider right now and returns the exact success/
+    error message, so a bad key or wrong model name is visible immediately
+    instead of only surfacing later when a real feature silently fails."""
+    from .models import AIProviderSettings
+    from core import ai_client
+
+    provider = request.POST.get('provider', '').strip()
+    valid = dict(AIProviderSettings.PROVIDER_CHOICES)
+    if provider not in valid:
+        return JsonResponse({'ok': False, 'message': f'Unknown provider "{provider}".'}, status=400)
+
+    ok, message = ai_client.test_provider(provider)
+
+    AIProviderSettings.objects.update_or_create(
+        provider=provider,
+        defaults={
+            'last_test_ok': ok,
+            'last_test_message': message[:500],
+            'last_tested_at': timezone.now(),
+        },
+    )
+    return JsonResponse({'ok': ok, 'message': message})

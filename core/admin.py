@@ -10,7 +10,7 @@ class SiteSettingsAdmin(admin.ModelAdmin):
 
 @admin.register(AIProviderSettings)
 class AIProviderSettingsAdmin(admin.ModelAdmin):
-    list_display  = ['provider', 'is_active', 'model_name', 'updated_at']
+    list_display  = ['provider', 'is_active', 'model_name', 'last_test_ok', 'last_tested_at']
     list_editable = ['is_active']
 
     def get_form(self, request, obj=None, **kwargs):

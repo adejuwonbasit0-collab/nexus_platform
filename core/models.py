@@ -23,12 +23,17 @@ class AIProviderSettings(models.Model):
     PROVIDER_CHOICES = [
         ('openai',     'OpenAI (DALL-E / GPT)'),
         ('anthropic',  'Anthropic (Claude)'),
+        ('gemini',     'Google Gemini (2.5 Pro / Flash / Image)'),
+        ('openrouter', 'OpenRouter (gateway to 100+ models)'),
         ('stability',  'Stability AI'),
     ]
     provider   = models.CharField(max_length=30, choices=PROVIDER_CHOICES, unique=True)
     api_key    = models.CharField(max_length=500, blank=True)
-    model_name = models.CharField(max_length=100, blank=True, help_text='e.g. dall-e-3, claude-sonnet-4-20250514')
+    model_name = models.CharField(max_length=100, blank=True, help_text='e.g. dall-e-3, claude-sonnet-4-5, gemini-2.5-flash, gemini-2.5-flash-image, openai/gpt-4o (OpenRouter model id)')
     is_active  = models.BooleanField(default=True)
+    last_test_ok      = models.BooleanField(null=True, blank=True, help_text='Result of the last "Test connection" click in admin.')
+    last_test_message = models.CharField(max_length=500, blank=True)
+    last_tested_at    = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -46,6 +51,16 @@ class AIProviderSettings(models.Model):
             return cls.objects.get(provider=provider, is_active=True).api_key
         except cls.DoesNotExist:
             return ''
+
+    @classmethod
+    def get_model(cls, provider, default=''):
+        """Return the admin-configured model name for a provider, or a
+        fallback default if none was set."""
+        try:
+            obj = cls.objects.get(provider=provider, is_active=True)
+            return obj.model_name or default
+        except cls.DoesNotExist:
+            return default
 
 
 class AILog(models.Model):

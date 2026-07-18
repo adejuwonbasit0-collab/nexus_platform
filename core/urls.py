@@ -57,6 +57,7 @@ urlpatterns = [
     path('system/alert/<int:pk>/resolve/',  settings_views.resolve_alert, name='resolve_alert'),
     path('settings/',                       settings_views.settings_hub,  name='settings_hub'),
     path('settings/email-test/',            settings_views.email_test,    name='email_test'),
+    path('settings/ai-test/',               settings_views.ai_test_connection, name='ai_test_connection'),
     # Notifications
     path('notifications/',                  views.notifications_list,     name='notifications_list'),
     path('notifications/count/',            views.notifications_count,    name='notifications_count'),

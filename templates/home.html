@@ -162,7 +162,7 @@ if(g)g.textContent=(h<12?'Good morning':h<18?'Good afternoon':'Good evening')+'{
 {% if chart_tracks %}
 <div class="sp-sec">
   <div class="sp-section-head"><div class="sp-section-title">📈 Top Chart</div><a href="/music/" class="sp-section-more">Full chart</a></div>
-  <div class="sp-tracklist">
+  <div class="sp-tracklist sp-chart">
     {% for track in chart_tracks %}
     <div class="sp-track-row" onclick="playTrack('{{ track.playable_url|default:''|escapejs }}','{{ track.title|escapejs }}','{{ track.artist.name|escapejs }}','{{ track.display_banner|escapejs }}','/music/track/{{ track.slug }}/',{{ track.pk }})">
       <span class="sp-track-num">{{ forloop.counter }}</span>
