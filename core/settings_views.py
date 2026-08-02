@@ -635,6 +635,18 @@ def email_test(request):
         messages.error(request, f'Email failed: {e}')
     return redirect('/admin-panel/settings/?tab=email')
 
+@_admin
+def ai_test_connection(request):
+    """
+    Test endpoint for AI provider connectivity.
+    Returns a simple status (you can expand with actual API pings later).
+    """
+    from django.http import JsonResponse
+    # TODO: implement actual AI connection test (ping OpenAI, Anthropic, etc.)
+    return JsonResponse({
+        "status": "ok",
+        "message": "AI test endpoint is reachable (stub)."
+    })
 
 @_admin
 def admin_guide(request):
