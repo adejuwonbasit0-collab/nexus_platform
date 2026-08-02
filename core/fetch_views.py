@@ -12,9 +12,47 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.utils.text import slugify
 from django.core.cache import cache
+from django.db import IntegrityError
 
 from .views import _admin_required
 from . import external_fetch as ext
+
+
+def _get_or_create_by_name(Model, name, slug_field='slug', name_field='name', extra_defaults=None):
+    """Case-insensitive get-or-create that can never hit a UNIQUE-slug
+    IntegrityError. The bug this replaces: slugify(name) doesn't account
+    for a DIFFERENT existing row that slugifies to the same value (e.g.
+    fetched genre "Hip Hop" vs an existing "Hip-Hop" — different names,
+    same slug), so a blind get_or_create(name__iexact=..., defaults={...})
+    would find no matching row, then crash trying to insert a duplicate
+    slug. This looks up by name first (as before), and if creating,
+    numbers the slug until it's actually free."""
+    try:
+        return Model.objects.get(**{f'{name_field}__iexact': name}), False
+    except Model.DoesNotExist:
+        pass
+    except Model.MultipleObjectsReturned:
+        return Model.objects.filter(**{f'{name_field}__iexact': name}).first(), False
+
+    base_slug = slugify(name) or Model.__name__.lower()
+    slug = base_slug
+    n = 2
+    while Model.objects.filter(**{slug_field: slug}).exists():
+        slug = f'{base_slug}-{n}'
+        n += 1
+
+    defaults = {name_field: name, slug_field: slug}
+    if extra_defaults:
+        defaults.update(extra_defaults)
+    try:
+        return Model.objects.create(**defaults), True
+    except IntegrityError:
+        # Very rare race (two imports landing at the same instant) —
+        # someone else just created it, so use theirs instead of crashing.
+        existing = Model.objects.filter(**{f'{name_field}__iexact': name}).first()
+        if existing:
+            return existing, False
+        raise
 
 
 # ── Music ────────────────────────────────────────────────────────────────────
@@ -94,16 +132,11 @@ def fetch_music_import(request):
         # failed lookups can never affect the whole batch.
         it = ext.enrich_for_import(it)
 
-        artist, _c = Artist.objects.get_or_create(
-            name__iexact=artist_name,
-            defaults={'name': artist_name, 'slug': slugify(artist_name) or 'artist'},
-        )
+        artist, _c = _get_or_create_by_name(Artist, artist_name)
         genre = None
         gname = (it.get('genre') or '').strip()
         if gname:
-            genre, _c = Genre.objects.get_or_create(
-                name__iexact=gname, defaults={'name': gname, 'slug': slugify(gname) or 'genre'}
-            )
+            genre, _c = _get_or_create_by_name(Genre, gname)
 
         year_raw = str(it.get('release_year') or '').strip()
         year = int(year_raw) if year_raw.isdigit() else 2024
@@ -493,10 +526,6 @@ def fetch_shorts(request):
             r, e = ext.pexels_videos_popular_verbose(per_page=10)
             results += r
             if e: errors.append(f'Pexels: {e}')
-        if is_random and pixabay_configured:
-            r, e = ext.pixabay_videos_popular_verbose(per_page=10)
-            results += r
-            if e: errors.append(f'Pixabay: {e}')
         if q and pexels_configured:
             r, e = ext.pexels_videos_search_verbose(q, per_page=10)
             results += r
@@ -511,8 +540,6 @@ def fetch_shorts(request):
             search_error = ' | '.join(errors)
     elif configured and is_random and provider == 'pexels':
         results, search_error = ext.pexels_videos_popular_verbose(per_page=18)
-    elif configured and is_random and provider == 'pixabay':
-        results, search_error = ext.pixabay_videos_popular_verbose(per_page=18)
     elif configured and q:
         if provider == 'pixabay':
             results, search_error = ext.pixabay_videos_search_verbose(q, per_page=18)
