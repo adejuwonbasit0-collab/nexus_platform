@@ -21,11 +21,34 @@
   </div>
 </div>
 
-<div style="display:flex;gap:8px;margin-bottom:12px;">
+<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
   <a href="?tab=search&provider=all&q={{ q }}" class="btn btn-sm {% if provider == 'all' %}btn-primary{% else %}btn-secondary{% endif %}">🔀 All Providers</a>
   <a href="?tab=search&provider=pexels&q={{ q }}" class="btn btn-sm {% if provider == 'pexels' %}btn-primary{% else %}btn-secondary{% endif %}">Pexels{% if pexels_configured %} ✓{% endif %}</a>
   <a href="?tab=search&provider=pixabay&q={{ q }}" class="btn btn-sm {% if provider == 'pixabay' %}btn-primary{% else %}btn-secondary{% endif %}">Pixabay (recommended){% if pixabay_configured %} ✓{% endif %}</a>
+  <a href="?tab=search&provider=youtube&q={{ q }}" class="btn btn-sm {% if provider == 'youtube' %}btn-primary{% else %}btn-secondary{% endif %}">▶ YouTube (real audio){% if youtube_configured %} ✓{% endif %}</a>
 </div>
+
+<details style="margin-bottom:16px;" {% if provider == 'youtube' %}open{% endif %}>
+  <summary style="cursor:pointer;font-size:12.5px;color:var(--text2);padding:8px 0;">
+    ▶ {% if youtube_configured %}YouTube key saved — click to replace it{% else %}Enter YouTube API key (for real shorts with real sound){% endif %}
+  </summary>
+  <div class="panel" style="margin-top:8px;">
+    <div class="panel-body" style="padding:14px 16px;">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">
+        Pexels/Pixabay clips are silent stock b-roll by nature — that's not a bug, it's just what
+        those libraries are. For real short-form content with actual audio (comedy, skits, etc.),
+        YouTube results play through YouTube's own official embedded player, nothing downloaded or
+        rehosted. Free key from <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color:var(--accent);">Google Cloud Console</a> (enable "YouTube Data API v3").
+      </div>
+      <form method="post" style="display:flex;gap:10px;">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="save_youtube_key">
+        <input class="finput" name="youtube_api_key" placeholder="YouTube Data API v3 key" style="flex:1;">
+        <button type="submit" class="btn btn-primary btn-sm">Save Key</button>
+      </form>
+    </div>
+  </div>
+</details>
 
 <details style="margin-bottom:16px;">
   <summary style="cursor:pointer;font-size:12.5px;color:var(--text2);padding:8px 0;">
@@ -50,6 +73,8 @@
 <div style="text-align:center;padding:40px;color:var(--text2);font-size:13px;">👆 Save a Pexels API key above to start searching video clips.</div>
 {% elif not pixabay_configured and provider == 'pixabay' %}
 <div style="text-align:center;padding:40px;color:var(--text2);font-size:13px;">Pixabay key needed — save one from the Fetch Images page (shared setting), then come back here.</div>
+{% elif not youtube_configured and provider == 'youtube' %}
+<div style="text-align:center;padding:40px;color:var(--text2);font-size:13px;">👆 Save a YouTube API key above to search real shorts with real sound.</div>
 {% else %}
 
 <div class="panel" style="margin-bottom:16px;">
@@ -60,7 +85,9 @@
       <input class="finput" name="q" value="{{ q }}" placeholder="e.g. city timelapse, ocean waves, dance, nature" style="flex:1;">
       <button type="submit" class="btn btn-primary btn-sm">Search</button>
     </form>
-    <a href="?tab=search&provider={{ provider }}&random=1{% if q %}&q={{ q }}{% endif %}" class="btn btn-secondary btn-sm" style="margin-top:10px;display:inline-block;text-decoration:none;">🎲 Surprise me (random clips, no search needed)</a>
+    {% if provider == 'pexels' %}
+    <a href="?tab=search&provider=pexels&random=1" class="btn btn-secondary btn-sm" style="margin-top:10px;display:inline-block;text-decoration:none;">🎲 Surprise me (random clips, no search needed)</a>
+    {% endif %}
   </div>
 </div>
 
@@ -78,9 +105,15 @@
     <input type="checkbox" class="short-check" style="position:absolute;margin:6px;z-index:2;"
       data-payload="{{ q|default:'Short'|escapejs }}|||{{ r.video_url|escapejs }}|||{{ r.thumbnail_url|escapejs }}|||{{ r.photographer|escapejs }}|||{{ r.source|escapejs }}|||{{ r.external_id|escapejs }}|||{{ r.duration|default:0 }}">
     <div style="position:relative;width:100%;aspect-ratio:9/16;border-radius:8px;overflow:hidden;background:#000;margin-bottom:8px;">
-      {% if r.thumbnail_url %}<img src="{{ r.thumbnail_url }}" style="width:100%;height:100%;object-fit:cover;" loading="lazy" onerror="this.style.display='none'">{% endif %}
+      {% if r.thumbnail_url %}<img src="{{ r.thumbnail_url }}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">{% endif %}
+      {% if r.source == 'YouTube' %}
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.15);">
+        <div style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;">▶</div>
+      </div>
+      {% else %}
       <video src="{{ r.video_url }}" muted loop playsinline preload="none" onmouseover="this.play()" onmouseout="this.pause()" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></video>
-      <div style="position:absolute;bottom:4px;right:6px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;padding:2px 6px;border-radius:4px;">{{ r.duration }}s</div>
+      {% endif %}
+      <div style="position:absolute;bottom:4px;right:6px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;padding:2px 6px;border-radius:4px;">{% if r.source == 'YouTube' %}▶ real audio{% else %}{{ r.duration }}s{% endif %}</div>
     </div>
     <div style="font-size:11px;color:var(--text2);">by {{ r.photographer }}</div>
   </div>

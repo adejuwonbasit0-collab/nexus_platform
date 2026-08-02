@@ -62,6 +62,7 @@ def fetch_music(request):
     tab = request.GET.get('tab', 'search')
     q = request.GET.get('q', '').strip()
     genre_id = request.GET.get('genre', '')
+    source = request.GET.get('source', 'itunes')  # itunes (30s previews) | jamendo (full-length, CC-licensed)
 
     if request.method == 'POST' and request.POST.get('action') == 'save_audd_key':
         from core.models import SiteSettings
@@ -72,11 +73,25 @@ def fetch_music(request):
         messages.success(request, 'AudD API token saved — Discover will use it for song identification.')
         return redirect(request.path + f'?tab={tab}')
 
+    if request.method == 'POST' and request.POST.get('action') == 'save_jamendo_key':
+        from core.models import SiteSettings
+        key = request.POST.get('jamendo_client_id', '').strip()
+        obj, _c = SiteSettings.objects.get_or_create(key='jamendo_client_id', defaults={'label': 'Jamendo Client ID', 'group': 'integrations'})
+        obj.value = key
+        obj.save()
+        messages.success(request, 'Jamendo client_id saved — you can now import full-length tracks, not just 30s previews.')
+        return redirect(request.path + '?tab=search&source=jamendo')
+
     from core.models import SiteSettings
     audd_configured = SiteSettings.objects.filter(key='audd_api_token').exclude(value='').exists()
+    jamendo_configured = ext.jamendo_configured()
 
     results = []
-    if tab == 'search':
+    search_error = None
+    if source == 'jamendo':
+        if jamendo_configured:
+            results, search_error = ext.jamendo_search(q, per_page=30)
+    elif tab == 'search':
         if q:
             results = ext.itunes_search(q, limit=30)
     elif tab == 'trending':
@@ -98,9 +113,10 @@ def fetch_music(request):
     pending_count = Track.objects.filter(is_fetched=True, is_published=False).count()
 
     return render(request, 'admin_panel/modules/fetch_music.html', {
-        'tab': tab, 'q': q, 'genre_id': genre_id,
+        'tab': tab, 'q': q, 'genre_id': genre_id, 'source': source,
         'results': results, 'genres': ext.ITUNES_GENRES,
         'pending_count': pending_count, 'audd_configured': audd_configured,
+        'jamendo_configured': jamendo_configured, 'search_error': search_error,
     })
 
 
@@ -195,10 +211,14 @@ def fetch_movies(request):
     tab = request.GET.get('tab', 'search')
     q = request.GET.get('q', '').strip()
     genre_id = request.GET.get('genre', '')
+    source = request.GET.get('source', 'tmdb')  # tmdb (posters/trailers/metadata only) | archive (real, full, legally-free films)
 
     configured = ext.tmdb_configured()
     results = []
-    if configured:
+    search_error = None
+    if source == 'archive':
+        results, search_error = ext.archive_org_search(q, per_page=24)
+    elif configured:
         if tab == 'search':
             if q:
                 results = ext.tmdb_search(q)
@@ -230,7 +250,7 @@ def fetch_movies(request):
     pending_count = Movie.objects.filter(is_fetched=True, is_published=False).count()
 
     return render(request, 'admin_panel/modules/fetch_movies.html', {
-        'tab': tab, 'q': q, 'genre_id': genre_id,
+        'tab': tab, 'q': q, 'genre_id': genre_id, 'source': source, 'search_error': search_error,
         'results': results, 'genres': genres,
         'tmdb_configured': configured, 'pending_count': pending_count,
     })
@@ -267,7 +287,14 @@ def fetch_movies_import(request):
             is_published=approve,
         )
         tmdb_id = it.get('external_id', '')
-        if tmdb_id:
+        source = it.get('source') or 'TMDB'
+        if source == 'Archive.org':
+            # Real, legally-free full film — resolve the actual playable
+            # file now, so this movie is watchable immediately, not just
+            # metadata waiting on a manual video link like TMDB imports.
+            movie.video_url = ext.archive_org_get_video_url(tmdb_id) or ''
+            movie.trailer_url = it.get('detail_url', '') or ''
+        elif tmdb_id:
             movie.trailer_url = ext.tmdb_trailer_url(tmdb_id) or ''
         movie.save()
 
@@ -279,7 +306,10 @@ def fetch_movies_import(request):
 
     if created:
         state = 'imported and approved' if approve else 'imported as pending — approve them from the Movies tab'
-        messages.success(request, f'{created} movie(s) {state}. Posters, ratings, and trailers were fetched — add the actual video file/link on each one before publishing.')
+        if source == 'Archive.org':
+            messages.success(request, f'{created} movie(s) {state}. Full, legally-free films from Archive.org — ready to watch, no video link needed.')
+        else:
+            messages.success(request, f'{created} movie(s) {state}. Posters, ratings, and trailers were fetched — add the actual video file/link on each one before publishing.')
     else:
         messages.info(request, 'Nothing new to import — those movies are already in your library.')
     cache.delete('trending_page_v2')
@@ -514,13 +544,30 @@ def fetch_shorts(request):
         messages.success(request, 'Pexels API key saved.')
         return redirect(request.path + '?tab=search&provider=pexels')
 
+    if request.method == 'POST' and request.POST.get('action') == 'save_youtube_key':
+        from core.models import SiteSettings
+        key = request.POST.get('youtube_api_key', '').strip()
+        obj, _c = SiteSettings.objects.get_or_create(key='youtube_api_key', defaults={'label': 'YouTube API Key', 'group': 'integrations'})
+        obj.value = key
+        obj.save()
+        messages.success(request, 'YouTube API key saved — imports now play through YouTube\'s own embedded player, with real sound.')
+        return redirect(request.path + '?tab=search&provider=youtube')
+
     pexels_configured = ext.pexels_configured()
     pixabay_configured = ext.pixabay_configured()
-    configured = (pexels_configured or pixabay_configured) if provider == 'all' else (pexels_configured if provider == 'pexels' else pixabay_configured)
+    youtube_configured = ext.youtube_configured()
+    configured = (pexels_configured or pixabay_configured) if provider == 'all' else (
+        pexels_configured if provider == 'pexels' else
+        youtube_configured if provider == 'youtube' else
+        pixabay_configured
+    )
 
     results = []
     search_error = None
-    if provider == 'all':
+    if provider == 'youtube':
+        if youtube_configured:
+            results, search_error = ext.youtube_shorts_search(q, per_page=24)
+    elif provider == 'all':
         errors = []
         if is_random and pexels_configured:
             r, e = ext.pexels_videos_popular_verbose(per_page=10)
@@ -553,6 +600,7 @@ def fetch_shorts(request):
         'tab': tab, 'q': q, 'provider': provider, 'is_random': is_random,
         'results': results, 'search_error': search_error,
         'pexels_configured': pexels_configured, 'pixabay_configured': pixabay_configured,
+        'youtube_configured': youtube_configured,
         'pending_count': pending_count,
     })
 

@@ -34,17 +34,48 @@
   </div>
 </details>
 
+<details style="margin-bottom:16px;" {% if source == 'jamendo' %}open{% endif %}>
+  <summary style="cursor:pointer;font-size:12.5px;color:var(--text2);padding:8px 0;">
+    🎵 {% if jamendo_configured %}Jamendo key saved (full-length tracks) — click to replace it{% else %}Set up Jamendo for full-length tracks (not 30s previews){% endif %}
+  </summary>
+  <div class="panel" style="margin-top:8px;">
+    <div class="panel-body" style="padding:14px 16px;">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">
+        iTunes only ever gives a 30-second preview clip — that's an Apple licensing limit, not
+        something any integration can get around. Jamendo is different: it's a catalogue of real
+        independent artists releasing full-length, Creative-Commons-licensed tracks that are
+        actually free to stream in full. Get a free client_id at
+        <a href="https://devportal.jamendo.com/" target="_blank" style="color:var(--accent);">devportal.jamendo.com</a>.
+      </div>
+      <form method="post" style="display:flex;gap:10px;">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="save_jamendo_key">
+        <input class="finput" name="jamendo_client_id" placeholder="Jamendo client_id" style="flex:1;">
+        <button type="submit" class="btn btn-primary btn-sm">Save Key</button>
+      </form>
+    </div>
+  </div>
+</details>
 
-<div class="tab-bar" style="display:flex;gap:4px;margin-bottom:16px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:4px;flex-wrap:wrap;">
-  <a class="tab-btn {% if tab == 'search' %}active{% endif %}" href="?tab=search" style="text-decoration:none;">🔎 Search</a>
-  <a class="tab-btn {% if tab == 'trending' %}active{% endif %}" href="?tab=trending" style="text-decoration:none;">🔥 Trending</a>
-  <a class="tab-btn {% if tab == 'latest' %}active{% endif %}" href="?tab=latest" style="text-decoration:none;">✨ Latest</a>
-  <a class="tab-btn {% if tab == 'genre' %}active{% endif %}" href="?tab=genre" style="text-decoration:none;">🏷 By Genre</a>
+<div class="tab-bar" style="display:flex;gap:4px;margin-bottom:12px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:4px;flex-wrap:wrap;">
+  <a class="tab-btn {% if source == 'itunes' %}active{% endif %}" href="?tab=search&source=itunes" style="text-decoration:none;">🎧 iTunes (30s previews)</a>
+  <a class="tab-btn {% if source == 'jamendo' %}active{% endif %}" href="?tab=search&source=jamendo" style="text-decoration:none;">🎵 Jamendo (full-length, CC-licensed)</a>
 </div>
+
+{% if source == 'jamendo' and not jamendo_configured %}
+<div class="alert alert-warning" style="margin-bottom:16px;">Add a Jamendo client_id above first.</div>
+{% elif search_error %}
+<div class="alert alert-warning" style="margin-bottom:16px;">⚠ {{ search_error }}</div>
+{% endif %}
 
 <div class="panel" style="margin-bottom:16px;">
   <div class="panel-body" style="padding:14px 16px;">
     <form method="get" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+      <input type="hidden" name="source" value="{{ source }}">
+      {% if source == 'jamendo' %}
+      <input type="hidden" name="tab" value="search">
+      <div style="flex:1;min-width:220px;"><label style="font-size:11px;color:var(--text2);">Song, artist, or leave blank for popular tracks</label><input class="finput" name="q" value="{{ q }}" placeholder="e.g. lofi" style="width:100%;"></div>
+      {% else %}
       <input type="hidden" name="tab" value="{{ tab }}">
       {% if tab == 'search' %}
       <div style="flex:1;min-width:220px;"><label style="font-size:11px;color:var(--text2);">Song, artist, or album</label><input class="finput" name="q" value="{{ q }}" placeholder="e.g. Seyi Vibez" style="width:100%;"></div>
@@ -58,7 +89,8 @@
         </select>
       </div>
       {% endif %}
-      <button type="submit" class="btn btn-primary btn-sm">{% if tab == 'search' %}Search{% else %}Load{% endif %}</button>
+      {% endif %}
+      <button type="submit" class="btn btn-primary btn-sm">{% if tab == 'search' or source == 'jamendo' %}Search{% else %}Load{% endif %}</button>
     </form>
   </div>
 </div>

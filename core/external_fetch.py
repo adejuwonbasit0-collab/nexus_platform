@@ -473,24 +473,6 @@ def _pexels_videos_parse(data):
     return out
 
 
-def pixabay_videos_popular_verbose(per_page=18):
-    """Random/popular Pixabay clips, no search term needed — 'surprise me'.
-    Pixabay's API doesn't have a dedicated 'popular' endpoint like Pexels
-    does, but the same /videos/ endpoint returns results without a query
-    when sorted by popularity, and jumping to a random page keeps repeat
-    clicks from always showing the exact same set."""
-    key = _pixabay_key()
-    if not key:
-        return [], 'No Pixabay API key saved yet.'
-    import random
-    page = random.randint(1, 20)
-    q = urllib.parse.urlencode({'key': key, 'order': 'popular', 'per_page': max(per_page, 3), 'page': page})
-    data, err = _get_json_verbose(f'https://pixabay.com/api/videos/?{q}')
-    if err:
-        return [], err
-    return _pixabay_videos_parse(data), None
-
-
 def pixabay_videos_search_verbose(query, per_page=18):
     """Same contract, Pixabay video source as a second option."""
     key = _pixabay_key()
@@ -502,37 +484,184 @@ def pixabay_videos_search_verbose(query, per_page=18):
     data, err = _get_json_verbose(f'https://pixabay.com/api/videos/?{q}')
     if err:
         return [], err
-    return _pixabay_videos_parse(data), None
-
-
-def _pixabay_videos_parse(data):
     out = []
     for v in data.get('hits', []):
         videos = v.get('videos', {})
         best = videos.get('medium') or videos.get('small') or videos.get('large') or {}
         if not best.get('url'):
             continue
-        # Pixabay's video API doesn't actually put a 'thumbnail' key on each
-        # size object (unlike the assumption this code used to make, which
-        # is why imported clips kept showing up with a broken-image icon
-        # instead of a preview). What it does give is a top-level
-        # 'picture_id', which Pixabay's own docs say to build a thumbnail
-        # from via the vimeocdn pattern below.
-        thumb = best.get('thumbnail', '')
-        if not thumb:
-            picture_id = v.get('picture_id', '')
-            if picture_id:
-                thumb = f'https://i.vimeocdn.com/video/{picture_id}_295x166.jpg'
         out.append({
             'source': 'Pixabay',
             'external_id': str(v.get('id', '')),
             'video_url': best.get('url', ''),
-            'thumbnail_url': thumb,
+            'thumbnail_url': best.get('thumbnail', ''),
             'duration': v.get('duration', 0),
             'photographer': v.get('user', ''),
         })
     return out, None
-# Free, keyless, crowd-sourced synced-lyrics database (lrclib.net). Used to
+
+
+# ── Archive.org — public-domain / freely-licensed feature films ─────────────
+# Free, keyless, no auth required. Every result here is either public
+# domain or explicitly openly-licensed by its uploader, so it's safe to
+# stream directly — unlike a commercial catalogue, nothing here needs a
+# license check.
+
+def archive_org_configured():
+    return True  # no key needed
+
+
+def archive_org_search(query, per_page=20):
+    """Search Archive.org's movies collection. Returns lightweight results
+    (title/description/year/thumbnail) — the actual playable file URL is
+    resolved separately, only for items actually selected to import, via
+    archive_org_get_video_url()."""
+    fields = 'identifier,title,description,year,downloads'
+    q = f'mediatype:(movies) AND {query}' if query.strip() else 'mediatype:(movies) AND collection:(feature_films)'
+    params = urllib.parse.urlencode({
+        'q': q, 'fl[]': fields, 'rows': max(per_page, 3),
+        'output': 'json', 'sort[]': 'downloads desc',
+    }, doseq=True)
+    data, err = _get_json_verbose(f'https://archive.org/advancedsearch.php?{params}')
+    if err:
+        return [], err
+    docs = (data.get('response') or {}).get('docs', [])
+    out = []
+    for d in docs:
+        identifier = d.get('identifier', '')
+        if not identifier:
+            continue
+        desc = d.get('description', '')
+        if isinstance(desc, list):
+            desc = ' '.join(desc)
+        out.append({
+            'source': 'Archive.org',
+            'external_id': identifier,
+            'title': d.get('title', identifier),
+            'description': (desc or '')[:500],
+            'release_year': d.get('year', ''),
+            'cover': f'https://archive.org/services/img/{identifier}',
+            'detail_url': f'https://archive.org/details/{identifier}',
+        })
+    return out, None
+
+
+def archive_org_get_video_url(identifier):
+    """Resolves an Archive.org identifier to a direct playable mp4 URL by
+    reading its file manifest — only called at import time, once per
+    selected item, to avoid a metadata call for every search result."""
+    data = _get_json(f'https://archive.org/metadata/{identifier}')
+    if not data:
+        return ''
+    files = data.get('files', [])
+    # Prefer a real mp4; Archive.org items often also bundle .ogv/.mpeg —
+    # skip those in favor of the most universally-playable format.
+    mp4s = [f for f in files if (f.get('name', '').lower().endswith('.mp4'))]
+    if not mp4s:
+        return ''
+    # Larger encodes tend to be the "real" transfer rather than a thumbnail
+    # clip; fall back to the first if size is missing.
+    mp4s.sort(key=lambda f: int(f.get('size') or 0), reverse=True)
+    best = mp4s[0]
+    return f'https://archive.org/download/{identifier}/{best["name"]}'
+
+
+# ── Jamendo — full-length, streamable, Creative-Commons-licensed music ──────
+# Independent-artist tracks, full length (not 30-second previews like
+# iTunes), free with a client_id (free to register at jamendo.com).
+
+def _jamendo_client_id():
+    from core.models import SiteSettings
+    try:
+        return SiteSettings.objects.get(key='jamendo_client_id').value.strip()
+    except SiteSettings.DoesNotExist:
+        return ''
+
+
+def jamendo_configured():
+    return bool(_jamendo_client_id())
+
+
+def jamendo_search(query, per_page=20):
+    client_id = _jamendo_client_id()
+    if not client_id:
+        return [], 'No Jamendo client_id saved yet.'
+    params = {
+        'client_id': client_id, 'format': 'json', 'limit': max(per_page, 3),
+        'include': 'musicinfo', 'audioformat': 'mp32',
+    }
+    if query.strip():
+        params['search'] = query.strip()
+    else:
+        params['order'] = 'popularity_total'
+    q = urllib.parse.urlencode(params)
+    data, err = _get_json_verbose(f'https://api.jamendo.com/v3.0/tracks/?{q}')
+    if err:
+        return [], err
+    out = []
+    for t in data.get('results', []):
+        out.append({
+            'source': 'Jamendo',
+            'external_id': str(t.get('id', '')),
+            'title': t.get('name', 'Untitled'),
+            'artist': t.get('artist_name', 'Unknown Artist'),
+            'preview_url': t.get('audio', ''),   # full-length stream, not a 30s preview
+            'cover': t.get('image', ''),
+            'duration': t.get('duration', 0),
+            'genre': (t.get('musicinfo') or {}).get('tags', {}).get('genres', [''])[0] if t.get('musicinfo') else '',
+            'release_year': (t.get('releasedate') or '')[:4],
+        })
+    return out, None
+
+
+# ── YouTube — real embedded Shorts via YouTube's own official player ────────
+# Nothing is downloaded or rehosted here — only the video ID + metadata are
+# stored, and playback always happens through YouTube's own embedded
+# player (same as the existing is_youtube handling in shorts/models.py),
+# which is exactly what the YouTube Data API is licensed for.
+
+def _youtube_api_key():
+    from core.models import SiteSettings
+    try:
+        return SiteSettings.objects.get(key='youtube_api_key').value.strip()
+    except SiteSettings.DoesNotExist:
+        return ''
+
+
+def youtube_configured():
+    return bool(_youtube_api_key())
+
+
+def youtube_shorts_search(query, per_page=20):
+    key = _youtube_api_key()
+    if not key:
+        return [], 'No YouTube API key saved yet.'
+    params = urllib.parse.urlencode({
+        'part': 'snippet', 'q': query.strip() or 'comedy skits',
+        'type': 'video', 'videoDuration': 'short',  # under 4 minutes — closest official filter to "Shorts"
+        'maxResults': max(per_page, 3), 'safeSearch': 'moderate', 'key': key,
+    })
+    data, err = _get_json_verbose(f'https://www.googleapis.com/youtube/v3/search?{params}')
+    if err:
+        return [], err
+    out = []
+    for item in data.get('items', []):
+        vid = (item.get('id') or {}).get('videoId', '')
+        snippet = item.get('snippet') or {}
+        if not vid:
+            continue
+        thumbs = snippet.get('thumbnails') or {}
+        thumb = (thumbs.get('medium') or thumbs.get('default') or {}).get('url', '')
+        out.append({
+            'source': 'YouTube',
+            'external_id': vid,
+            'video_url': f'https://www.youtube.com/watch?v={vid}',
+            'title': snippet.get('title', 'Untitled'),
+            'thumbnail_url': thumb,
+            'photographer': snippet.get('channelTitle', 'Unknown'),
+            'duration': 0,  # YouTube embed handles its own playback/duration
+        })
+    return out, None
 # auto-fill Track.lyrics_lrc when importing via Fetch Music.
 
 def lrclib_get_lyrics(track_name, artist_name, album_name='', duration=None):

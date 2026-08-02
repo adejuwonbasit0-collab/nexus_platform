@@ -17,13 +17,6 @@
   <div id="short-loading-more" style="display:none;height:60px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.4);font-size:12px;">Loading more…</div>
 </div>
 
-<style>
-  body{overflow:hidden;}
-  .short-slide iframe{width:100%;height:100%;border:none;}
-  .short-seek-wrap{opacity:0;pointer-events:none;transition:opacity .2s;}
-  .short-slide.controls-shown .short-seek-wrap{opacity:1;pointer-events:auto;}
-</style>
-
 <script>
 (function(){
   const root = document.getElementById('shorts-root');
@@ -33,11 +26,10 @@
   let ytApiReady = false;
 
   // Sound preference persists across visits (localStorage), not just this
-  // page load — previously every fresh visit silently reset to muted with
-  // no obvious way to tell that was even the state, which is why shorts
-  // "never" seemed to have sound. We still have to start every autoplay
-  // muted (mobile browsers block unmuted autoplay outright), but we
-  // restore the user's choice the moment the page is interactive.
+  // page load — every fresh visit used to silently reset to muted with no
+  // obvious way to tell that was even the state. We still have to start
+  // every autoplay muted (mobile browsers block unmuted autoplay outright),
+  // but we restore the user's choice the moment the page is interactive.
   let muted = localStorage.getItem('nexus_shorts_muted') !== '0';
 
   function setMuteIcon(){
@@ -47,8 +39,6 @@
   }
   setMuteIcon();
 
-  // Nudge new visitors toward the sound button once, since it's a small
-  // top-right icon that's easy to miss entirely.
   if(muted && !localStorage.getItem('nexus_shorts_hint_seen')){
     const hint = document.getElementById('short-tap-hint');
     setTimeout(()=>{ hint.style.opacity = '1'; }, 700);
@@ -56,7 +46,6 @@
     localStorage.setItem('nexus_shorts_hint_seen', '1');
   }
 
-  // Load YouTube iframe API only if at least one short needs it
   function maybeLoadYT(){
     if(window.__nexusYtLoading) { if(ytApiReady) initYT(); return; }
     if(!slides.some(s=>s.dataset.youtube==='1')) return;
@@ -96,7 +85,6 @@
     slide.dataset.paused = '0';
     const pauseIcon = slide.querySelector('.short-pause-icon');
     if(pauseIcon) pauseIcon.style.display = 'none';
-    // Count a view once per slide activation
     if(!slide.dataset.viewed){
       slide.dataset.viewed='1';
       fetch(`/shorts/${pk}/view/`, {method:'POST', headers:{'X-CSRFToken':getCookie('csrftoken')}});
@@ -122,8 +110,32 @@
     }
   }
 
-  window.shortTapToggle = function(tapLayer){
+  // ── Tap layer: single tap = play/pause, double tap = like ───────────────
+  // (same pattern as Instagram/TikTok — a tap that lands within 300ms of
+  // the previous one on the same slide counts as a "double tap".)
+  let lastTapTime = 0;
+  let lastTapSlide = null;
+  let singleTapTimer = null;
+
+  window.shortTapToggle = function(tapLayer, evt){
     const slide = tapLayer.closest('.short-slide');
+    const now = Date.now();
+    const isDoubleTap = (slide === lastTapSlide) && (now - lastTapTime < 300);
+    lastTapTime = now;
+    lastTapSlide = slide;
+
+    if(isDoubleTap){
+      if(singleTapTimer){ clearTimeout(singleTapTimer); singleTapTimer = null; }
+      shortDoubleTapLike(slide, evt);
+      return;
+    }
+    // Wait briefly to see if a second tap follows before treating this as
+    // a real single tap — avoids toggling play/pause on the first half of
+    // a double-tap.
+    singleTapTimer = setTimeout(()=>{ shortSingleTap(slide); }, 220);
+  };
+
+  function shortSingleTap(slide){
     const video = slide.querySelector('.short-video');
     const pauseIcon = slide.querySelector('.short-pause-icon');
     const isPaused = slide.dataset.paused === '1';
@@ -133,16 +145,47 @@
       if(ytPlayers[pk]){ try{ytPlayers[pk].playVideo();}catch(e){} }
       slide.dataset.paused = '0';
       if(pauseIcon) pauseIcon.style.display = 'none';
-      showControls(slide, true); // briefly confirm the seek position, then fade
+      showControls(slide, true);
     } else {
       if(video) video.pause();
       const pk = slide.dataset.pk;
       if(ytPlayers[pk]){ try{ytPlayers[pk].pauseVideo();}catch(e){} }
       slide.dataset.paused = '1';
       if(pauseIcon) pauseIcon.style.display = 'block';
-      showControls(slide, false); // stay visible while paused, like Reels/TikTok
+      showControls(slide, false);
     }
-  };
+  }
+
+  function shortDoubleTapLike(slide, evt){
+    const pk = slide.dataset.pk;
+    const likeBtn = slide.querySelector('.short-like-btn');
+    // Only actually toggle server-side if not already liked — double-tap
+    // in every reels-style app is a "like", not a like/unlike toggle.
+    if(likeBtn && likeBtn.style.color !== 'rgb(29, 185, 84)'){
+      shortToggleLike(parseInt(pk, 10), likeBtn);
+    }
+    const burst = slide.querySelector('.short-like-burst');
+    if(!burst) return;
+    // Position the heart burst at the tap point when we have coordinates
+    if(evt && evt.clientX){
+      const rect = slide.getBoundingClientRect();
+      burst.style.left = (evt.clientX - rect.left) + 'px';
+      burst.style.top = (evt.clientY - rect.top) + 'px';
+    } else {
+      burst.style.left = '50%';
+      burst.style.top = '50%';
+    }
+    burst.style.display = 'block';
+    burst.style.opacity = '1';
+    burst.style.transform = 'translate(-50%,-50%) scale(.3)';
+    burst.style.transition = 'none';
+    requestAnimationFrame(()=>{
+      burst.style.transition = 'transform .35s cubic-bezier(.17,.89,.32,1.49), opacity .5s ease .35s';
+      burst.style.transform = 'translate(-50%,-50%) scale(1.15)';
+      setTimeout(()=>{ burst.style.opacity = '0'; }, 380);
+      setTimeout(()=>{ burst.style.display = 'none'; }, 900);
+    });
+  }
 
   window.shortSeek = function(e, wrap){
     const slide = wrap.closest('.short-slide');
@@ -182,16 +225,9 @@
   wireUpSlides(slides);
   maybeLoadYT();
 
-  // Kick off the first slide immediately (observer needs a scroll/paint tick)
   if(slides.length) setTimeout(()=>playSlide(slides[0]), 200);
 
   // ── Infinite scroll ──────────────────────────────────────────────────
-  // The feed used to hard-stop after a fixed batch (it would only ever
-  // surface the 60 newest shorts, then dead-end with nothing left to
-  // scroll to). Now it keeps fetching further batches as the visitor
-  // nears the end, and loops back to the start of the same shuffled
-  // order once every short has been shown — same endless-scroll feel as
-  // TikTok/Reels instead of stopping short.
   let offset = slides.length;
   let loadingMore = false;
   let hasMore = {{ has_more|yesno:'true,false' }};
@@ -201,7 +237,7 @@
     if(loadingMore || !hasMore) return;
     const all = document.querySelectorAll('.short-slide');
     const idx = [...all].indexOf(activeSlide);
-    if(idx < all.length - 3) return; // only fetch once we're near the end
+    if(idx < all.length - 3) return;
     loadingMore = true;
     if(loadingIndicator) loadingIndicator.style.display = 'flex';
     fetch(`/shorts/more/?offset=${offset}`)
@@ -237,74 +273,20 @@
   };
 
   window.shortToggleLike = async function(pk, btn){
-    const fd = new FormData(); fd.append('csrfmiddlewaretoken', getCookie('csrftoken'));
-    try{
-      const r = await fetch(`/shorts/${pk}/like/`, {method:'POST', body:fd});
-      if(r.status === 302 || r.redirected){ window.location.href='/auth/login/?next=/shorts/'; return; }
-      const d = await r.json();
-      btn.style.color = d.liked ? '#1db954' : '#fff';
-      btn.querySelector('.short-like-count').textContent = d.like_count;
-    }catch(e){}
-  };
-
-  window.shortOpenComments = async function(pk){
-    let layer=document.getElementById('sp-queue-layer'); // reuse pattern, separate layer below
-    let clayer=document.getElementById('short-comments-layer');
-    if(!clayer){
-      clayer=document.createElement('div');
-      clayer.id='short-comments-layer';
-      clayer.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:900;display:flex;align-items:flex-end;justify-content:center;';
-      clayer.onclick=(e)=>{if(e.target===clayer)clayer.style.display='none'};
-      document.body.appendChild(clayer);
+    const res = await fetch(`/shorts/${pk}/like/`, {method:'POST', headers:{'X-CSRFToken':getCookie('csrftoken')}});
+    const data = await res.json();
+    if(data.ok){
+      document.querySelectorAll(`.short-like-btn[data-pk="${pk}"]`).forEach(b=>{
+        b.style.color = data.liked ? '#1db954' : '#fff';
+        const countEl = b.querySelector('.short-like-count');
+        if(countEl) countEl.textContent = data.like_count;
+      });
     }
-    clayer.innerHTML = `<div style="background:#161616;width:100%;max-width:480px;max-height:70vh;border-radius:16px 16px 0 0;padding:18px;display:flex;flex-direction:column;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-shrink:0;">
-        <div style="font-weight:800;color:#fff;font-size:15px;">Comments</div>
-        <button onclick="document.getElementById('short-comments-layer').style.display='none'" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:20px;cursor:pointer;">&times;</button>
-      </div>
-      <div id="short-comments-list" style="overflow-y:auto;flex:1;margin-bottom:12px;color:rgba(255,255,255,.5);font-size:13px;">Loading…</div>
-      <form onsubmit="shortPostComment(event, ${pk})" style="display:flex;gap:8px;flex-shrink:0;">
-        <input id="short-comment-input" placeholder="Add a comment…" style="flex:1;background:#222;border:1px solid #333;border-radius:20px;padding:9px 14px;color:#fff;font-size:13px;">
-        <button type="submit" style="background:#1db954;border:none;border-radius:50%;width:36px;height:36px;color:#000;cursor:pointer;"><i class="fa-solid fa-arrow-up"></i></button>
-      </form>
-    </div>`;
-    clayer.style.display='flex';
-    try{
-      const r = await fetch(`/shorts/${pk}/comments/`);
-      const d = await r.json();
-      const list = document.getElementById('short-comments-list');
-      if(!d.comments.length){ list.innerHTML = 'No comments yet — say something!'; return; }
-      list.innerHTML = d.comments.map(c=>`
-        <div style="display:flex;gap:10px;margin-bottom:14px;">
-          <div style="width:32px;height:32px;border-radius:50%;background:#333;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;">
-            ${c.avatar_url?`<img src="${c.avatar_url}" style="width:100%;height:100%;object-fit:cover">`:c.username.slice(0,1).toUpperCase()}
-          </div>
-          <div>
-            <div style="font-size:12.5px;font-weight:700;color:#fff;">${c.username}</div>
-            <div style="font-size:13px;color:rgba(255,255,255,.8);">${c.text}</div>
-          </div>
-        </div>`).join('');
-    }catch(e){}
   };
 
-  window.shortPostComment = async function(e, pk){
-    e.preventDefault();
-    const input = document.getElementById('short-comment-input');
-    const text = input.value.trim();
-    if(!text) return;
-    const fd = new FormData(); fd.append('text', text); fd.append('csrfmiddlewaretoken', getCookie('csrftoken'));
-    const r = await fetch(`/shorts/${pk}/comments/add/`, {method:'POST', body:fd});
-    if(r.redirected || r.status===302){ window.location.href='/auth/login/?next=/shorts/'; return; }
-    if(r.ok){ input.value=''; shortOpenComments(pk); }
+  window.shortOpenComments = function(pk){
+    if(typeof openShortComments === 'function') openShortComments(pk);
   };
-
-  function getCookie(name){
-    const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
-    return v ? v.pop() : '';
-  }
-
-  // Clean up the fixed overlay + restore scroll when navigating away
-  window.addEventListener('beforeunload', ()=>{ document.body.style.overflow=''; });
 })();
 </script>
 {% endblock %}

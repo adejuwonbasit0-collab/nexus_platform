@@ -26,30 +26,51 @@
   </div>
 </details>
 
-{% if not tmdb_configured %}
-<div style="text-align:center;padding:40px;color:var(--text2);font-size:13px;">
-  👆 Save a TMDB API key above to start fetching movies.
+{% if not tmdb_configured and source != 'archive' %}
+<div style="text-align:center;padding:24px;color:var(--text2);font-size:13px;">
+  👆 Save a TMDB API key above, or switch to Archive.org below (works instantly, no key needed).
 </div>
-{% else %}
+{% endif %}
+
 <div class="panel" style="margin-bottom:16px;">
   <div class="panel-body" style="padding:14px 16px;font-size:13px;color:var(--text2);">
+    {% if source == 'archive' %}
+    Real, full-length, legally-free films from the Internet Archive — public domain or openly
+    licensed by the uploader, no video link needed after import, ready to watch immediately.
+    {% else %}
     Search, browse trending, now-playing, or any genre from TMDB and import straight into your library.
     Posters, ratings, and trailer links are fetched automatically; imported items are tagged with your name.
     You'll still need to attach the actual video file/link per movie before it can be played.
+    {% endif %}
     {% if pending_count %}<a href="/admin-panel/movies/" style="color:var(--accent);margin-left:6px;">{{ pending_count }} fetched movie{{ pending_count|pluralize }} awaiting approval →</a>{% endif %}
   </div>
 </div>
 
-<div class="tab-bar" style="display:flex;gap:4px;margin-bottom:16px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:4px;flex-wrap:wrap;">
-  <a class="tab-btn {% if tab == 'search' %}active{% endif %}" href="?tab=search" style="text-decoration:none;">🔎 Search</a>
-  <a class="tab-btn {% if tab == 'trending' %}active{% endif %}" href="?tab=trending" style="text-decoration:none;">🔥 Trending</a>
-  <a class="tab-btn {% if tab == 'latest' %}active{% endif %}" href="?tab=latest" style="text-decoration:none;">🎬 Now Playing</a>
-  <a class="tab-btn {% if tab == 'genre' %}active{% endif %}" href="?tab=genre" style="text-decoration:none;">🏷 By Genre</a>
+<div class="tab-bar" style="display:flex;gap:4px;margin-bottom:12px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:4px;flex-wrap:wrap;">
+  <a class="tab-btn {% if source != 'archive' %}active{% endif %}" href="?tab=search&source=tmdb" style="text-decoration:none;">🎬 TMDB (posters/trailers/metadata)</a>
+  <a class="tab-btn {% if source == 'archive' %}active{% endif %}" href="?tab=search&source=archive" style="text-decoration:none;">🎞 Archive.org (real, full, free films)</a>
 </div>
 
+{% if search_error %}<div class="alert alert-warning" style="margin-bottom:16px;">⚠ {{ search_error }}</div>{% endif %}
+
+{% if source != 'archive' %}
+<div class="tab-bar" style="display:flex;gap:4px;margin-bottom:16px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:4px;flex-wrap:wrap;">
+  <a class="tab-btn {% if tab == 'search' %}active{% endif %}" href="?tab=search&source=tmdb" style="text-decoration:none;">🔎 Search</a>
+  <a class="tab-btn {% if tab == 'trending' %}active{% endif %}" href="?tab=trending&source=tmdb" style="text-decoration:none;">🔥 Trending</a>
+  <a class="tab-btn {% if tab == 'latest' %}active{% endif %}" href="?tab=latest&source=tmdb" style="text-decoration:none;">🎬 Now Playing</a>
+  <a class="tab-btn {% if tab == 'genre' %}active{% endif %}" href="?tab=genre&source=tmdb" style="text-decoration:none;">🏷 By Genre</a>
+</div>
+{% endif %}
+
+{% if tmdb_configured or source == 'archive' %}
 <div class="panel" style="margin-bottom:16px;">
   <div class="panel-body" style="padding:14px 16px;">
     <form method="get" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+      <input type="hidden" name="source" value="{{ source }}">
+      {% if source == 'archive' %}
+      <input type="hidden" name="tab" value="search">
+      <div style="flex:1;min-width:220px;"><label style="font-size:11px;color:var(--text2);">Movie title (leave blank for popular picks)</label><input class="finput" name="q" value="{{ q }}" placeholder="e.g. Night of the Living Dead" style="width:100%;"></div>
+      {% else %}
       <input type="hidden" name="tab" value="{{ tab }}">
       {% if tab == 'search' %}
       <div style="flex:1;min-width:220px;"><label style="font-size:11px;color:var(--text2);">Movie title</label><input class="finput" name="q" value="{{ q }}" placeholder="e.g. Dune" style="width:100%;"></div>
@@ -63,7 +84,8 @@
         </select>
       </div>
       {% endif %}
-      <button type="submit" class="btn btn-primary btn-sm">{% if tab == 'search' %}Search{% else %}Load{% endif %}</button>
+      {% endif %}
+      <button type="submit" class="btn btn-primary btn-sm">{% if tab == 'search' or source == 'archive' %}Search{% else %}Load{% endif %}</button>
     </form>
   </div>
 </div>
@@ -85,7 +107,7 @@
     {% for r in results %}
     <label class="panel" style="padding:10px;cursor:pointer;display:block;{% if r.already_imported %}opacity:.5;{% endif %}">
       <input type="checkbox" class="fm-check" style="position:absolute;margin:6px;" {% if r.already_imported %}disabled{% endif %}
-        data-payload="{{ r.title|escapejs }}|||{{ r.description|escapejs }}|||{{ r.cover|escapejs }}|||{{ r.release_year|escapejs }}|||{{ r.external_id|escapejs }}|||{{ r.source|escapejs }}">
+        data-payload="{{ r.title|escapejs }}|||{{ r.description|escapejs }}|||{{ r.cover|escapejs }}|||{{ r.release_year|escapejs }}|||{{ r.external_id|escapejs }}|||{{ r.source|escapejs }}|||{{ r.detail_url|escapejs }}">
       {% if r.cover %}<img src="{{ r.cover }}" style="width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:8px;margin-bottom:8px;" loading="lazy">
       {% else %}<div style="width:100%;aspect-ratio:2/3;background:rgba(29,185,84,.08);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:8px;">🎬</div>{% endif %}
       <div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ r.title }}</div>
@@ -108,7 +130,7 @@ function fmSubmit(approve){
   const items=[];
   document.querySelectorAll('.fm-check:checked').forEach(c=>{
     const p = c.dataset.payload.split('|||');
-    items.push({title:p[0],description:p[1],cover:p[2],release_year:p[3],external_id:p[4],source:p[5]});
+    items.push({title:p[0],description:p[1],cover:p[2],release_year:p[3],external_id:p[4],source:p[5],detail_url:p[6]||''});
   });
   if(!items.length){ alert('Select at least one movie first.'); return; }
   document.getElementById('import-items').value = JSON.stringify(items);
