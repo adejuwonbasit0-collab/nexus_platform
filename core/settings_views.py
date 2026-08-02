@@ -586,7 +586,7 @@ def settings_hub(request):
 
         # AI
         elif action == 'ai':
-            for prov in ['openai','anthropic','gemini','openrouter','stability']:
+            for prov in ['openai','anthropic','stability']:
                 key = request.POST.get(f'{prov}_key','').strip()
                 model = request.POST.get(f'{prov}_model','').strip()
                 active = request.POST.get(f'{prov}_active')=='on'
@@ -663,6 +663,10 @@ def network_diagnostics(request):
 
     tmdb_key = _key('tmdb_api_key')
     pexels_key = _key('pexels_api_key')
+    jamendo_id = _key('jamendo_client_id')
+    youtube_key = _key('youtube_api_key')
+    audd_key = _key('audd_api_token')
+    opensubtitles_key = _key('opensubtitles_api_key')
 
     targets = [
         ('iTunes (music search)', 'https://itunes.apple.com/search?term=test&limit=1', {}),
@@ -670,8 +674,21 @@ def network_diagnostics(request):
         ('TMDB (movies)',
          f'https://api.themoviedb.org/3/configuration?api_key={tmdb_key}' if tmdb_key else 'https://api.themoviedb.org/3/configuration',
          {}),
-        ('Pexels (stock photos)', 'https://api.pexels.com/v1/search?query=test&per_page=1',
+        ('Archive.org (public-domain movies)', 'https://archive.org/advancedsearch.php?q=test&output=json&rows=1', {}),
+        ('Pexels (stock photos/video)', 'https://api.pexels.com/v1/search?query=test&per_page=1',
          {'Authorization': pexels_key} if pexels_key else {}),
+        ('Pixabay (stock photos/video)', 'https://pixabay.com/api/?key=test&q=test' if not _key('pixabay_api_key') else f'https://pixabay.com/api/?key={_key("pixabay_api_key")}&q=test', {}),
+        ('Jamendo (full-length music)',
+         f'https://api.jamendo.com/v3.0/tracks/?client_id={jamendo_id}&format=json&limit=1' if jamendo_id else 'https://api.jamendo.com/v3.0/tracks/?format=json&limit=1',
+         {}),
+        ('YouTube Data API (real shorts)',
+         f'https://www.googleapis.com/youtube/v3/search?part=snippet&q=test&type=video&maxResults=1&key={youtube_key}' if youtube_key else 'https://www.googleapis.com/youtube/v3/search?part=snippet&q=test',
+         {}),
+        ('AudD (song identification)',
+         f'https://api.audd.io/?api_token={audd_key}' if audd_key else 'https://api.audd.io/',
+         {}),
+        ('OpenSubtitles (real subtitle files)', 'https://api.opensubtitles.com/api/v1/subtitles?query=test',
+         {'Api-Key': opensubtitles_key, 'User-Agent': 'NEXUS v1.0'} if opensubtitles_key else {'User-Agent': 'NEXUS v1.0'}),
         ('LRCLIB (synced lyrics)', 'https://lrclib.net/api/search?q=test', {}),
     ]
     results = []
@@ -680,10 +697,13 @@ def network_diagnostics(request):
         headers = {'User-Agent': 'Mozilla/5.0'}
         headers.update(extra_headers)
         needs_key_note = ''
-        if name.startswith('TMDB') and not tmdb_key:
-            needs_key_note = ' — no TMDB key saved yet, testing connectivity only'
-        if name.startswith('Pexels') and not pexels_key:
-            needs_key_note = ' — no Pexels key saved yet, testing connectivity only'
+        key_map = {
+            'TMDB': tmdb_key, 'Pexels': pexels_key, 'Jamendo': jamendo_id,
+            'YouTube': youtube_key, 'AudD': audd_key, 'OpenSubtitles': opensubtitles_key,
+        }
+        for prefix, has_key in key_map.items():
+            if name.startswith(prefix) and not has_key:
+                needs_key_note = f' — no {prefix} key saved yet, testing connectivity only'
         try:
             req = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(req, timeout=8) as resp:
@@ -703,7 +723,18 @@ def network_diagnostics(request):
                 results.append({'name': name, 'ok': False, 'detail': f'HTTP {e.code}: {str(e)[:120]} ({elapsed}s)'})
         except Exception as e:
             elapsed = round(time.time() - start, 2)
-            results.append({'name': name, 'ok': False, 'detail': f'{type(e).__name__}: {str(e)[:150]} ({elapsed}s)'})
+            err_text = f'{type(e).__name__}: {str(e)[:150]}'
+            # PythonAnywhere's free-tier proxy answers blocked domains with
+            # a "Tunnel connection failed: 403 Forbidden" wrapped inside a
+            # URLError (not a clean HTTPError), which otherwise looks
+            # identical to a generic connection failure. Calling that out
+            # specifically saves someone chasing a "bad API key" theory
+            # when the real issue is the domain isn't on the allowlist at
+            # all — no key would ever fix it.
+            is_whitelist_block = 'Tunnel connection failed' in str(e) or '403 Forbidden' in str(e)
+            if is_whitelist_block:
+                err_text += ' — this looks like a PythonAnywhere free-tier restriction: this domain is not on the allowlist for free accounts. A paid plan ($5/mo "Hacker" tier or above) removes this restriction entirely; free accounts cannot reach this domain no matter what key is saved.'
+            results.append({'name': name, 'ok': False, 'detail': f'{err_text} ({elapsed}s)'})
 
     any_failed = any(not r['ok'] for r in results)
 
@@ -739,31 +770,3 @@ def network_diagnostics(request):
     return render(request, 'admin_panel/network_diagnostics.html', {
         'results': results, 'any_failed': any_failed, 'deep': deep,
     })
-
-
-@_admin
-@require_POST
-def ai_test_connection(request):
-    """Admin clicks 'Test connection' next to a provider — makes a real,
-    cheap call to that provider right now and returns the exact success/
-    error message, so a bad key or wrong model name is visible immediately
-    instead of only surfacing later when a real feature silently fails."""
-    from .models import AIProviderSettings
-    from core import ai_client
-
-    provider = request.POST.get('provider', '').strip()
-    valid = dict(AIProviderSettings.PROVIDER_CHOICES)
-    if provider not in valid:
-        return JsonResponse({'ok': False, 'message': f'Unknown provider "{provider}".'}, status=400)
-
-    ok, message = ai_client.test_provider(provider)
-
-    AIProviderSettings.objects.update_or_create(
-        provider=provider,
-        defaults={
-            'last_test_ok': ok,
-            'last_test_message': message[:500],
-            'last_tested_at': timezone.now(),
-        },
-    )
-    return JsonResponse({'ok': ok, 'message': message})

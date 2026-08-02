@@ -65,6 +65,21 @@ video{width:100%;border-radius:10px;background:#000;display:block}
       {% if movie.uploaded_by %}<span>by {{ movie.uploaded_by.username }}</span>{% endif %}
     </div>
     {% if movie.description %}<p class="mv-desc">{{ movie.description|truncatechars:300 }}</p>{% endif %}
+    {% if cast %}
+    <div style="margin:18px 0;">
+      <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Cast</div>
+      <div style="display:flex;gap:14px;overflow-x:auto;padding-bottom:4px;">
+        {% for c in cast %}
+        <div style="flex-shrink:0;width:76px;text-align:center;">
+          {% if c.photo_url %}<img src="{{ c.photo_url }}" loading="lazy" style="width:64px;height:64px;border-radius:50%;object-fit:cover;margin-bottom:6px;">
+          {% else %}<div style="width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 6px;">👤</div>{% endif %}
+          <div style="font-size:11px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ c.name }}</div>
+          {% if c.character %}<div style="font-size:10px;color:rgba(255,255,255,.45);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ c.character }}</div>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
     <div class="mv-btns">
       {% if movie.has_video %}
       <a href="#player" class="btn btn-lg" style="background:#e50914;color:#fff;padding:13px 30px">▶ Watch Now</a>
@@ -95,14 +110,73 @@ video{width:100%;border-radius:10px;background:#000;display:block}
     </div>
     {% elif movie.has_video %}
     <div class="mv-panel" style="margin-bottom:20px" id="player">
-      <div class="mv-panel-head">▶ Watch</div>
-      <div class="mv-panel-body">
-        <video id="movie-player" controls preload="metadata">
-          <source src="/movies/stream/movie/{{ movie.pk }}/" type="video/mp4">
-        </video>
+      <div class="mv-panel-head" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>▶ Watch</span>
+        <div class="mv-width-toggle" style="display:flex;gap:4px;background:rgba(255,255,255,.06);border-radius:8px;padding:3px;">
+          <button type="button" onclick="mvSetWidth('fit')" data-w="fit" class="mv-w-btn" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer;">Fit</button>
+          <button type="button" onclick="mvSetWidth('full')" data-w="full" class="mv-w-btn" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer;">Full Width</button>
+        </div>
+      </div>
+      <div class="mv-panel-body" id="mv-player-body">
+        <div id="mv-video-wrap" style="position:relative;border-radius:10px;overflow:hidden;background:#000;">
+          <video id="movie-player" controls preload="metadata" style="width:100%;display:block;">
+            <source src="/movies/stream/movie/{{ movie.pk }}/" type="video/mp4">
+          </video>
+          <div class="mv-seek-zone" data-dir="back" onclick="mvSeekTap(event,'back')" style="position:absolute;top:0;bottom:44px;left:0;width:35%;"></div>
+          <div class="mv-seek-zone" data-dir="fwd" onclick="mvSeekTap(event,'fwd')" style="position:absolute;top:0;bottom:44px;right:0;width:35%;"></div>
+          <div class="mv-seek-flash" id="mv-seek-flash-back" style="display:none;position:absolute;top:50%;left:15%;transform:translate(-50%,-50%);color:#fff;font-size:15px;font-weight:700;background:rgba(0,0,0,.5);padding:10px 14px;border-radius:50%;pointer-events:none;">« 10</div>
+          <div class="mv-seek-flash" id="mv-seek-flash-fwd" style="display:none;position:absolute;top:50%;right:15%;transform:translate(50%,-50%);color:#fff;font-size:15px;font-weight:700;background:rgba(0,0,0,.5);padding:10px 14px;border-radius:50%;pointer-events:none;">10 »</div>
+        </div>
         <a href="/movies/download/{{ movie.pk }}/" class="btn btn-outline" style="margin-top:14px;color:#fff;width:100%;justify-content:center;">⬇ Download</a>
       </div>
     </div>
+    <script>
+    (function(){
+      // Full-width toggle, remembered per-device via localStorage.
+      const body = document.getElementById('mv-player-body');
+      const wrap = document.getElementById('mv-video-wrap');
+      function applyWidth(mode){
+        document.querySelectorAll('.mv-w-btn').forEach(b=>{
+          b.style.background = b.dataset.w === mode ? '#e50914' : 'none';
+          b.style.color = b.dataset.w === mode ? '#fff' : 'rgba(255,255,255,.6)';
+        });
+        if(mode === 'full'){
+          wrap.style.width = '100vw';
+          wrap.style.marginLeft = 'calc(50% - 50vw)';
+          wrap.style.borderRadius = '0';
+        } else {
+          wrap.style.width = '';
+          wrap.style.marginLeft = '';
+          wrap.style.borderRadius = '10px';
+        }
+      }
+      window.mvSetWidth = function(mode){
+        localStorage.setItem('nexus_movie_width', mode);
+        applyWidth(mode);
+      };
+      applyWidth(localStorage.getItem('nexus_movie_width') || 'fit');
+
+      // Double-tap left/right thirds to seek ±10s — same gesture as
+      // YouTube/Netflix mobile apps. Native <video> controls stay fully
+      // usable since these zones stop above the control bar.
+      const video = document.getElementById('movie-player');
+      let lastTap = {back: 0, fwd: 0};
+      window.mvSeekTap = function(e, dir){
+        const now = Date.now();
+        if(now - lastTap[dir] < 350){
+          video.currentTime = Math.max(0, video.currentTime + (dir === 'fwd' ? 10 : -10));
+          const flash = document.getElementById('mv-seek-flash-' + dir);
+          flash.style.display = 'block';
+          flash.style.opacity = '1';
+          setTimeout(()=>{ flash.style.transition = 'opacity .3s'; flash.style.opacity = '0'; }, 150);
+          setTimeout(()=>{ flash.style.display = 'none'; flash.style.transition = ''; }, 500);
+          lastTap[dir] = 0;
+        } else {
+          lastTap[dir] = now;
+        }
+      };
+    })();
+    </script>
     {% elif movie.trailer_url %}
     <div class="mv-panel" style="margin-bottom:20px">
       <div class="mv-panel-head">▶ Trailer</div>

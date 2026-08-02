@@ -266,6 +266,23 @@ def tmdb_trailer_url(tmdb_id):
     return ''
 
 
+def tmdb_credits(tmdb_id, limit=12):
+    """Real cast — actor's actual name, character they played, and a
+    photo — pulled straight from TMDB, the same info any normal movie
+    site shows. Returns a JSON-ready list, empty list on failure."""
+    data = _tmdb_get(f'/movie/{tmdb_id}/credits')
+    if not data:
+        return []
+    out = []
+    for c in data.get('cast', [])[:limit]:
+        out.append({
+            'name': c.get('name', ''),
+            'character': c.get('character', ''),
+            'photo_url': f"{IMG_BASE}{c['profile_path']}" if c.get('profile_path') else '',
+        })
+    return out
+
+
 # ── Stock images: Pexels ─────────────────────────────────────────────────────
 
 def _pexels_key():
@@ -692,3 +709,86 @@ def lrclib_get_lyrics(track_name, artist_name, album_name='', duration=None):
     except Exception:
         pass
     return ''
+
+
+# ── OpenSubtitles — real subtitle files, no AI involved ──────────────────────
+# The same database VLC/most media players pull from. Needs a free API key
+# (register at opensubtitles.com -> API Consumers). Whitelisted on
+# PythonAnywhere's free tier, unlike Jamendo.
+
+def _opensubtitles_key():
+    from core.models import SiteSettings
+    try:
+        return SiteSettings.objects.get(key='opensubtitles_api_key').value.strip()
+    except SiteSettings.DoesNotExist:
+        return ''
+
+
+def opensubtitles_configured():
+    return bool(_opensubtitles_key())
+
+
+def opensubtitles_fetch(title, year=None, language='en'):
+    """Real subtitle files — pulled straight from OpenSubtitles' database,
+    the same source VLC and most media players use, no AI involved at all.
+    Two-step: search for a matching subtitle, then resolve the actual
+    .srt file content. Returns (srt_text, error) — srt_text is None with
+    error=None when nothing matched (not a failure, just no result)."""
+    key = _opensubtitles_key()
+    if not key:
+        return None, 'No OpenSubtitles API key saved yet.'
+
+    headers = {
+        'Api-Key': key,
+        'User-Agent': 'NEXUS v1.0',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+    }
+    params = {'languages': language, 'query': title.strip().lower()}
+    if year:
+        params['year'] = str(year)
+    # OpenSubtitles asks for GET params sorted alphabetically to avoid an
+    # extra redirect round-trip.
+    q = urllib.parse.urlencode(dict(sorted(params.items())))
+    search_data, err = _get_json_verbose(f'https://api.opensubtitles.com/api/v1/subtitles?{q}', headers=headers)
+    if err:
+        return None, err
+    results = (search_data or {}).get('data', [])
+    if not results:
+        return None, None
+
+    # Prefer the most-downloaded match — best signal for "the right one"
+    # when a title has several community-submitted subtitle files.
+    results.sort(key=lambda r: (r.get('attributes') or {}).get('download_count', 0), reverse=True)
+    files = (results[0].get('attributes') or {}).get('files') or []
+    if not files:
+        return None, None
+    file_id = files[0].get('file_id')
+    if not file_id:
+        return None, None
+
+    try:
+        body = json.dumps({'file_id': file_id}).encode()
+        req = urllib.request.Request('https://api.opensubtitles.com/api/v1/download', data=body, headers=headers)
+        with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
+            download_data = json.loads(resp.read().decode('utf-8', errors='ignore'))
+    except urllib.error.HTTPError as e:
+        if e.code in (401, 403):
+            return None, f'HTTP {e.code} — the saved OpenSubtitles API key is likely invalid.'
+        if e.code == 406:
+            return None, 'Daily download limit reached for this API key (OpenSubtitles caps free-tier downloads per day).'
+        return None, f'HTTP {e.code} error requesting the subtitle download link.'
+    except Exception as e:
+        return None, f'{type(e).__name__}: {str(e)[:150]}'
+
+    link = download_data.get('link')
+    if not link:
+        return None, download_data.get('message') or 'No download link in the response.'
+
+    try:
+        req = urllib.request.Request(link, headers={'User-Agent': 'NEXUS v1.0'})
+        with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
+            srt_text = resp.read().decode('utf-8', errors='replace')
+        return srt_text, None
+    except Exception as e:
+        return None, f'Downloaded link failed: {e}'

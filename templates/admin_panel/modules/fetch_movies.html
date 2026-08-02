@@ -26,6 +26,29 @@
   </div>
 </details>
 
+<details style="margin-bottom:16px;">
+  <summary style="cursor:pointer;font-size:12.5px;color:var(--text2);padding:8px 0;">
+    📄 {% if opensubtitles_configured %}OpenSubtitles key saved — real subtitles enabled{% else %}Connect OpenSubtitles for real subtitle files (not AI-generated){% endif %}
+  </summary>
+  <div class="panel" style="margin-top:8px;">
+    <div class="panel-body" style="padding:16px;">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px;">
+        The same subtitle database VLC and most media players pull from — real .srt files, synced to the
+        exact scene, not an AI-written summary. Free account + API key at
+        <a href="https://www.opensubtitles.com/en/consumers" target="_blank" style="color:var(--accent);">opensubtitles.com/en/consumers</a>
+        (register → API Consumers → create a key). Once saved, tapping "Subtitles" on any movie page will try this
+        first automatically — no per-movie setup needed.
+      </div>
+      <form method="post" style="display:flex;gap:10px;">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="save_opensubtitles_key">
+        <input class="finput" name="opensubtitles_api_key" placeholder="OpenSubtitles API key" style="flex:1;">
+        <button type="submit" class="btn btn-primary btn-sm">Save Key</button>
+      </form>
+    </div>
+  </div>
+</details>
+
 {% if not tmdb_configured and source != 'archive' %}
 <div style="text-align:center;padding:24px;color:var(--text2);font-size:13px;">
   👆 Save a TMDB API key above, or switch to Archive.org below (works instantly, no key needed).

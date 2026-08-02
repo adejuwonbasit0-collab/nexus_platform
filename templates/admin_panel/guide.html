@@ -31,7 +31,17 @@
   </div>
   <div class="gd-card">
     <h4>3. AI Settings</h4>
-    <p><strong>Admin → AI Settings.</strong> Add API keys for OpenAI/Stability (used for AI image generation and blog writing) — without a key, these features run in a limited demo mode.</p>
+    <p><strong>Admin → AI Settings.</strong> Add API keys for any provider — Anthropic (Claude), Google Gemini, OpenRouter (one key, 100+ models), OpenAI, or Stability. Used for AI image generation, blog writing, content moderation, and (as a last-resort fallback only) AI movie/episode scene summaries. Use the <strong>Test Connection</strong> button next to each provider to confirm the key actually works — it makes a real cheap call and shows the exact error if something's wrong, instead of you finding out later when a feature silently fails.</p>
+  </div>
+</div>
+
+<div class="gd-section">
+  <div class="gd-h">🌐 A note on hosting limits (PythonAnywhere free tier)</div>
+  <div class="gd-card">
+    <p>If this site runs on PythonAnywhere's <strong>free</strong> plan, outbound requests are restricted to a fixed allowlist of domains — this isn't a bug in the site, it's a platform-level restriction that applies no matter what API key is saved. A blocked domain shows up as something like <code>URLError: Tunnel connection failed: 403 Forbidden</code>.</p>
+    <p><strong>What's whitelisted (works fine on free tier):</strong> TMDB, Archive.org, iTunes, Pexels, Pixabay, YouTube Data API, AudD, OpenSubtitles, LRCLIB.</p>
+    <p><strong>What's NOT whitelisted (needs a paid PythonAnywhere plan):</strong> Jamendo. If you need full-length music imports specifically, the cheapest fix is upgrading to PythonAnywhere's "Hacker" plan (~$5/month), which removes the domain restriction entirely — not just for Jamendo, for everything.</p>
+    <p>Use <strong>Admin → System → Network Diagnostics</strong> any time to test every integration at once and see exactly which domains are reachable.</p>
   </div>
 </div>
 
@@ -47,6 +57,14 @@
     <p>Already-imported tracks missing lyrics? Select them in the Tracks table and use the <em>📝 Fetch Synced Lyrics</em> bulk button to try again.</p>
   </div>
   <div class="gd-card">
+    <h4>Option C — Fetch full-length tracks from Jamendo</h4>
+    <p><strong>Admin → Fetch Music → Jamendo tab.</strong> Different from iTunes: these are real independent artists releasing full Creative-Commons-licensed songs, so what you import is the <em>actual complete track</em>, not a preview. Needs a free <code>client_id</code> from <code>devportal.jamendo.com</code>. Synced lyrics are fetched automatically here too, same as iTunes imports. Note: Jamendo needs a paid PythonAnywhere plan if hosted there — see the hosting-limits note above.</p>
+  </div>
+  <div class="gd-card">
+    <h4>What is AudD, and what does it do?</h4>
+    <p><strong>Admin → Fetch Music → Discover tab.</strong> AudD is a song-recognition service — the same idea as Shazam. It's not for importing your library; it's for the front-end "Discover" feature where a <em>listener</em> can record a few seconds of audio playing around them and the site tells them what song it is. Get a free key at <code>audd.io</code>, paste it in, and that feature starts working. It has nothing to do with iTunes or Jamendo imports.</p>
+  </div>
+  <div class="gd-card">
     <h4>Approving content</h4>
     <p>Individually: use the Live/Draft toggle on each row. In bulk: tick the checkboxes on the left of the Tracks/Movies table and use the action bar that appears (Approve / Set Draft / Delete).</p>
   </div>
@@ -60,8 +78,42 @@
   <div class="gd-h">🎬 Getting movies onto the site</div>
   <div class="gd-card">
     <h4>Fetch from TMDB</h4>
-    <p><strong>Admin → Fetch Movies.</strong> First visit asks for a free TMDB API key. Same Search/Trending/Now Playing/By Genre browsing as music. You get poster, description, rating, genre, and an official trailer automatically — never the full movie (same licensing reality as music). Edit the movie afterward and paste a real video link, or upload a file, into <strong>Video URL</strong> / <strong>Video File</strong>.</p>
+    <p><strong>Admin → Fetch Movies.</strong> First visit asks for a free TMDB API key. Same Search/Trending/Now Playing/By Genre browsing as music. You get poster, synopsis, rating, genre, real cast (names, characters, photos), and an official trailer automatically — never the full movie (same licensing reality as music, and this covers Hollywood, Nollywood, Bollywood, and everything else TMDB catalogues equally). Edit the movie afterward and paste a real video link, or upload a file, into <strong>Video URL</strong> / <strong>Video File</strong>.</p>
     <p>Pasting a YouTube link into either Video URL or Trailer URL works fine — it gets embedded properly regardless of which link format YouTube gave you.</p>
+    <p>Already-imported movies missing cast info? Select them in the Movies table and use the <em>Fetch Cast</em> bulk action.</p>
+  </div>
+  <div class="gd-card">
+    <h4>Fetch real, full, watchable movies from Archive.org</h4>
+    <p><strong>Admin → Fetch Movies → Archive.org tab.</strong> No key needed. These are real public-domain films — legally free to stream in full, resolved to an actual playable video automatically on import (no manual video link needed, unlike TMDB imports). The honest limit: public domain means these are inherently older films (pre-1929 in the US, or specific titles explicitly released into the public domain) — there is no legal free source for <em>recent</em> Hollywood, Nollywood, or Bollywood full movies, because those are still commercially licensed content. Anything claiming to offer that for free isn't operating legally, and isn't something this site integrates with.</p>
+  </div>
+  <div class="gd-card">
+    <h4>Real subtitles — not AI-dependent</h4>
+    <p>The Subtitles button on any movie/episode page now tries, in order: (1) a subtitle already saved on that item, (2) a real <code>.srt</code> file fetched live from OpenSubtitles — the same database VLC uses, synced to the actual scene — and (3) only if neither of those found anything, an AI-generated scene summary as a last resort (clearly labelled as such, and only runs if an AI provider is configured). Set up OpenSubtitles once in <strong>Admin → Fetch Movies</strong> and it applies everywhere automatically going forward.</p>
+  </div>
+  <div class="gd-card">
+    <h4>Player: width and seek gestures</h4>
+    <p>The movie player has a <strong>Fit / Full Width</strong> toggle in its header (remembered per-device), and double-tapping the left or right third of the video seeks ±10 seconds — same gesture as YouTube/Netflix's mobile apps. Native player controls (play/pause, scrubber, volume) stay fully usable underneath.</p>
+  </div>
+</div>
+
+<div class="gd-section">
+  <div class="gd-h">🎞 Shorts — real audio via YouTube</div>
+  <div class="gd-card">
+    <h4>Why Pexels/Pixabay shorts are silent</h4>
+    <p>That's not a bug — those are stock b-roll libraries, and most of that footage genuinely has no audio track by design. For short-form content with real sound (comedy, skits, etc.), use the YouTube provider instead — it plays through YouTube's own official embedded player, so it carries real audio.</p>
+  </div>
+  <div class="gd-card">
+    <h4>Getting a YouTube API key, step by step</h4>
+    <ol>
+      <li>Go to <code>console.cloud.google.com</code> and sign in with any Google account.</li>
+      <li>Top-left, click the project dropdown → <strong>New Project</strong>. Give it any name (e.g. "NEXUS Shorts") → Create.</li>
+      <li>Make sure that new project is selected in the dropdown (it can take a few seconds to appear after creating it).</li>
+      <li>In the search bar at the top, type <strong>"YouTube Data API v3"</strong> and open it from the results.</li>
+      <li>Click the blue <strong>Enable</strong> button.</li>
+      <li>In the left sidebar, go to <strong>Credentials</strong> → <strong>+ Create Credentials</strong> → <strong>API key</strong>.</li>
+      <li>A key appears immediately — copy it and paste it into <strong>Admin → Fetch Shorts → YouTube panel</strong> here.</li>
+    </ol>
+    <p>That's the whole thing — no billing setup or approval wait required for basic search usage. Free tier gives 10,000 "quota units" per day, and each shorts search here uses about 100 units, so that's roughly 100 searches/day before it resets.</p>
   </div>
 </div>
 

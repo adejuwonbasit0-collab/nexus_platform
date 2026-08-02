@@ -239,6 +239,17 @@ def fetch_movies(request):
         messages.success(request, 'TMDB API key saved.')
         return redirect('/admin-panel/fetch/movies/')
 
+    if request.method == 'POST' and request.POST.get('action') == 'save_opensubtitles_key':
+        from core.models import SiteSettings
+        key = request.POST.get('opensubtitles_api_key', '').strip()
+        obj, _c = SiteSettings.objects.get_or_create(key='opensubtitles_api_key', defaults={'label': 'OpenSubtitles API Key', 'group': 'integrations'})
+        obj.value = key
+        obj.save()
+        messages.success(request, 'OpenSubtitles key saved — movie pages will now try real subtitles first.')
+        return redirect('/admin-panel/fetch/movies/')
+
+    opensubtitles_configured = ext.opensubtitles_configured()
+
     from movies.models import Movie
     imported_ids = set(
         Movie.objects.filter(is_fetched=True).values_list('title', flat=True)
@@ -252,7 +263,7 @@ def fetch_movies(request):
     return render(request, 'admin_panel/modules/fetch_movies.html', {
         'tab': tab, 'q': q, 'genre_id': genre_id, 'source': source, 'search_error': search_error,
         'results': results, 'genres': genres,
-        'tmdb_configured': configured, 'pending_count': pending_count,
+        'tmdb_configured': configured, 'opensubtitles_configured': opensubtitles_configured, 'pending_count': pending_count,
     })
 
 
@@ -296,6 +307,9 @@ def fetch_movies_import(request):
             movie.trailer_url = it.get('detail_url', '') or ''
         elif tmdb_id:
             movie.trailer_url = ext.tmdb_trailer_url(tmdb_id) or ''
+            cast = ext.tmdb_credits(tmdb_id)
+            if cast:
+                movie.cast_json = _json.dumps(cast)
         movie.save()
 
         cover = it.get('cover') or ''
@@ -707,7 +721,7 @@ def fetch_bulk_action(request):
     kind = request.POST.get('kind', '')
     action = request.POST.get('action', '')
     pks = [p for p in request.POST.get('pks', '').split(',') if p.strip()]
-    if not pks or kind not in ('track', 'movie', 'image', 'short', 'blog', 'series') or action not in ('approve', 'reject', 'delete', 'fetch_lyrics', 'refresh_link'):
+    if not pks or kind not in ('track', 'movie', 'image', 'short', 'blog', 'series') or action not in ('approve', 'reject', 'delete', 'fetch_lyrics', 'refresh_link', 'fetch_cast', 'fetch_subtitles'):
         return JsonResponse({'ok': False, 'error': 'Invalid request'}, status=400)
 
     if kind == 'track':
@@ -767,6 +781,34 @@ def fetch_bulk_action(request):
             if lyrics:
                 t.lyrics_lrc = lyrics
                 t.save(update_fields=['lyrics_lrc'])
+                found += 1
+        return JsonResponse({'ok': True, 'count': count, 'action': action, 'found': found})
+    elif action == 'fetch_cast' and kind == 'movie':
+        found = 0
+        for m in qs:
+            if m.cast_json:
+                continue
+            hits = ext.tmdb_search(m.title)
+            if not hits:
+                continue
+            tmdb_id = hits[0].get('external_id')
+            if not tmdb_id:
+                continue
+            cast = ext.tmdb_credits(tmdb_id)
+            if cast:
+                m.cast_json = _json.dumps(cast)
+                m.save(update_fields=['cast_json'])
+                found += 1
+        return JsonResponse({'ok': True, 'count': count, 'action': action, 'found': found})
+    elif action == 'fetch_subtitles' and kind == 'movie':
+        found = 0
+        for m in qs:
+            if m.subtitles.strip():
+                continue
+            srt, _err = ext.opensubtitles_fetch(m.title, year=m.release_year)
+            if srt:
+                m.subtitles = srt
+                m.save(update_fields=['subtitles'])
                 found += 1
         return JsonResponse({'ok': True, 'count': count, 'action': action, 'found': found})
 

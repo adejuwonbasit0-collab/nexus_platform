@@ -78,9 +78,16 @@ def movie_detail(request, slug):
             progress = WatchProgress.objects.filter(user=request.user, movie=movie).first()
         except Exception:
             pass
+    cast = []
+    if movie.cast_json:
+        try:
+            import json as _json
+            cast = _json.loads(movie.cast_json)
+        except Exception:
+            cast = []
     return render(request, 'movies/detail.html', {
         'movie': movie, 'related': related, 'progress': progress,
-        'comments': comments, 'user_liked': user_liked,
+        'comments': comments, 'user_liked': user_liked, 'cast': cast,
         'trailer_embed_url': youtube_embed_url(movie.trailer_url) if movie.trailer_url else '',
         'video_embed_url': youtube_embed_url(movie.video_url) if movie.is_youtube_video else '',
     })
@@ -268,11 +275,12 @@ def add_movie_comment(request, pk):
 # ── Subtitles / Transcript (stored + AI summary fallback) ───────────────────
 
 def movie_subtitles(request, pk):
-    """Returns subtitles/transcript for a movie as JSON.
-    If stored subtitles exist → return them immediately.
-    If not → ask a configured AI provider to generate a scene-by-scene
-    summary/description (clearly labelled as AI-generated, NOT a real
-    transcript).
+    """Returns subtitles for a movie as JSON, in priority order:
+    1. Already-stored subtitles → return immediately.
+    2. Real subtitle file from OpenSubtitles (same database VLC uses) →
+       fetched once, cached into movie.subtitles from then on.
+    3. AI-generated scene summary — last resort only, clearly labelled as
+       NOT a real transcript, and only runs if an AI provider is configured.
     """
     movie = get_object_or_404(Movie, pk=pk, is_published=True)
 
@@ -285,72 +293,130 @@ def movie_subtitles(request, pk):
             'type': 'stored',
         })
 
-    from core import ai_client
-
-    genres = ', '.join(movie.genres.values_list('name', flat=True)) if hasattr(movie, 'genres') else ''
-    prompt = (
-        f'Write a detailed scene-by-scene description for the movie "{movie.title}"'
-        + (f' ({genres})' if genres else '')
-        + (f'. Description: {movie.description[:500]}' if movie.description else '')
-        + '. Format as numbered scenes like:\n'
-        '[Scene 1 - Opening]\n<description>\n\n[Scene 2 - ...]\n<description>\n\n'
-        'Include dialogue snippets where iconic. Label this clearly as an '
-        'AI-generated scene summary, not an actual transcript. Aim for 10-15 scenes.'
-    )
-    generated, err, provider_used = ai_client.generate_text(
-        'You are a film assistant that writes scene-by-scene descriptions.',
-        prompt, prefer='anthropic',
-    )
-
-    if not generated:
-        if err and 'No AI text provider is configured' in err:
+    from core import external_fetch as ext
+    if ext.opensubtitles_configured():
+        srt, err = ext.opensubtitles_fetch(movie.title, year=movie.release_year)
+        if srt:
+            Movie.objects.filter(pk=pk).update(subtitles=srt)
             return JsonResponse({
-                'ok': False,
-                'error': 'no_key',
-                'message': 'No AI provider configured yet. Add one (Claude, Gemini, OpenRouter, or OpenAI) in Admin → Settings → AI.',
+                'ok': True, 'subtitles': srt, 'ai_generated': False,
+                'title': movie.title, 'type': 'stored',
             })
-        return JsonResponse({'ok': False, 'error': err})
+        # err is None when the search simply found nothing (not a failure);
+        # a real err means the request itself broke and is worth surfacing
+        # to whoever's configuring this, but we still fall through to AI.
 
-    Movie.objects.filter(pk=pk).update(subtitles='[AI Scene Summary]\n\n' + generated)
-    return JsonResponse({
-        'ok': True,
-        'subtitles': '[AI Scene Summary]\n\n' + generated,
-        'ai_generated': True,
-        'title': movie.title,
-        'type': 'ai_summary',
-    })
+    from core.utils import get_ai_key
+    import json as _json
+    import urllib.request
+
+    api_key = get_ai_key('anthropic')
+    if not api_key:
+        return JsonResponse({
+            'ok': False,
+            'error': 'no_key',
+            'message': (
+                'No real subtitle found on OpenSubtitles for this title, and no AI provider is '
+                'configured for a fallback summary. Add an OpenSubtitles API key (Admin → Settings → '
+                'Integrations) for real subtitles, or an AI key (Admin → Settings → AI) for a scene summary.'
+            ),
+        })
+
+    try:
+        genres = ', '.join(movie.genres.values_list('name', flat=True)) if hasattr(movie, 'genres') else ''
+        prompt = (
+            f'You are a film assistant. Write a detailed scene-by-scene description '
+            f'for the movie "{movie.title}"'
+            + (f' ({genres})' if genres else '')
+            + (f'. Description: {movie.description[:500]}' if movie.description else '')
+            + '. Format as numbered scenes like:\n'
+            '[Scene 1 - Opening]\n<description>\n\n[Scene 2 - ...]\n<description>\n\n'
+            'Include dialogue snippets where iconic. Label this clearly as an '
+            'AI-generated scene summary, not an actual transcript. Aim for 10-15 scenes.'
+        )
+        payload = {
+            'model': 'claude-sonnet-4-6',
+            'max_tokens': 1500,
+            'messages': [{'role': 'user', 'content': prompt}],
+        }
+        data = _json.dumps(payload).encode()
+        req  = urllib.request.Request(
+            'https://api.anthropic.com/v1/messages',
+            data=data,
+            headers={
+                'Content-Type': 'application/json',
+                'x-api-key': api_key,
+                'anthropic-version': '2023-06-01',
+            }
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            result = _json.loads(resp.read())
+        generated = result['content'][0]['text']
+
+        Movie.objects.filter(pk=pk).update(subtitles='[AI Scene Summary]\n\n' + generated)
+
+        return JsonResponse({
+            'ok': True,
+            'subtitles': '[AI Scene Summary]\n\n' + generated,
+            'ai_generated': True,
+            'title': movie.title,
+            'type': 'ai_summary',
+        })
+
+    except Exception as e:
+        return JsonResponse({'ok': False, 'error': str(e)})
 
 
 def episode_subtitles(request, pk):
-    """Same as movie_subtitles but for episodes."""
+    """Same priority order as movie_subtitles but for episodes."""
     ep = get_object_or_404(Episode, pk=pk)
 
     if ep.subtitles.strip():
         return JsonResponse({'ok': True, 'subtitles': ep.subtitles,
                              'ai_generated': False, 'title': ep.title, 'type': 'stored'})
 
-    from core import ai_client
+    from core import external_fetch as ext
+    if ext.opensubtitles_configured():
+        series_title = ep.season.series.title if ep.season and ep.season.series else ep.title
+        srt, err = ext.opensubtitles_fetch(series_title)
+        if srt:
+            Episode.objects.filter(pk=pk).update(subtitles=srt)
+            return JsonResponse({'ok': True, 'subtitles': srt, 'ai_generated': False,
+                                 'title': ep.title, 'type': 'stored'})
 
-    series_title = ep.season.series.title if ep.season and ep.season.series else ''
-    prompt = (
-        f'Write a scene-by-scene description for "{ep.title}"'
-        + (f', Season {ep.season.number} Episode {ep.number}' if ep.season else '')
-        + (f' of {series_title}' if series_title else '')
-        + (f'. Synopsis: {ep.description[:400]}' if ep.description else '')
-        + '. Format as [Scene N - Title]\ndescription\n\nfor 8-12 scenes. '
-        'Label as AI-generated scene summary.'
-    )
-    generated, err, provider_used = ai_client.generate_text(
-        'You are a film assistant that writes scene-by-scene descriptions.',
-        prompt, prefer='anthropic',
-    )
+    from core.utils import get_ai_key
+    import json as _json, urllib.request
 
-    if not generated:
-        if err and 'No AI text provider is configured' in err:
-            return JsonResponse({'ok': False, 'error': 'no_key',
-                                 'message': 'No AI provider configured yet. Add one in Admin → Settings → AI.'})
-        return JsonResponse({'ok': False, 'error': err})
-
-    Episode.objects.filter(pk=pk).update(subtitles='[AI Scene Summary]\n\n' + generated)
-    return JsonResponse({'ok': True, 'subtitles': '[AI Scene Summary]\n\n' + generated,
-                         'ai_generated': True, 'title': ep.title, 'type': 'ai_summary'})
+    api_key = get_ai_key('anthropic')
+    if not api_key:
+        return JsonResponse({'ok': False, 'error': 'no_key',
+                             'message': (
+                                 'No real subtitle found on OpenSubtitles, and no AI provider is configured '
+                                 'for a fallback summary. Add either key in Admin → Settings.'
+                             )})
+    try:
+        series_title = ep.season.series.title if ep.season and ep.season.series else ''
+        prompt = (
+            f'Write a scene-by-scene description for "{ep.title}"'
+            + (f', Season {ep.season.number} Episode {ep.number}' if ep.season else '')
+            + (f' of {series_title}' if series_title else '')
+            + (f'. Synopsis: {ep.description[:400]}' if ep.description else '')
+            + '. Format as [Scene N - Title]\ndescription\n\nfor 8-12 scenes. '
+            'Label as AI-generated scene summary.'
+        )
+        payload = {'model': 'claude-sonnet-4-6', 'max_tokens': 1200,
+                   'messages': [{'role': 'user', 'content': prompt}]}
+        data = _json.dumps(payload).encode()
+        req  = urllib.request.Request(
+            'https://api.anthropic.com/v1/messages', data=data,
+            headers={'Content-Type': 'application/json', 'x-api-key': api_key,
+                     'anthropic-version': '2023-06-01'}
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            result = _json.loads(resp.read())
+        generated = result['content'][0]['text']
+        Episode.objects.filter(pk=pk).update(subtitles='[AI Scene Summary]\n\n' + generated)
+        return JsonResponse({'ok': True, 'subtitles': '[AI Scene Summary]\n\n' + generated,
+                             'ai_generated': True, 'title': ep.title, 'type': 'ai_summary'})
+    except Exception as e:
+        return JsonResponse({'ok': False, 'error': str(e)})

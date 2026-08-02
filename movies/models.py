@@ -45,6 +45,7 @@ class Movie(models.Model):
     video_file   = models.FileField(upload_to=movie_file_path, null=True, blank=True)
     video_url    = models.URLField(blank=True, help_text='External link to the video file (used instead of an upload to save storage space).')
     subtitles    = models.TextField(blank=True, help_text='SRT-format subtitles or plain text transcript. If empty, AI can generate a scene summary.')
+    cast_json    = models.TextField(blank=True, help_text='JSON list of cast members: [{"name","character","photo_url"}, ...] — populated automatically from TMDB on import/fetch.')
     quality      = models.CharField(max_length=5, choices=QUALITY, default='HD')
     duration     = models.IntegerField(default=0, help_text='minutes')
     is_premium   = models.BooleanField(default=False)

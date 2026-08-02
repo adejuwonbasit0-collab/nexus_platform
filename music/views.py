@@ -30,17 +30,25 @@ def _ordered_by_ids(qs, ids):
 def music_home(request):
     now = timezone.now()
 
-    # Song of the Day
+    # Song of the Day — admin can still pin one via the "is_song_of_day"
+    # checkbox (that pin is intentional and stays until changed), but if
+    # nothing is pinned, this now genuinely rotates once per calendar day
+    # instead of silently freezing on whatever had the highest trend_score
+    # (which barely moves day to day) — that was the actual bug behind
+    # "it never changes".
     song_of_day = (
         Track.objects.filter(is_published=True, is_song_of_day=True)
         .select_related('artist', 'album', 'genre').first()
     )
     if not song_of_day:
-        song_of_day = (
-            Track.objects.filter(is_published=True)
-            .order_by('-trend_score')
-            .select_related('artist', 'album', 'genre').first()
-        )
+        published_tracks = Track.objects.filter(is_published=True).select_related('artist', 'album', 'genre')
+        count = published_tracks.count()
+        if count:
+            import random as _random
+            from datetime import date as _date
+            seed = _date.today().toordinal()  # changes once per real calendar day
+            idx = _random.Random(seed).randrange(count)
+            song_of_day = published_tracks.order_by('pk')[idx]
 
     # Trending tracks from snapshot
     trend_ids = list(
