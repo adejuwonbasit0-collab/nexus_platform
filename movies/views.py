@@ -75,7 +75,7 @@ def movie_detail(request, slug):
         ViewHistory.record(
             request.user, 'movie', movie.pk, title=movie.title,
             thumbnail_url=movie.thumbnail.url if movie.thumbnail else '',
-            url=f'/movies/{movie.slug}/',
+            url=f'/movies/film/{movie.slug}/',
         )
     progress = None
     if request.user.is_authenticated:

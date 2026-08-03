@@ -30,4 +30,4 @@ def display_name(obj):
     """Safely get a human-readable name from heterogeneous objects
     (Content/Movie/Track/Post/Image/Series have `title`, Artist has `name`,
     User has `username`) without crashing on missing attributes."""
-    return getattr(obj, 'title', None) or getattr(obj, 'name', None) or getattr(obj, 'username', '') or ''
+    return builtins_getattr(obj, 'title', None) or builtins_getattr(obj, 'name', None) or builtins_getattr(obj, 'username', '') or ''

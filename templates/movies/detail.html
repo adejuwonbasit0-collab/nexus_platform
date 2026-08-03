@@ -157,22 +157,32 @@ video{width:100%;border-radius:10px;background:#000;display:block}
       applyWidth(localStorage.getItem('nexus_movie_width') || 'fit');
 
       // Double-tap left/right thirds to seek ±10s — same gesture as
-      // YouTube/Netflix mobile apps. Native <video> controls stay fully
-      // usable since these zones stop above the control bar.
+      // YouTube/Netflix mobile apps. A single tap in these zones now
+      // toggles play/pause (forwarded to the video) instead of doing
+      // nothing — that gap is what broke tap-to-play after this was
+      // added, since the overlay sits on top of the video and swallows
+      // clicks that never got forwarded anywhere.
       const video = document.getElementById('movie-player');
       let lastTap = {back: 0, fwd: 0};
+      let singleTapTimer = {back: null, fwd: null};
       window.mvSeekTap = function(e, dir){
         const now = Date.now();
         if(now - lastTap[dir] < 350){
+          if(singleTapTimer[dir]){ clearTimeout(singleTapTimer[dir]); singleTapTimer[dir] = null; }
           video.currentTime = Math.max(0, video.currentTime + (dir === 'fwd' ? 10 : -10));
           const flash = document.getElementById('mv-seek-flash-' + dir);
           flash.style.display = 'block';
           flash.style.opacity = '1';
+          flash.style.transition = '';
           setTimeout(()=>{ flash.style.transition = 'opacity .3s'; flash.style.opacity = '0'; }, 150);
           setTimeout(()=>{ flash.style.display = 'none'; flash.style.transition = ''; }, 500);
           lastTap[dir] = 0;
         } else {
           lastTap[dir] = now;
+          singleTapTimer[dir] = setTimeout(()=>{
+            if(video.paused) video.play().catch(()=>{});
+            else video.pause();
+          }, 350);
         }
       };
     })();
