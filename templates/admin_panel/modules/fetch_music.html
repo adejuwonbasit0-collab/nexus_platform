@@ -113,7 +113,7 @@
     {% for r in results %}
     <label class="panel" style="padding:10px;cursor:pointer;display:block;{% if r.already_imported %}opacity:.5;{% endif %}">
       <input type="checkbox" class="fm-check" style="position:absolute;margin:6px;" {% if r.already_imported %}disabled{% endif %}
-        data-payload="{{ r.title|escapejs }}|||{{ r.artist|escapejs }}|||{{ r.album|escapejs }}|||{{ r.cover|escapejs }}|||{{ r.preview_url|escapejs }}|||{{ r.genre|escapejs }}|||{{ r.release_year|escapejs }}|||{{ r.source|escapejs }}">
+        data-payload="{{ r.title }}|||{{ r.artist }}|||{{ r.album }}|||{{ r.cover }}|||{{ r.preview_url }}|||{{ r.genre }}|||{{ r.release_year }}|||{{ r.source }}">
       {% if r.cover %}<img src="{{ r.cover }}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;margin-bottom:8px;" loading="lazy">
       {% else %}<div style="width:100%;aspect-ratio:1;background:rgba(29,185,84,.08);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:8px;">🎵</div>{% endif %}
       <div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ r.title }}</div>

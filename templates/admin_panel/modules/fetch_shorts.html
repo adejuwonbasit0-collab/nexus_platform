@@ -103,7 +103,7 @@
   {% for r in results %}
   <div class="panel" style="padding:10px;position:relative;">
     <input type="checkbox" class="short-check" style="position:absolute;margin:6px;z-index:2;"
-      data-payload="{{ q|default:'Short'|escapejs }}|||{{ r.video_url|escapejs }}|||{{ r.thumbnail_url|escapejs }}|||{{ r.photographer|escapejs }}|||{{ r.source|escapejs }}|||{{ r.external_id|escapejs }}|||{{ r.duration|default:0 }}">
+      data-payload="{{ q|default:'Short' }}|||{{ r.video_url }}|||{{ r.thumbnail_url }}|||{{ r.photographer }}|||{{ r.source }}|||{{ r.external_id }}|||{{ r.duration|default:0 }}">
     <div style="position:relative;width:100%;aspect-ratio:9/16;border-radius:8px;overflow:hidden;background:#000;margin-bottom:8px;">
       {% if r.thumbnail_url %}<img src="{{ r.thumbnail_url }}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">{% endif %}
       {% if r.source == 'YouTube' %}

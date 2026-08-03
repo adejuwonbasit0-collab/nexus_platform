@@ -130,7 +130,7 @@
     {% for r in results %}
     <label class="panel" style="padding:10px;cursor:pointer;display:block;{% if r.already_imported %}opacity:.5;{% endif %}">
       <input type="checkbox" class="fm-check" style="position:absolute;margin:6px;" {% if r.already_imported %}disabled{% endif %}
-        data-payload="{{ r.title|escapejs }}|||{{ r.description|escapejs }}|||{{ r.cover|escapejs }}|||{{ r.release_year|escapejs }}|||{{ r.external_id|escapejs }}|||{{ r.source|escapejs }}|||{{ r.detail_url|escapejs }}">
+        data-payload="{{ r.title }}|||{{ r.description }}|||{{ r.cover }}|||{{ r.release_year }}|||{{ r.external_id }}|||{{ r.source }}|||{{ r.detail_url }}">
       {% if r.cover %}<img src="{{ r.cover }}" style="width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:8px;margin-bottom:8px;" loading="lazy">
       {% else %}<div style="width:100%;aspect-ratio:2/3;background:rgba(29,185,84,.08);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:8px;">🎬</div>{% endif %}
       <div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ r.title }}</div>
