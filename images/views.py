@@ -52,6 +52,12 @@ def image_detail(request, slug):
     user_liked = False
     if request.user.is_authenticated:
         user_liked = ImageLike.objects.filter(user=request.user, image=image).exists()
+        from accounts.models import ViewHistory
+        ViewHistory.record(
+            request.user, 'image', image.pk, title=image.title,
+            thumbnail_url=image.display_url or '',
+            url=f'/images/{image.slug}/',
+        )
     return render(request, 'images/detail.html', {
         'image': image, 'related': related, 'comments': comments,
         'user_liked': user_liked,

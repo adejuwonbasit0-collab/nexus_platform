@@ -40,8 +40,6 @@
 .rcard img,.rcard .rph{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:9px;display:block;background:rgba(29,185,84,.1);transition:transform .3s;}
 .rcard:hover img{transform:scale(1.05);}
 @media(max-width:768px){.hero-content{flex-direction:column;gap:18px;}.series-poster{width:130px;}}
-.sd-body{max-width:1100px;padding:28px 20px 80px;display:grid;grid-template-columns:1fr 300px;gap:24px;margin:0 auto;}
-@media(max-width:860px){.sd-body{grid-template-columns:1fr!important;padding:20px 16px 60px!important;}}
 </style>
 {% endblock %}
 {% block content %}
@@ -74,9 +72,23 @@
   </div>
 </div>
 
-<div class="sd-body">
+<div class="container" style="max-width:1100px;padding:28px 20px 80px;display:grid;grid-template-columns:1fr 300px;gap:24px;">
 
   <div>
+    {% if series_movies %}
+    <div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:800;margin-bottom:18px;">🎬 Movies in this Series</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:14px;margin-bottom:32px;">
+      {% for m in series_movies %}
+      <a href="/movies/{{ m.slug }}/" style="text-decoration:none;color:inherit;display:block;">
+        {% if m.thumbnail %}<img src="{{ m.thumbnail.url }}" loading="lazy" style="width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:8px;margin-bottom:6px;">
+        {% else %}<div style="width:100%;aspect-ratio:2/3;background:rgba(255,255,255,.06);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:6px;">🎬</div>{% endif %}
+        <div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ m.title }}</div>
+        <div style="font-size:11px;color:var(--text2);">{{ m.release_year }}</div>
+      </a>
+      {% endfor %}
+    </div>
+    {% endif %}
+
     {# SEASONS & EPISODES #}
     <div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:800;margin-bottom:18px;">📺 Seasons & Episodes</div>
 
@@ -94,7 +106,7 @@
         <div class="ep-row">
           <div class="ep-num">{{ ep.number }}</div>
           <div class="ep-thumb">
-            {% if ep.thumbnail %}<img src="{{ ep.thumbnail.url }}" alt="" loading="lazy">
+            {% if ep.thumbnail %}<img src="{{ ep.thumbnail.url }}" alt="">
             {% else %}🎬{% endif %}
           </div>
           <div class="ep-info">
@@ -146,7 +158,7 @@
       <div class="related-grid">
         {% for r in related %}
         <a href="/movies/series/{{ r.slug }}/" class="rcard">
-          {% if r.thumbnail %}<img src="{{ r.thumbnail.url }}" alt="{{ r.title }}" loading="lazy">
+          {% if r.thumbnail %}<img src="{{ r.thumbnail.url }}" alt="{{ r.title }}">
           {% else %}<div class="rph" style="aspect-ratio:2/3;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:2.5rem;background:rgba(29,185,84,.1);">📺</div>{% endif %}
           <div style="font-size:12px;font-weight:600;color:var(--tx);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ r.title }}</div>
           <div style="font-size:11px;color:var(--tx2);">{{ r.release_year }}</div>

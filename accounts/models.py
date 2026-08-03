@@ -85,6 +85,41 @@ class DownloadHistory(models.Model):
     ip_address   = models.GenericIPAddressField(null=True, blank=True)
 
 
+class ViewHistory(models.Model):
+    """'Recently viewed/played' tracking for the user dashboard — one row
+    per (user, content type, item), timestamp refreshed on every repeat
+    view rather than piling up duplicate rows."""
+    KIND_CHOICES = [
+        ('movie', 'Movie'), ('episode', 'Episode'), ('track', 'Track'),
+        ('image', 'Image'), ('short', 'Short'),
+    ]
+    user         = models.ForeignKey(User, on_delete=models.CASCADE, related_name='view_history')
+    content_type = models.CharField(max_length=20, choices=KIND_CHOICES)
+    object_id    = models.IntegerField()
+    title        = models.CharField(max_length=255, blank=True)
+    thumbnail_url= models.CharField(max_length=500, blank=True)
+    url          = models.CharField(max_length=500, blank=True)
+    viewed_at    = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [('user', 'content_type', 'object_id')]
+        ordering = ['-viewed_at']
+
+    @classmethod
+    def record(cls, user, content_type, object_id, title='', thumbnail_url='', url=''):
+        """Log or refresh a view — safe to call on every page load/play,
+        never raises even if something's off with the passed data."""
+        if not user or not user.is_authenticated:
+            return
+        try:
+            obj, created = cls.objects.update_or_create(
+                user=user, content_type=content_type, object_id=object_id,
+                defaults={'title': title[:255], 'thumbnail_url': thumbnail_url[:500], 'url': url[:500]},
+            )
+        except Exception:
+            pass
+
+
 # Ensure wallet is auto-created for all new users
 from django.db.models.signals import post_save
 from django.dispatch import receiver

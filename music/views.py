@@ -219,6 +219,13 @@ def track_detail(request, slug):
         TrackLike.objects.filter(user=request.user, track=track).exists()
         if request.user.is_authenticated else False
     )
+    if request.user.is_authenticated:
+        from accounts.models import ViewHistory
+        ViewHistory.record(
+            request.user, 'track', track.pk, title=f'{track.title} — {track.artist.name}',
+            thumbnail_url=track.cover_image.url if track.cover_image else '',
+            url=f'/music/track/{track.slug}/',
+        )
     branding = _branding()
     user_playlists = (
         Playlist.objects.filter(owner=request.user)

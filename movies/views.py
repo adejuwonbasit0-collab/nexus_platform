@@ -71,6 +71,12 @@ def movie_detail(request, slug):
     user_liked = False
     if request.user.is_authenticated:
         user_liked = MovieLike.objects.filter(user=request.user, movie=movie).exists()
+        from accounts.models import ViewHistory
+        ViewHistory.record(
+            request.user, 'movie', movie.pk, title=movie.title,
+            thumbnail_url=movie.thumbnail.url if movie.thumbnail else '',
+            url=f'/movies/{movie.slug}/',
+        )
     progress = None
     if request.user.is_authenticated:
         try:
@@ -98,9 +104,10 @@ def series_detail(request, slug):
     block   = _premium_check(request, series)
     if block: return block
     seasons = series.seasons.prefetch_related('episodes').order_by('number')
+    series_movies = series.movies.filter(is_published=True).order_by('series_order', '-release_year')
     related = Series.objects.filter(is_published=True).exclude(pk=series.pk).order_by('-created_at')[:6]
     return render(request, 'movies/series_detail.html', {
-        'series': series, 'seasons': seasons, 'related': related,
+        'series': series, 'seasons': seasons, 'related': related, 'series_movies': series_movies,
     })
 
 

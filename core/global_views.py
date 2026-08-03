@@ -307,11 +307,20 @@ def user_dashboard(request):
     except Exception:
         pass
 
+    # Recently viewed/played across movies, music, images
+    recent_history = []
+    try:
+        from accounts.models import ViewHistory
+        recent_history = list(request.user.view_history.all()[:15])
+    except Exception:
+        pass
+
     return render(request, 'user_dashboard.html', {
         'my_content':    my_content,
         'sub':           sub,
         'wallet':        wallet,
         'liked_tracks':  liked_tracks,
+        'recent_history': recent_history,
     })
 
 

@@ -46,6 +46,8 @@ class Movie(models.Model):
     video_url    = models.URLField(blank=True, help_text='External link to the video file (used instead of an upload to save storage space).')
     subtitles    = models.TextField(blank=True, help_text='SRT-format subtitles or plain text transcript. If empty, AI can generate a scene summary.')
     cast_json    = models.TextField(blank=True, help_text='JSON list of cast members: [{"name","character","photo_url"}, ...] — populated automatically from TMDB on import/fetch.')
+    series       = models.ForeignKey('Series', null=True, blank=True, on_delete=models.SET_NULL, related_name='movies', help_text='Optional — link this movie to a Series so it shows up on that Series page (for franchises/collections, separate from Season/Episode content).')
+    series_order = models.IntegerField(default=0, help_text='Display order within the series (e.g. 1 for the first film).')
     quality      = models.CharField(max_length=5, choices=QUALITY, default='HD')
     duration     = models.IntegerField(default=0, help_text='minutes')
     is_premium   = models.BooleanField(default=False)

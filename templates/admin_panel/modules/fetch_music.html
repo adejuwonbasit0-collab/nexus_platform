@@ -60,6 +60,7 @@
 <div class="tab-bar" style="display:flex;gap:4px;margin-bottom:12px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:4px;flex-wrap:wrap;">
   <a class="tab-btn {% if source == 'itunes' %}active{% endif %}" href="?tab=search&source=itunes" style="text-decoration:none;">🎧 iTunes (30s previews)</a>
   <a class="tab-btn {% if source == 'jamendo' %}active{% endif %}" href="?tab=search&source=jamendo" style="text-decoration:none;">🎵 Jamendo (full-length, CC-licensed)</a>
+  <a class="tab-btn {% if source == 'archive' %}active{% endif %}" href="?tab=search&source=archive" style="text-decoration:none;">📼 Archive.org (full-length, no key needed)</a>
 </div>
 
 {% if source == 'jamendo' and not jamendo_configured %}
@@ -72,7 +73,7 @@
   <div class="panel-body" style="padding:14px 16px;">
     <form method="get" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
       <input type="hidden" name="source" value="{{ source }}">
-      {% if source == 'jamendo' %}
+      {% if source == 'jamendo' or source == 'archive' %}
       <input type="hidden" name="tab" value="search">
       <div style="flex:1;min-width:220px;"><label style="font-size:11px;color:var(--text2);">Song, artist, or leave blank for popular tracks</label><input class="finput" name="q" value="{{ q }}" placeholder="e.g. lofi" style="width:100%;"></div>
       {% else %}
@@ -90,7 +91,7 @@
       </div>
       {% endif %}
       {% endif %}
-      <button type="submit" class="btn btn-primary btn-sm">{% if tab == 'search' or source == 'jamendo' %}Search{% else %}Load{% endif %}</button>
+      <button type="submit" class="btn btn-primary btn-sm">{% if tab == 'search' or source == 'jamendo' or source == 'archive' %}Search{% else %}Load{% endif %}</button>
     </form>
   </div>
 </div>

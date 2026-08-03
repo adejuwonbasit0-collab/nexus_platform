@@ -14,10 +14,14 @@ class MovieAdmin(admin.ModelAdmin):
                            'release_year', 'rating', 'quality', 'language',
                            'is_premium', 'is_published', 'is_featured', 'uploaded_by']}),
         ('Media', {'fields': ['thumbnail', 'video_file', 'video_url', 'trailer_url']}),
+        ('Series (optional)',
+         {'fields': ['series', 'series_order'],
+          'description': 'Link this movie to a Series to group it with others (franchises/collections) '
+                         'on that Series page — separate from Season/Episode content.'}),
         ('Subtitles / Transcript',
          {'fields': ['subtitles'],
           'description': 'Paste SRT-format subtitles or a plain transcript here. '
-                         'Leave blank to have AI generate a scene summary when a user requests it.'}),
+                         'Leave blank to try OpenSubtitles automatically, then AI as a last resort.'}),
     ]
 
 

@@ -91,6 +91,8 @@ def fetch_music(request):
     if source == 'jamendo':
         if jamendo_configured:
             results, search_error = ext.jamendo_search(q, per_page=30)
+    elif source == 'archive':
+        results, search_error = ext.archive_org_audio_search(q, per_page=30)
     elif tab == 'search':
         if q:
             results = ext.itunes_search(q, limit=30)
@@ -146,7 +148,8 @@ def fetch_music_import(request):
         # Chart-based browsing (Trending/Latest/Genre) doesn't carry a
         # preview URL — fill it in now, per selected item, so a handful of
         # failed lookups can never affect the whole batch.
-        it = ext.enrich_for_import(it)
+        if (it.get('source') or '') != 'Archive.org':
+            it = ext.enrich_for_import(it)
 
         artist, _c = _get_or_create_by_name(Artist, artist_name)
         genre = None
@@ -157,12 +160,19 @@ def fetch_music_import(request):
         year_raw = str(it.get('release_year') or '').strip()
         year = int(year_raw) if year_raw.isdigit() else 2024
 
+        source_name = it.get('source') or 'iTunes'
+        audio_url = (it.get('preview_url') or '').strip()
+        if source_name == 'Archive.org':
+            # Real, full-length file — resolved now, not left for manual
+            # entry, same pattern as the Archive.org movies importer.
+            audio_url = ext.archive_org_audio_get_url(it.get('external_id', '')) or ''
+
         track = Track(
             title=title, artist=artist, genre=genre,
-            audio_url=(it.get('preview_url') or '').strip(),
+            audio_url=audio_url,
             release_year=year,
             uploaded_by=request.user,
-            is_fetched=True, fetch_source=it.get('source') or 'iTunes',
+            is_fetched=True, fetch_source=source_name,
             is_published=approve,
         )
         track.save()
@@ -179,6 +189,15 @@ def fetch_music_import(request):
         if lyrics:
             track.lyrics_lrc = lyrics
             track.save(update_fields=['lyrics_lrc'])
+        else:
+            # lrclib.net isn't reachable on PythonAnywhere's free tier —
+            # fall back to plain (unsynced) lyrics from a source that IS
+            # whitelisted there, so something shows instead of nothing.
+            plain_lyrics = ext.lyricsovh_get_lyrics(title, artist_name)
+            if plain_lyrics:
+                track.lyrics = plain_lyrics
+                track.save(update_fields=['lyrics'])
+                no_lyrics = False
 
         created += 1
         if not track.audio_url:

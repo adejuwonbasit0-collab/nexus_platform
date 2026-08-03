@@ -792,3 +792,76 @@ def opensubtitles_fetch(title, year=None, language='en'):
         return srt_text, None
     except Exception as e:
         return None, f'Downloaded link failed: {e}'
+
+
+# ── Archive.org audio — another free, full-length music source ──────────────
+# Same domain as the movies integration above (already whitelisted on
+# PythonAnywhere free tier), so this works even where Jamendo can't.
+# Covers netlabels, live concert recordings, and Creative-Commons releases
+# — real full tracks, not previews.
+
+def archive_org_audio_search(query, per_page=20):
+    q = f'mediatype:(audio) AND {query}' if query.strip() else 'mediatype:(audio) AND collection:(netlabels)'
+    params = urllib.parse.urlencode({
+        'q': q, 'fl[]': ['identifier', 'title', 'creator', 'year', 'downloads'],
+        'rows': max(per_page, 3), 'output': 'json', 'sort[]': 'downloads desc',
+    }, doseq=True)
+    data, err = _get_json_verbose(f'https://archive.org/advancedsearch.php?{params}')
+    if err:
+        return [], err
+    docs = (data.get('response') or {}).get('docs', [])
+    out = []
+    for d in docs:
+        identifier = d.get('identifier', '')
+        if not identifier:
+            continue
+        creator = d.get('creator', 'Unknown Artist')
+        if isinstance(creator, list):
+            creator = creator[0] if creator else 'Unknown Artist'
+        out.append({
+            'source': 'Archive.org',
+            'external_id': identifier,
+            'title': d.get('title', identifier),
+            'artist': creator,
+            'cover': f'https://archive.org/services/img/{identifier}',
+            'release_year': d.get('year', ''),
+            'genre': '',
+            # Resolved to a real playable file only for selected imports,
+            # same lazy pattern as the movies integration.
+        })
+    return out, None
+
+
+def archive_org_audio_get_url(identifier):
+    """Resolves an Archive.org audio identifier to a direct playable file
+    URL — only called at import time for selected items."""
+    data = _get_json(f'https://archive.org/metadata/{identifier}')
+    if not data:
+        return ''
+    files = data.get('files', [])
+    audio_exts = ('.mp3', '.ogg', '.m4a')
+    candidates = [f for f in files if f.get('name', '').lower().endswith(audio_exts)]
+    if not candidates:
+        return ''
+    # Prefer mp3 for universal browser playback
+    mp3s = [f for f in candidates if f['name'].lower().endswith('.mp3')]
+    best = (mp3s or candidates)[0]
+    return f'https://archive.org/download/{identifier}/{best["name"]}'
+
+
+# ── lyrics.ovh — plain-text lyrics fallback, whitelisted on PythonAnywhere ──
+# lrclib.net (the synced/timed lyrics source above) is NOT on PythonAnywhere's
+# free-tier allowlist. This is a fallback for that specific case: not
+# timed/synced, just plain lyrics text, but it means something still shows
+# instead of nothing when lrclib is unreachable.
+
+def lyricsovh_get_lyrics(title, artist):
+    try:
+        import urllib.parse as _up
+        url = f'https://api.lyrics.ovh/v1/{_up.quote(artist)}/{_up.quote(title)}'
+        data = _get_json(url, timeout=8)
+        if data and data.get('lyrics'):
+            return data['lyrics'].strip()
+    except Exception:
+        pass
+    return ''
