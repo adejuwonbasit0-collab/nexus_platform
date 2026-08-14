@@ -73,8 +73,37 @@
       ytPlayers[slide.dataset.pk] = new YT.Player(div, {
         videoId: id,
         playerVars: {controls:0, loop:1, playlist:id, playsinline:1, mute:1, rel:0, modestbranding:1},
+        events: {
+          // Covers every reason a video can fail at playback time (2 =
+          // invalid id, 5 = HTML5 player error, 100 = removed/private,
+          // 101/150 = embedding blocked by owner) — import-time filtering
+          // catches most of this in advance, but availability can change
+          // after the fact, so this is the backstop that guarantees the
+          // viewer never gets stuck on a dead "video unavailable" screen.
+          onError: () => skipBrokenShort(slide),
+        },
       });
     });
+  }
+
+  function skipBrokenShort(slide){
+    if(slide.dataset.skipped) return; // avoid double-handling
+    slide.dataset.skipped = '1';
+    const wrap = slide.querySelector('.short-yt-wrap');
+    if(wrap) wrap.style.display = 'none';
+    const fallback = slide.querySelector('.short-fallback');
+    if(fallback){
+      fallback.style.display = 'flex';
+      const label = fallback.querySelector('div:last-child');
+      if(label) label.textContent = "This one's no longer available — skipping…";
+    }
+    // Auto-advance past it shortly, same as swiping past a dead slide.
+    setTimeout(()=>{
+      const all = [...document.querySelectorAll('.short-slide')];
+      const idx = all.indexOf(slide);
+      const next = all[idx + 1];
+      if(next) next.scrollIntoView({behavior:'smooth', block:'start'});
+    }, 900);
   }
 
   function playSlide(slide){

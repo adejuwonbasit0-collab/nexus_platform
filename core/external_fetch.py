@@ -701,21 +701,27 @@ def youtube_shorts_search(query, per_page=20):
     # status.embeddable, so filter on that before ever offering an item
     # for import — this is the fix that actually prevents broken imports,
     # rather than just working around symptoms after the fact.
+    #
+    # Important: if this check itself fails, the earlier version of this
+    # fix silently fell back to showing everything UNFILTERED — which
+    # defeats the entire point and is exactly how a non-embeddable video
+    # slipped through. Now it retries once, and if it still can't verify
+    # embeddability, those specific items are excluded rather than risked.
     ids = ','.join(i['external_id'] for i in raw_items)
     status_params = urllib.parse.urlencode({'part': 'status', 'id': ids, 'key': key})
-    status_data = _get_json(f'https://www.googleapis.com/youtube/v3/videos?{status_params}')
-    embeddable_ids = None
-    if status_data:
-        embeddable_ids = {
-            v['id'] for v in status_data.get('items', [])
-            if (v.get('status') or {}).get('embeddable', True)
-        }
+    status_url = f'https://www.googleapis.com/youtube/v3/videos?{status_params}'
 
-    if embeddable_ids is None:
-        # The status check itself failed (e.g. quota) — better to show
-        # unfiltered results than none at all.
-        return raw_items[:per_page], None
+    status_data, status_err = _get_json_verbose(status_url)
+    if status_err:
+        status_data, status_err = _get_json_verbose(status_url)  # one retry
 
+    if status_err or not status_data:
+        return [], f'Could not verify which results are embeddable (YouTube status check failed: {status_err or "empty response"}). Try searching again.'
+
+    embeddable_ids = {
+        v['id'] for v in status_data.get('items', [])
+        if (v.get('status') or {}).get('embeddable', True)
+    }
     out = [i for i in raw_items if i['external_id'] in embeddable_ids]
     return out[:per_page], None
 # auto-fill Track.lyrics_lrc when importing via Fetch Music.
