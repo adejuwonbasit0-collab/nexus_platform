@@ -524,6 +524,13 @@ def pixabay_videos_search_verbose(query, per_page=18):
 # stream directly — unlike a commercial catalogue, nothing here needs a
 # license check.
 
+ARCHIVE_ORG_HEADERS = {
+    # Archive.org's search API is known to rate-limit or silently degrade
+    # requests carrying the default Python-urllib user agent — a normal
+    # browser-like one avoids that.
+    'User-Agent': 'Mozilla/5.0 (compatible; NEXUS/1.0; +https://archive.org)',
+}
+
 def archive_org_configured():
     return True  # no key needed
 
@@ -539,7 +546,7 @@ def archive_org_search(query, per_page=20):
         'q': q, 'fl[]': fields, 'rows': max(per_page, 3),
         'output': 'json', 'sort[]': 'downloads desc',
     }, doseq=True)
-    data, err = _get_json_verbose(f'https://archive.org/advancedsearch.php?{params}')
+    data, err = _get_json_verbose(f'https://archive.org/advancedsearch.php?{params}', headers=ARCHIVE_ORG_HEADERS)
     if err:
         return [], err
     docs = (data.get('response') or {}).get('docs', [])
@@ -567,7 +574,7 @@ def archive_org_get_video_url(identifier):
     """Resolves an Archive.org identifier to a direct playable mp4 URL by
     reading its file manifest — only called at import time, once per
     selected item, to avoid a metadata call for every search result."""
-    data = _get_json(f'https://archive.org/metadata/{identifier}')
+    data = _get_json(f'https://archive.org/metadata/{identifier}', headers=ARCHIVE_ORG_HEADERS)
     if not data:
         return ''
     files = data.get('files', [])
@@ -653,15 +660,20 @@ def youtube_shorts_search(query, per_page=20):
     key = _youtube_api_key()
     if not key:
         return [], 'No YouTube API key saved yet.'
+    # Fetch a larger pool than requested, since some will get filtered out
+    # for not being embeddable (see below) — asking for exactly per_page
+    # up front would under-deliver after filtering.
+    fetch_count = min(max(per_page, 3) * 2, 50)
     params = urllib.parse.urlencode({
         'part': 'snippet', 'q': query.strip() or 'comedy skits',
         'type': 'video', 'videoDuration': 'short',  # under 4 minutes — closest official filter to "Shorts"
-        'maxResults': max(per_page, 3), 'safeSearch': 'moderate', 'key': key,
+        'maxResults': fetch_count, 'safeSearch': 'moderate', 'key': key,
     })
     data, err = _get_json_verbose(f'https://www.googleapis.com/youtube/v3/search?{params}')
     if err:
         return [], err
-    out = []
+
+    raw_items = []
     for item in data.get('items', []):
         vid = (item.get('id') or {}).get('videoId', '')
         snippet = item.get('snippet') or {}
@@ -669,7 +681,7 @@ def youtube_shorts_search(query, per_page=20):
             continue
         thumbs = snippet.get('thumbnails') or {}
         thumb = (thumbs.get('medium') or thumbs.get('default') or {}).get('url', '')
-        out.append({
+        raw_items.append({
             'source': 'YouTube',
             'external_id': vid,
             'video_url': f'https://www.youtube.com/watch?v={vid}',
@@ -678,7 +690,34 @@ def youtube_shorts_search(query, per_page=20):
             'photographer': snippet.get('channelTitle', 'Unknown'),
             'duration': 0,  # YouTube embed handles its own playback/duration
         })
-    return out, None
+    if not raw_items:
+        return [], None
+
+    # search.list never reports whether a video allows embedding — a
+    # video the owner has blocked from embedding shows up in search
+    # results identically to one that works fine, then fails with
+    # YouTube's own "This video is unavailable" the moment it's actually
+    # embedded. videos.list (a second, cheap call) DOES report this via
+    # status.embeddable, so filter on that before ever offering an item
+    # for import — this is the fix that actually prevents broken imports,
+    # rather than just working around symptoms after the fact.
+    ids = ','.join(i['external_id'] for i in raw_items)
+    status_params = urllib.parse.urlencode({'part': 'status', 'id': ids, 'key': key})
+    status_data = _get_json(f'https://www.googleapis.com/youtube/v3/videos?{status_params}')
+    embeddable_ids = None
+    if status_data:
+        embeddable_ids = {
+            v['id'] for v in status_data.get('items', [])
+            if (v.get('status') or {}).get('embeddable', True)
+        }
+
+    if embeddable_ids is None:
+        # The status check itself failed (e.g. quota) — better to show
+        # unfiltered results than none at all.
+        return raw_items[:per_page], None
+
+    out = [i for i in raw_items if i['external_id'] in embeddable_ids]
+    return out[:per_page], None
 # auto-fill Track.lyrics_lrc when importing via Fetch Music.
 
 def lrclib_get_lyrics(track_name, artist_name, album_name='', duration=None):
@@ -806,7 +845,7 @@ def archive_org_audio_search(query, per_page=20):
         'q': q, 'fl[]': ['identifier', 'title', 'creator', 'year', 'downloads'],
         'rows': max(per_page, 3), 'output': 'json', 'sort[]': 'downloads desc',
     }, doseq=True)
-    data, err = _get_json_verbose(f'https://archive.org/advancedsearch.php?{params}')
+    data, err = _get_json_verbose(f'https://archive.org/advancedsearch.php?{params}', headers=ARCHIVE_ORG_HEADERS)
     if err:
         return [], err
     docs = (data.get('response') or {}).get('docs', [])
@@ -835,7 +874,7 @@ def archive_org_audio_search(query, per_page=20):
 def archive_org_audio_get_url(identifier):
     """Resolves an Archive.org audio identifier to a direct playable file
     URL — only called at import time for selected items."""
-    data = _get_json(f'https://archive.org/metadata/{identifier}')
+    data = _get_json(f'https://archive.org/metadata/{identifier}', headers=ARCHIVE_ORG_HEADERS)
     if not data:
         return ''
     files = data.get('files', [])
@@ -865,3 +904,64 @@ def lyricsovh_get_lyrics(title, artist):
     except Exception:
         pass
     return ''
+
+
+# ── ccMixter — another real, full-length, Creative-Commons music source ────
+# A long-running community of artists releasing complete CC-licensed
+# tracks and remixes, free and keyless. Different catalogue than Jamendo/
+# Archive.org, so worth trying if either of those comes up short for a
+# given search.
+
+def ccmixter_configured():
+    return True  # no key needed
+
+
+def ccmixter_search(query, per_page=20):
+    params = urllib.parse.urlencode({
+        'f': 'json', 'limit': max(per_page, 3),
+        'sort': 'rank',
+    })
+    if query.strip():
+        params += '&' + urllib.parse.urlencode({'search': query.strip()})
+    data = _get_json(f'https://ccmixter.org/api/query?{params}', headers=ARCHIVE_ORG_HEADERS, timeout=15)
+    if data is None:
+        return [], 'Could not reach ccMixter — this server likely can\'t reach that domain at all.'
+    if not isinstance(data, list):
+        return [], None
+    out = []
+    for t in data:
+        upload_id = t.get('upload_id') or t.get('id') or ''
+        if not upload_id:
+            continue
+        # Not every upload has consistent artwork — fall back gracefully
+        # to no thumbnail rather than a broken image link.
+        extra = t.get('upload_extra') or {}
+        cover = ''
+        if isinstance(extra, dict):
+            cover = extra.get('art_url') or extra.get('image_url') or ''
+        out.append({
+            'source': 'ccMixter',
+            'external_id': str(upload_id),
+            'title': t.get('upload_name', 'Untitled'),
+            'artist': t.get('user_real_name') or t.get('user_name', 'Unknown Artist'),
+            'cover': cover,
+            'genre': (t.get('license_name') or '').split(' ')[0],
+            'release_year': (t.get('upload_date_format') or '')[-4:] if t.get('upload_date_format') else '',
+            'description': f"Released under {t.get('license_name', 'a Creative Commons license')} via ccMixter.",
+            'detail_url': t.get('file_page_url', ''),
+        })
+    return out, None
+
+
+def ccmixter_get_audio_url(upload_id):
+    """Resolves a ccMixter upload id to a direct playable file URL —
+    only called at import time for selected items."""
+    data = _get_json(f'https://ccmixter.org/api/query?f=json&ids={upload_id}&dataview=files', headers=ARCHIVE_ORG_HEADERS, timeout=15)
+    if not data or not isinstance(data, list) or not data:
+        return ''
+    files = (data[0].get('files') or [])
+    mp3s = [f for f in files if (f.get('file_name') or '').lower().endswith('.mp3')]
+    best = (mp3s or files)
+    if not best:
+        return ''
+    return best[0].get('download_url', '')
