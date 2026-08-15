@@ -93,8 +93,6 @@ def fetch_music(request):
             results, search_error = ext.jamendo_search(q, per_page=30)
     elif source == 'archive':
         results, search_error = ext.archive_org_audio_search(q, per_page=30)
-    elif source == 'ccmixter':
-        results, search_error = ext.ccmixter_search(q, per_page=30)
     elif tab == 'search':
         if q:
             results = ext.itunes_search(q, limit=30)
@@ -150,7 +148,7 @@ def fetch_music_import(request):
         # Chart-based browsing (Trending/Latest/Genre) doesn't carry a
         # preview URL — fill it in now, per selected item, so a handful of
         # failed lookups can never affect the whole batch.
-        if (it.get('source') or '') not in ('Archive.org', 'ccMixter'):
+        if (it.get('source') or '') != 'Archive.org':
             it = ext.enrich_for_import(it)
 
         artist, _c = _get_or_create_by_name(Artist, artist_name)
@@ -168,8 +166,6 @@ def fetch_music_import(request):
             # Real, full-length file — resolved now, not left for manual
             # entry, same pattern as the Archive.org movies importer.
             audio_url = ext.archive_org_audio_get_url(it.get('external_id', '')) or ''
-        elif source_name == 'ccMixter':
-            audio_url = ext.ccmixter_get_audio_url(it.get('external_id', '')) or ''
 
         track = Track(
             title=title, artist=artist, genre=genre,

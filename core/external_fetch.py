@@ -33,7 +33,10 @@ def download_image_into(instance, field_name, url, filename_hint='cover.jpg'):
         return False
     try:
         from django.core.files.base import ContentFile
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        req = urllib.request.Request(url, headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
+            'Accept': 'image/*,*/*;q=0.8',
+        })
         with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
             content = resp.read()
         if not content:
@@ -720,10 +723,22 @@ def youtube_shorts_search(query, per_page=20):
 
     embeddable_ids = {
         v['id'] for v in status_data.get('items', [])
-        if (v.get('status') or {}).get('embeddable', True)
+        if _youtube_status_ok(v.get('status') or {})
     }
     out = [i for i in raw_items if i['external_id'] in embeddable_ids]
     return out[:per_page], None
+
+
+def _youtube_status_ok(status):
+    """Stricter than just 'embeddable' — a video can report embeddable
+    true and still fail at playback if it isn't actually public or
+    finished processing. Requiring all three cuts down further on
+    imports that would otherwise show 'This video is unavailable'."""
+    return (
+        status.get('embeddable', True)
+        and status.get('privacyStatus', 'public') == 'public'
+        and status.get('uploadStatus', 'processed') in ('processed', 'uploaded')
+    )
 # auto-fill Track.lyrics_lrc when importing via Fetch Music.
 
 def lrclib_get_lyrics(track_name, artist_name, album_name='', duration=None):
@@ -910,64 +925,3 @@ def lyricsovh_get_lyrics(title, artist):
     except Exception:
         pass
     return ''
-
-
-# ── ccMixter — another real, full-length, Creative-Commons music source ────
-# A long-running community of artists releasing complete CC-licensed
-# tracks and remixes, free and keyless. Different catalogue than Jamendo/
-# Archive.org, so worth trying if either of those comes up short for a
-# given search.
-
-def ccmixter_configured():
-    return True  # no key needed
-
-
-def ccmixter_search(query, per_page=20):
-    params = urllib.parse.urlencode({
-        'f': 'json', 'limit': max(per_page, 3),
-        'sort': 'rank',
-    })
-    if query.strip():
-        params += '&' + urllib.parse.urlencode({'search': query.strip()})
-    data = _get_json(f'https://ccmixter.org/api/query?{params}', headers=ARCHIVE_ORG_HEADERS, timeout=15)
-    if data is None:
-        return [], 'Could not reach ccMixter — this server likely can\'t reach that domain at all.'
-    if not isinstance(data, list):
-        return [], None
-    out = []
-    for t in data:
-        upload_id = t.get('upload_id') or t.get('id') or ''
-        if not upload_id:
-            continue
-        # Not every upload has consistent artwork — fall back gracefully
-        # to no thumbnail rather than a broken image link.
-        extra = t.get('upload_extra') or {}
-        cover = ''
-        if isinstance(extra, dict):
-            cover = extra.get('art_url') or extra.get('image_url') or ''
-        out.append({
-            'source': 'ccMixter',
-            'external_id': str(upload_id),
-            'title': t.get('upload_name', 'Untitled'),
-            'artist': t.get('user_real_name') or t.get('user_name', 'Unknown Artist'),
-            'cover': cover,
-            'genre': (t.get('license_name') or '').split(' ')[0],
-            'release_year': (t.get('upload_date_format') or '')[-4:] if t.get('upload_date_format') else '',
-            'description': f"Released under {t.get('license_name', 'a Creative Commons license')} via ccMixter.",
-            'detail_url': t.get('file_page_url', ''),
-        })
-    return out, None
-
-
-def ccmixter_get_audio_url(upload_id):
-    """Resolves a ccMixter upload id to a direct playable file URL —
-    only called at import time for selected items."""
-    data = _get_json(f'https://ccmixter.org/api/query?f=json&ids={upload_id}&dataview=files', headers=ARCHIVE_ORG_HEADERS, timeout=15)
-    if not data or not isinstance(data, list) or not data:
-        return ''
-    files = (data[0].get('files') or [])
-    mp3s = [f for f in files if (f.get('file_name') or '').lower().endswith('.mp3')]
-    best = (mp3s or files)
-    if not best:
-        return ''
-    return best[0].get('download_url', '')
