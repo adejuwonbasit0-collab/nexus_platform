@@ -71,9 +71,17 @@
       const div = document.createElement('div');
       wrap.appendChild(div);
       ytPlayers[slide.dataset.pk] = new YT.Player(div, {
+        // Explicit width/height here only sets the iframe's initial
+        // attributes — the real fill-the-frame sizing happens in
+        // coverSizeYTIframe() below, since YouTube's iframe is always
+        // 16:9 internally and needs to be overscanned + cropped to fill
+        // a 9:16 portrait slide the way a native video with
+        // object-fit:cover would.
+        width: '100%', height: '100%',
         videoId: id,
         playerVars: {controls:0, loop:1, playlist:id, playsinline:1, mute:1, rel:0, modestbranding:1},
         events: {
+          onReady: (e) => coverSizeYTIframe(wrap),
           // Covers every reason a video can fail at playback time (2 =
           // invalid id, 5 = HTML5 player error, 100 = removed/private,
           // 101/150 = embedding blocked by owner) — import-time filtering
@@ -86,6 +94,31 @@
     });
   }
 
+  // YouTube's iframe is always 16:9 internally, but a shorts slide is a
+  // tall 9:16 frame — setting width/height:100% on the iframe alone just
+  // squashes/letterboxes it (exactly the "not full size" bug). This
+  // overscans the iframe to the same cover-crop effect object-fit:cover
+  // gives a native <video>, keeping it centered.
+  function coverSizeYTIframe(wrap){
+    const iframe = wrap.querySelector('iframe');
+    if(!iframe) return;
+    const cw = wrap.clientWidth, ch = wrap.clientHeight;
+    if(!cw || !ch) return;
+    const videoAspect = 16/9;
+    let w = ch * videoAspect, h = ch;
+    if(w < cw){ w = cw; h = cw / videoAspect; }
+    iframe.style.position = 'absolute';
+    iframe.style.top = '50%';
+    iframe.style.left = '50%';
+    iframe.style.width = w + 'px';
+    iframe.style.height = h + 'px';
+    iframe.style.transform = 'translate(-50%,-50%)';
+    iframe.style.pointerEvents = 'none'; // taps still go to our own overlay, same as the native-video slides
+  }
+  window.addEventListener('resize', () => {
+    document.querySelectorAll('.short-yt-wrap[data-ready="1"]').forEach(coverSizeYTIframe);
+  });
+
   function skipBrokenShort(slide){
     if(slide.dataset.skipped) return; // avoid double-handling
     slide.dataset.skipped = '1';
@@ -96,6 +129,15 @@
       fallback.style.display = 'flex';
       const label = fallback.querySelector('div:last-child');
       if(label) label.textContent = "This one's no longer available — skipping…";
+    }
+    // Flag it server-side too — a client-side skip only fixes it for
+    // this one viewer's session, but a video that's been taken down on
+    // YouTube's end is gone for everyone, so it should stop being served
+    // out of the feed rotation entirely rather than getting rediscovered
+    // and re-skipped by every future visitor.
+    const pk = slide.dataset.pk;
+    if(pk){
+      fetch(`/shorts/${pk}/flag-broken/`, {method:'POST', headers:{'X-CSRFToken':getCookie('csrftoken')}}).catch(()=>{});
     }
     // Auto-advance past it shortly, same as swiping past a dead slide.
     setTimeout(()=>{

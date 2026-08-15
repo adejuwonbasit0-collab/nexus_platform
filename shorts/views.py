@@ -115,6 +115,16 @@ def track_view(request, pk):
     return JsonResponse({'ok': True})
 
 
+@require_POST
+def flag_broken(request, pk):
+    """Called by the player when a short fails to actually play (deleted,
+    made private, or blocked by its owner after import). Unpublishes it
+    so the feed stops serving it to anyone going forward — a client-side
+    skip alone only fixes it for the one viewer who happened to hit it."""
+    Short.objects.filter(pk=pk).update(is_published=False)
+    return JsonResponse({'ok': True})
+
+
 @login_required
 @require_POST
 def toggle_like(request, pk):
