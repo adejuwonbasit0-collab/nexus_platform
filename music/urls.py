@@ -27,4 +27,7 @@ urlpatterns = [
     path('lyrics/<int:pk>/',              views.track_lyrics,         name='track_lyrics'),
     # Queue API (returns JSON list of tracks for a context)
     path('queue/<str:context>/<int:pk>/', views.get_queue,            name='music_queue'),
+    # DJ Studio
+    path('dj/',                           views.dj_studio,            name='dj_studio'),
+    path('dj/ai-mix/',                    views.dj_ai_mix,            name='dj_ai_mix'),
 ]

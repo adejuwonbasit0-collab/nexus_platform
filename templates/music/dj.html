@@ -1,0 +1,286 @@
+{% extends 'base.html' %}
+{% block title %}DJ Studio — NEXUS{% endblock %}
+{% block content %}
+<div class="wrap" style="padding:24px 0 60px;">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+    <div style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:800;">🎚 DJ Studio</div>
+  </div>
+  <div style="color:var(--tx2);font-size:13px;margin-bottom:24px;">Mix tracks from your library live — crossfade, EQ, tempo — or describe a vibe and let AI pick and sequence a set for you.</div>
+
+  <!-- AI Mix panel -->
+  <div style="background:rgba(29,185,84,.06);border:1px solid rgba(29,185,84,.2);border-radius:14px;padding:16px 18px;margin-bottom:24px;">
+    <div style="font-weight:700;font-size:13.5px;margin-bottom:10px;">✨ AI Mix — describe the vibe</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <input id="dj-vibe-input" placeholder="e.g. upbeat afrobeats for a house party, building energy" style="flex:1;min-width:240px;background:var(--bg3);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:11px 14px;color:var(--tx);font-size:13.5px;">
+      <button onclick="djGenerateAiMix()" id="dj-ai-btn" style="background:#1db954;color:#000;border:none;font-weight:700;font-size:13px;padding:11px 20px;border-radius:10px;cursor:pointer;white-space:nowrap;">Generate Mix</button>
+    </div>
+    <div id="dj-ai-status" style="font-size:12px;color:var(--tx2);margin-top:8px;display:none;"></div>
+    <div id="dj-ai-queue" style="margin-top:12px;display:none;">
+      <div style="font-size:11px;color:var(--tx2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Generated set — click "Auto-Mix This Set" to play it through with automatic crossfades</div>
+      <div id="dj-ai-queue-list" style="display:flex;flex-direction:column;gap:4px;margin-bottom:10px;"></div>
+      <button onclick="djAutoMixQueue()" style="background:#1db954;color:#000;border:none;font-weight:700;font-size:12.5px;padding:9px 16px;border-radius:20px;cursor:pointer;">▶ Auto-Mix This Set</button>
+      <button onclick="djStopAutoMix()" id="dj-stop-automix" style="display:none;background:rgba(255,255,255,.1);color:#fff;border:none;font-weight:700;font-size:12.5px;padding:9px 16px;border-radius:20px;cursor:pointer;margin-left:8px;">■ Stop Auto-Mix</button>
+    </div>
+  </div>
+
+  <!-- Decks -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+    {% for d in "AB" %}
+    <div class="dj-deck" data-deck="{{ d }}" style="background:var(--bg3);border-radius:14px;padding:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div style="font-weight:800;font-size:13px;color:#1db954;">DECK {{ d }}</div>
+        <div class="dj-now-playing" style="font-size:11.5px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60%;">No track loaded</div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-bottom:12px;">
+        <div class="dj-cover" style="width:56px;height:56px;border-radius:8px;background:rgba(255,255,255,.05);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden;">🎵</div>
+        <div style="flex:1;min-width:0;">
+          <input class="dj-search" placeholder="Search a track to load…" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px 10px;color:var(--tx);font-size:12.5px;margin-bottom:4px;">
+          <div class="dj-search-results" style="display:none;position:relative;background:#181818;border-radius:8px;max-height:180px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.4);"></div>
+        </div>
+      </div>
+
+      <audio class="dj-audio" crossorigin="anonymous" preload="metadata" style="display:none;"></audio>
+
+      <!-- Transport -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+        <button class="dj-play-btn" style="background:#1db954;color:#000;border:none;width:38px;height:38px;border-radius:50%;font-size:14px;cursor:pointer;">▶</button>
+        <button class="dj-cue-btn" title="Cue (jump to start)" style="background:rgba(255,255,255,.08);color:#fff;border:none;width:32px;height:32px;border-radius:50%;font-size:11px;cursor:pointer;">⏮</button>
+        <div style="flex:1;height:5px;background:rgba(255,255,255,.1);border-radius:3px;position:relative;cursor:pointer;" class="dj-progress-wrap">
+          <div class="dj-progress-fill" style="height:100%;width:0%;background:#1db954;border-radius:3px;"></div>
+        </div>
+        <div class="dj-time" style="font-size:10.5px;color:var(--tx2);font-variant-numeric:tabular-nums;">0:00</div>
+      </div>
+
+      <!-- EQ -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;">
+        <div>
+          <label style="font-size:9.5px;color:var(--tx2);display:block;text-align:center;margin-bottom:3px;">LOW</label>
+          <input type="range" class="dj-eq dj-eq-low" min="-24" max="12" value="0" step="1" style="width:100%;">
+        </div>
+        <div>
+          <label style="font-size:9.5px;color:var(--tx2);display:block;text-align:center;margin-bottom:3px;">MID</label>
+          <input type="range" class="dj-eq dj-eq-mid" min="-24" max="12" value="0" step="1" style="width:100%;">
+        </div>
+        <div>
+          <label style="font-size:9.5px;color:var(--tx2);display:block;text-align:center;margin-bottom:3px;">HIGH</label>
+          <input type="range" class="dj-eq dj-eq-high" min="-24" max="12" value="0" step="1" style="width:100%;">
+        </div>
+      </div>
+
+      <!-- Volume + Tempo -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label style="font-size:9.5px;color:var(--tx2);">VOLUME</label>
+          <input type="range" class="dj-volume" min="0" max="1" value="0.85" step="0.01" style="width:100%;">
+        </div>
+        <div>
+          <label style="font-size:9.5px;color:var(--tx2);">TEMPO <span class="dj-tempo-val">100%</span></label>
+          <input type="range" class="dj-tempo" min="0.85" max="1.15" value="1" step="0.01" style="width:100%;">
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Crossfader -->
+  <div style="background:var(--bg3);border-radius:14px;padding:16px 24px;text-align:center;">
+    <label style="font-size:11px;color:var(--tx2);letter-spacing:.05em;">CROSSFADER</label>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <span style="font-size:12px;font-weight:700;color:#1db954;">A</span>
+      <input type="range" id="dj-crossfader" min="0" max="100" value="50" style="flex:1;">
+      <span style="font-size:12px;font-weight:700;color:#1db954;">B</span>
+    </div>
+  </div>
+
+  <div style="margin-top:16px;font-size:11.5px;color:var(--tx2);">
+    Tip: load a track on each deck, use the crossfader to blend between them, and the EQ/tempo knobs to match the mix — same idea as a real DJ setup, just in the browser.
+  </div>
+</div>
+
+<script>
+(function(){
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  const ctx = new AudioCtx();
+  const decks = {};
+
+  function dbToGain(db){ return Math.pow(10, db/20); }
+
+  document.querySelectorAll('.dj-deck').forEach(deckEl=>{
+    const name = deckEl.dataset.deck;
+    const audio = deckEl.querySelector('.dj-audio');
+    const source = ctx.createMediaElementSource(audio);
+    const low = ctx.createBiquadFilter();  low.type='lowshelf';  low.frequency.value=320;
+    const mid = ctx.createBiquadFilter();  mid.type='peaking';   mid.frequency.value=1000; mid.Q.value=0.9;
+    const high = ctx.createBiquadFilter(); high.type='highshelf'; high.frequency.value=3200;
+    const gain = ctx.createGain();       // per-deck volume
+    const crossGain = ctx.createGain();  // crossfader contribution
+
+    source.connect(low); low.connect(mid); mid.connect(high); high.connect(gain); gain.connect(crossGain); crossGain.connect(ctx.destination);
+
+    decks[name] = {el: deckEl, audio, low, mid, high, gain, crossGain, trackPk: null};
+
+    deckEl.querySelector('.dj-eq-low').addEventListener('input', e=> low.gain.value = +e.target.value);
+    deckEl.querySelector('.dj-eq-mid').addEventListener('input', e=> mid.gain.value = +e.target.value);
+    deckEl.querySelector('.dj-eq-high').addEventListener('input', e=> high.gain.value = +e.target.value);
+    deckEl.querySelector('.dj-volume').addEventListener('input', e=> gain.gain.value = +e.target.value);
+    deckEl.querySelector('.dj-tempo').addEventListener('input', e=>{
+      audio.playbackRate = +e.target.value;
+      deckEl.querySelector('.dj-tempo-val').textContent = Math.round(+e.target.value*100) + '%';
+    });
+
+    const playBtn = deckEl.querySelector('.dj-play-btn');
+    playBtn.addEventListener('click', ()=>{
+      if(ctx.state === 'suspended') ctx.resume();
+      if(audio.paused){ audio.play().catch(()=>{}); playBtn.textContent = '❚❚'; }
+      else { audio.pause(); playBtn.textContent = '▶'; }
+    });
+    deckEl.querySelector('.dj-cue-btn').addEventListener('click', ()=>{ audio.currentTime = 0; });
+    deckEl.querySelector('.dj-progress-wrap').addEventListener('click', (e)=>{
+      if(!audio.duration) return;
+      const rect = e.currentTarget.getBoundingClientRect();
+      audio.currentTime = ((e.clientX - rect.left) / rect.width) * audio.duration;
+    });
+    audio.addEventListener('timeupdate', ()=>{
+      if(!audio.duration) return;
+      deckEl.querySelector('.dj-progress-fill').style.width = (audio.currentTime/audio.duration*100) + '%';
+      const m = Math.floor(audio.currentTime/60), s = Math.floor(audio.currentTime%60);
+      deckEl.querySelector('.dj-time').textContent = m + ':' + String(s).padStart(2,'0');
+    });
+    audio.addEventListener('ended', ()=>{ playBtn.textContent = '▶'; });
+
+    // Track search/load
+    const searchInput = deckEl.querySelector('.dj-search');
+    const resultsBox = deckEl.querySelector('.dj-search-results');
+    let searchTimer = null;
+    searchInput.addEventListener('input', ()=>{
+      clearTimeout(searchTimer);
+      const q = searchInput.value.trim();
+      if(q.length < 2){ resultsBox.style.display='none'; return; }
+      searchTimer = setTimeout(async ()=>{
+        const res = await fetch(`/music/search-live/?q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        resultsBox.innerHTML = '';
+        (data.results||[]).forEach(t=>{
+          const row = document.createElement('div');
+          row.style.cssText = 'padding:8px 10px;cursor:pointer;font-size:12px;border-bottom:1px solid rgba(255,255,255,.05);';
+          row.textContent = `${t.title} — ${t.artist}`;
+          row.onclick = ()=> djLoadTrack(name, t);
+          resultsBox.appendChild(row);
+        });
+        resultsBox.style.display = data.results && data.results.length ? 'block' : 'none';
+      }, 300);
+    });
+  });
+
+  window.djLoadTrack = function(deckName, track){
+    const d = decks[deckName];
+    if(!track.url){ alert('This track has no playable audio yet.'); return; }
+    d.audio.src = track.url;
+    d.trackPk = track.pk;
+    d.el.querySelector('.dj-now-playing').textContent = `${track.title} — ${track.artist}`;
+    d.el.querySelector('.dj-search').value = '';
+    d.el.querySelector('.dj-search-results').style.display = 'none';
+    const cover = d.el.querySelector('.dj-cover');
+    cover.innerHTML = track.cover ? `<img src="${track.cover}" style="width:100%;height:100%;object-fit:cover;">` : '🎵';
+  };
+
+  // Crossfader — equal-power curve so the midpoint doesn't dip in volume
+  document.getElementById('dj-crossfader').addEventListener('input', (e)=>{
+    const x = (+e.target.value) / 100; // 0 = full A, 1 = full B
+    decks['A'].crossGain.gain.value = Math.cos(x * Math.PI/2);
+    decks['B'].crossGain.gain.value = Math.sin(x * Math.PI/2);
+  });
+  // Initialize at center
+  decks['A'].crossGain.gain.value = Math.cos(Math.PI/4);
+  decks['B'].crossGain.gain.value = Math.sin(Math.PI/4);
+
+  // ── AI Mix ──────────────────────────────────────────────────────────────
+  let aiQueue = [];
+  window.djGenerateAiMix = async function(){
+    const vibe = document.getElementById('dj-vibe-input').value.trim();
+    if(!vibe){ alert('Describe a vibe first.'); return; }
+    const btn = document.getElementById('dj-ai-btn');
+    const status = document.getElementById('dj-ai-status');
+    btn.disabled = true; btn.textContent = 'Thinking…';
+    status.style.display = 'block'; status.textContent = 'Picking tracks that fit…';
+    try{
+      const res = await fetch('/music/dj/ai-mix/', {
+        method: 'POST',
+        headers: {'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'vibe=' + encodeURIComponent(vibe),
+      });
+      const data = await res.json();
+      if(!data.ok){
+        status.textContent = '⚠ ' + (data.message || data.error || 'Could not generate a mix.');
+        return;
+      }
+      aiQueue = data.tracks;
+      status.textContent = `Picked ${aiQueue.length} tracks for "${data.vibe}".`;
+      const listEl = document.getElementById('dj-ai-queue-list');
+      listEl.innerHTML = aiQueue.map((t,i)=>`<div style="font-size:12px;color:var(--tx);padding:4px 0;">${i+1}. ${t.title} — ${t.artist}</div>`).join('');
+      document.getElementById('dj-ai-queue').style.display = 'block';
+    } catch(e){
+      status.textContent = '⚠ Network error generating the mix.';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Generate Mix';
+    }
+  };
+
+  let autoMixTimer = null, autoMixIdx = 0, autoMixActive = false;
+  window.djAutoMixQueue = function(){
+    if(!aiQueue.length) return;
+    autoMixActive = true;
+    autoMixIdx = 0;
+    document.getElementById('dj-stop-automix').style.display = 'inline-block';
+    djLoadTrack('A', aiQueue[0]);
+    decks['A'].audio.play().catch(()=>{});
+    decks['A'].el.querySelector('.dj-play-btn').textContent = '❚❚';
+    document.getElementById('dj-crossfader').value = 0;
+    decks['A'].crossGain.gain.value = 1; decks['B'].crossGain.gain.value = 0;
+    if(aiQueue.length > 1) djScheduleNextTransition('A', 'B', 1);
+  };
+
+  function djScheduleNextTransition(fromDeck, toDeck, nextIdx){
+    const audio = decks[fromDeck].audio;
+    const checkInterval = setInterval(()=>{
+      if(!autoMixActive){ clearInterval(checkInterval); return; }
+      if(!audio.duration) return;
+      const remaining = audio.duration - audio.currentTime;
+      if(remaining <= 8 && remaining > 0){
+        clearInterval(checkInterval);
+        djCrossfadeTo(fromDeck, toDeck, aiQueue[nextIdx], nextIdx);
+      }
+    }, 500);
+  }
+
+  function djCrossfadeTo(fromDeck, toDeck, track, idx){
+    djLoadTrack(toDeck, track);
+    decks[toDeck].audio.play().catch(()=>{});
+    decks[toDeck].el.querySelector('.dj-play-btn').textContent = '❚❚';
+    const fader = document.getElementById('dj-crossfader');
+    const startVal = fromDeck === 'A' ? 0 : 100;
+    const endVal = fromDeck === 'A' ? 100 : 0;
+    const duration = 6000, startTime = Date.now();
+    (function step(){
+      if(!autoMixActive) return;
+      const t = Math.min(1, (Date.now()-startTime)/duration);
+      fader.value = startVal + (endVal-startVal)*t;
+      fader.dispatchEvent(new Event('input'));
+      if(t < 1) requestAnimationFrame(step);
+      else {
+        decks[fromDeck].audio.pause();
+        autoMixIdx = idx;
+        if(idx + 1 < aiQueue.length) djScheduleNextTransition(toDeck, fromDeck, idx+1);
+        else autoMixActive = false;
+      }
+    })();
+  }
+
+  window.djStopAutoMix = function(){
+    autoMixActive = false;
+    document.getElementById('dj-stop-automix').style.display = 'none';
+  };
+})();
+</script>
+{% endblock %}

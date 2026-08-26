@@ -157,10 +157,9 @@ def get_client_ip(request):
 # AI helper functions
 def get_ai_key(provider):
     """Get the API key for an AI provider. Checks the admin-configured
-    DB record first (AIProviderSettings, set via Admin → Settings → AI —
-    this used to be skipped entirely, which is why a key saved in admin
-    never actually took effect), then falls back to an environment
-    variable / settings.py value for self-hosters who prefer that route."""
+    DB record first (AIProviderSettings, set via Admin -> Settings -> AI),
+    then falls back to an environment variable / settings.py value for
+    self-hosters who prefer that route."""
     from core.models import AIProviderSettings
     db_key = AIProviderSettings.get_key(provider)
     if db_key:
@@ -181,9 +180,6 @@ def get_ai_key(provider):
 
 
 def get_ai_model(provider, default=''):
-    """Get the admin-configured model name for a provider, falling back
-    to a sane default (e.g. so the platform still works before anyone has
-    typed a model name into the settings form)."""
     from core.models import AIProviderSettings
     return AIProviderSettings.get_model(provider, default)
 

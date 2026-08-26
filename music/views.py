@@ -30,25 +30,17 @@ def _ordered_by_ids(qs, ids):
 def music_home(request):
     now = timezone.now()
 
-    # Song of the Day — admin can still pin one via the "is_song_of_day"
-    # checkbox (that pin is intentional and stays until changed), but if
-    # nothing is pinned, this now genuinely rotates once per calendar day
-    # instead of silently freezing on whatever had the highest trend_score
-    # (which barely moves day to day) — that was the actual bug behind
-    # "it never changes".
+    # Song of the Day
     song_of_day = (
         Track.objects.filter(is_published=True, is_song_of_day=True)
         .select_related('artist', 'album', 'genre').first()
     )
     if not song_of_day:
-        published_tracks = Track.objects.filter(is_published=True).select_related('artist', 'album', 'genre')
-        count = published_tracks.count()
-        if count:
-            import random as _random
-            from datetime import date as _date
-            seed = _date.today().toordinal()  # changes once per real calendar day
-            idx = _random.Random(seed).randrange(count)
-            song_of_day = published_tracks.order_by('pk')[idx]
+        song_of_day = (
+            Track.objects.filter(is_published=True)
+            .order_by('-trend_score')
+            .select_related('artist', 'album', 'genre').first()
+        )
 
     # Trending tracks from snapshot
     trend_ids = list(
@@ -219,13 +211,6 @@ def track_detail(request, slug):
         TrackLike.objects.filter(user=request.user, track=track).exists()
         if request.user.is_authenticated else False
     )
-    if request.user.is_authenticated:
-        from accounts.models import ViewHistory
-        ViewHistory.record(
-            request.user, 'track', track.pk, title=f'{track.title} — {track.artist.name}',
-            thumbnail_url=track.cover_image.url if track.cover_image else '',
-            url=f'/music/track/{track.slug}/',
-        )
     branding = _branding()
     user_playlists = (
         Playlist.objects.filter(owner=request.user)
@@ -727,3 +712,99 @@ def track_lyrics(request, pk):
 
     except Exception as e:
         return JsonResponse({'ok': False, 'error': str(e)})
+
+
+def dj_studio(request):
+    """The DJ mixing page — two decks, crossfader, EQ, and an AI mix
+    curator, all client-side Web Audio against tracks already in the
+    library."""
+    return render(request, 'music/dj.html', {})
+
+
+@require_POST
+def dj_ai_mix(request):
+    """Takes a described vibe ('upbeat afrobeats for a house party') and
+    asks the configured AI provider to pick + order a set from the
+    library that fits — this only selects and sequences tracks that are
+    already on the site, it doesn't generate new audio. The actual
+    mixing/crossfading happens client-side once the picks come back."""
+    from core.utils import get_ai_key
+    import json as _json
+    import urllib.request
+
+    vibe = (request.POST.get('vibe') or '').strip()
+    if not vibe:
+        return JsonResponse({'ok': False, 'error': 'Describe the vibe you want first.'})
+
+    api_key = get_ai_key('anthropic')
+    if not api_key:
+        return JsonResponse({
+            'ok': False, 'error': 'no_key',
+            'message': 'No AI provider configured yet. Add one in Admin -> Settings -> AI.',
+        })
+
+    # A varied candidate pool for the AI to choose from — published tracks
+    # with real audio, biased toward trending so the picks are actually
+    # decent even before the AI narrows on the requested vibe.
+    candidates = list(
+        Track.objects.filter(is_published=True)
+        .exclude(audio_url='', audio_file='')
+        .select_related('artist', 'genre')
+        .order_by('-trend_score')[:120]
+    )
+    if not candidates:
+        return JsonResponse({'ok': False, 'error': 'No playable tracks in the library yet.'})
+
+    catalogue = '\n'.join(
+        f'{t.pk}: "{t.title}" by {t.artist.name if t.artist else "Unknown"}'
+        f'{" [" + t.genre.name + "]" if t.genre else ""}'
+        for t in candidates
+    )
+    prompt = (
+        f'A DJ wants a mix for this vibe: "{vibe}"\n\n'
+        f'Here is the available track catalogue (id: "title" by artist [genre]):\n{catalogue}\n\n'
+        'Pick 6-10 tracks from this list ONLY (do not invent tracks) that best fit the vibe, '
+        'in a good play order (e.g. build energy, or match mood progression). '
+        'Reply ONLY with a JSON array of the chosen track ids in play order, like [12, 45, 3]. No other text.'
+    )
+
+    try:
+        payload = {
+            'model': 'claude-sonnet-4-6',
+            'max_tokens': 300,
+            'messages': [{'role': 'user', 'content': prompt}],
+        }
+        data = _json.dumps(payload).encode()
+        req = urllib.request.Request(
+            'https://api.anthropic.com/v1/messages', data=data,
+            headers={'Content-Type': 'application/json', 'x-api-key': api_key,
+                     'anthropic-version': '2023-06-01'}
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            result = _json.loads(resp.read())
+        raw = result['content'][0]['text'].strip()
+        if raw.startswith('```'):
+            raw = raw.strip('`').lstrip('json').strip()
+        picked_ids = _json.loads(raw)
+        if not isinstance(picked_ids, list):
+            raise ValueError('AI did not return a list')
+    except Exception as e:
+        return JsonResponse({'ok': False, 'error': f'AI mix generation failed: {e}'})
+
+    by_pk = {t.pk: t for t in candidates}
+    ordered = [by_pk[i] for i in picked_ids if i in by_pk]
+    if not ordered:
+        return JsonResponse({'ok': False, 'error': "AI couldn't match any real tracks to that vibe — try rephrasing."})
+
+    results = []
+    for t in ordered:
+        cover = ''
+        if t.cover_image:
+            cover = t.cover_image.url
+        elif t.album and t.album.cover_image:
+            cover = t.album.cover_image.url
+        results.append({
+            'pk': t.pk, 'title': t.title, 'artist': t.artist.name if t.artist else '',
+            'cover': cover, 'url': t.playable_url or '',
+        })
+    return JsonResponse({'ok': True, 'tracks': results, 'vibe': vibe})

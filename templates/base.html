@@ -41,13 +41,6 @@
 </script>
 
 {% if branding and branding.favicon %}<link rel="icon" href="{{ branding.favicon.url }}">{% else %}<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%231db954'/><text x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-size='18' fill='white'>N</text></svg>">{% endif %}
-<link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="{{ theme.primary_color|default:'#1db954' }}">
-<link rel="apple-touch-icon" href="{% if branding and branding.favicon %}{{ branding.favicon.url }}{% else %}/static/icons/default-512.png{% endif %}">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="{{ branding.site_name|default:'NEXUS' }}">
-<meta name="mobile-web-app-capable" content="yes">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Circular+Std:wght@400;500;700;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer">
@@ -400,8 +393,6 @@ input,select,textarea,button{font-family:inherit;font-size:inherit}
   background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
 }
 .sp-lyrics-btn:hover{background:rgba(29,185,84,.12);border-color:rgba(29,185,84,.3);color:var(--sp-green)}
-.lyr-close-btn:hover{background:rgba(255,255,255,.16)}
-.lyr-close-btn:active{background:rgba(255,255,255,.22);transform:scale(.92)}
 
 /* Mini playing-now equalizer bars beside the title when playing */
 .sp-eq{display:none;align-items:flex-end;gap:2px;height:13px;margin-right:6px;flex-shrink:0}
@@ -482,28 +473,23 @@ input,select,textarea,button{font-family:inherit;font-size:inherit}
 /* Track list */
 .sp-tracklist{width:100%}
 .sp-track-row{
-  display:grid;grid-template-columns:32px 40px 1fr auto;
-  align-items:center;gap:12px;
-  padding:8px 14px;border-radius:var(--r);
+  display:grid;grid-template-columns:36px 1fr auto auto;
+  align-items:center;gap:14px;
+  padding:7px 14px;border-radius:var(--r);
   cursor:pointer;transition:background .12s;
   text-decoration:none;color:inherit;
 }
 .sp-track-row:hover{background:rgba(255,255,255,.07)}
 .sp-track-row.playing .sp-track-num{color:var(--sp-green)}
 .sp-track-row.playing .sp-track-title{color:var(--sp-green)}
-.sp-track-num{font-size:14px;color:var(--tx2);text-align:center;font-variant-numeric:tabular-nums;font-weight:700}
+.sp-track-num{font-size:15px;color:var(--tx2);text-align:center;font-variant-numeric:tabular-nums}
 .sp-track-thumb{width:40px;height:40px;border-radius:4px;overflow:hidden;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
 .sp-track-thumb img{width:100%;height:100%;object-fit:cover}
-.sp-track-info{min-width:0;text-align:left}
-.sp-track-title{font-size:14px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}
-.sp-track-artist{font-size:12px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}
-.sp-track-dur{font-size:12px;color:var(--tx2);font-variant-numeric:tabular-nums;text-align:left}
-.sp-track-plays{font-size:12px;color:var(--tx2);font-variant-numeric:tabular-nums;text-align:left}
-
-/* Top Chart — clearer rank hierarchy for the top 3 */
-.sp-chart .sp-track-row:nth-child(1) .sp-track-num{color:#ffd54a;font-size:17px}
-.sp-chart .sp-track-row:nth-child(2) .sp-track-num{color:#d9d9e0;font-size:16px}
-.sp-chart .sp-track-row:nth-child(3) .sp-track-num{color:#e0a672;font-size:16px}
+.sp-track-info{min-width:0}
+.sp-track-title{font-size:14px;font-weight:500;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sp-track-artist{font-size:12px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sp-track-dur{font-size:12px;color:var(--tx2);font-variant-numeric:tabular-nums}
+.sp-track-plays{font-size:12px;color:var(--tx2);font-variant-numeric:tabular-nums;text-align:right}
 
 /* Badge */
 .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
@@ -716,6 +702,9 @@ input,select,textarea{max-width:100%;font-size:16px} /* prevent iOS zoom */
       </a>
       <a href="/music/discover/" class="sp-nav-item {% if 'discover' in request.path %}active{% endif %}">
         <span class="sp-nav-icon">🎙</span>Discover
+      </a>
+      <a href="/music/dj/" class="sp-nav-item {% if '/music/dj/' in request.path %}active{% endif %}">
+        <span class="sp-nav-icon">🎚</span>DJ Studio
       </a>
       <a href="/trending/" class="sp-nav-item {% if 'trending' in request.path %}active{% endif %}">
         <span class="sp-nav-icon">🔥</span>Trending
@@ -1046,7 +1035,7 @@ input,select,textarea{max-width:100%;font-size:16px} /* prevent iOS zoom */
 
   
   <div style="position:relative;z-index:5;display:flex;align-items:center;justify-content:space-between;padding:max(16px,env(safe-area-inset-top)) 22px 12px;flex-shrink:0">
-    <button onclick="spCloseLyrics()" aria-label="Close lyrics" class="lyr-close-btn" style="background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.85);font-size:15px;cursor:pointer;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:background .15s,transform .1s;flex-shrink:0;"><i class="fa-solid fa-chevron-down"></i></button>
+    <button onclick="spCloseLyrics()" style="background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.8);font-size:20px;cursor:pointer;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%">⌄</button>
     <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;justify-content:center">
       <div id="lyr-header-cover" style="width:32px;height:32px;border-radius:6px;overflow:hidden;flex-shrink:0;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:14px">🎵</div>
       <div style="min-width:0;text-align:left">
@@ -1597,16 +1586,5 @@ document.addEventListener('DOMContentLoaded',()=>{
 </script>
 
 {% block scripts %}{% endblock %}
-
-<script>
-// Registers the app-shell service worker (see /sw.js) so the site can be
-// installed via "Add to Home Screen" / browser install prompt and loads
-// instantly on repeat visits. Safe no-op on browsers without support.
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js', {scope: '/'}).catch(() => {});
-  });
-}
-</script>
 </body>
 </html>
