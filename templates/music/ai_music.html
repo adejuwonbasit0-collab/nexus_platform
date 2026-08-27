@@ -1,0 +1,275 @@
+{% extends 'base.html' %}
+{% block title %}AI Music Studio — NEXUS{% endblock %}
+{% block content %}
+<div class="wrap" style="padding:24px 0 60px;">
+  <div style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:800;margin-bottom:6px;">🎼 AI Music Studio</div>
+  <div style="color:var(--tx2);font-size:13px;margin-bottom:24px;">Generate instrumental backing tracks with AI, or record your own voice and shape it with real audio effects.</div>
+
+  <!-- ══════════ Instrumental AI Generation ══════════ -->
+  <div style="background:var(--bg3);border-radius:14px;padding:20px;margin-bottom:24px;">
+    <div style="font-weight:800;font-size:15px;margin-bottom:6px;">🎹 AI Instrumental Generator</div>
+    <div style="font-size:12.5px;color:var(--tx2);margin-bottom:16px;">
+      Describe a mood, genre, instruments, or tempo and get a generated backing track — powered by Stability AI's Stable Audio.
+      <strong>Honest note:</strong> this generates instrumental music only. There is no legitimate, officially-supported API
+      for AI-sung vocals from lyrics right now — the real options (Suno, etc.) either have no public API or only unofficial,
+      unverified wrappers that violate their own terms of service, so that piece isn't built here. If that changes, this gets extended.
+    </div>
+
+    {% if not stable_audio_configured %}
+    <details style="margin-bottom:16px;" open>
+      <summary style="cursor:pointer;font-size:12.5px;color:var(--tx2);padding:8px 0;">🔑 Set up Stability AI (needed for generation)</summary>
+      <div style="background:rgba(255,255,255,.03);border-radius:10px;padding:14px 16px;margin-top:8px;">
+        <div style="font-size:12px;color:var(--tx2);margin-bottom:10px;">
+          1. Go to <a href="https://platform.stability.ai/account/keys" target="_blank" style="color:#1db954;">platform.stability.ai/account/keys</a> and sign up (free to start, generation is pay-as-you-go credits).<br>
+          2. Create an API key and copy it.<br>
+          3. Paste it in <strong>Admin → Settings → AI Providers → Stability AI</strong> and save — the same key already used for AI image generation works here too, no separate key needed if you've set that up.
+        </div>
+        <a href="/admin-panel/settings/?tab=ai" class="btn btn-secondary btn-sm">Go to AI Settings</a>
+      </div>
+    </details>
+    {% endif %}
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+      <input id="aim-prompt" placeholder="e.g. warm lofi hip-hop beat, mellow piano, soft vinyl crackle, 90 BPM" style="flex:1;min-width:260px;background:var(--bg);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:11px 14px;color:var(--tx);font-size:13.5px;">
+      <select id="aim-duration" style="background:var(--bg);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:11px 12px;color:var(--tx);font-size:13px;">
+        <option value="15">15 sec</option>
+        <option value="30" selected>30 sec</option>
+        <option value="60">60 sec</option>
+        <option value="120">2 min</option>
+      </select>
+      <button onclick="aimGenerate()" id="aim-btn" style="background:#1db954;color:#000;border:none;font-weight:700;font-size:13px;padding:11px 22px;border-radius:10px;cursor:pointer;white-space:nowrap;" {% if not stable_audio_configured %}disabled{% endif %}>Generate</button>
+    </div>
+    <div id="aim-status" style="font-size:12px;color:var(--tx2);display:none;margin-bottom:10px;"></div>
+    <div id="aim-result" style="display:none;">
+      <audio id="aim-audio" controls style="width:100%;margin-bottom:8px;"></audio>
+      <div style="font-size:12px;color:var(--tx2);">Saved to your library as a draft (unpublished) — <a id="aim-edit-link" href="#" style="color:#1db954;">edit and publish it here</a> whenever you're happy with it.</div>
+    </div>
+  </div>
+
+  <!-- ══════════ Voice Effects Studio ══════════ -->
+  <div style="background:var(--bg3);border-radius:14px;padding:20px;">
+    <div style="font-weight:800;font-size:15px;margin-bottom:6px;">🎤 Voice Effects Studio</div>
+    <div style="font-size:12.5px;color:var(--tx2);margin-bottom:16px;">
+      Record yourself, then shape it with real audio effects — pitch shift, reverb, echo, robot/chorus. This uses only your own
+      live recording, processed entirely in your browser. Nothing is cloned or synthesized to sound like anyone.
+    </div>
+
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+      <button id="vfx-record-btn" onclick="vfxToggleRecord()" style="background:#e0245e;color:#fff;border:none;width:56px;height:56px;border-radius:50%;font-size:20px;cursor:pointer;">⏺</button>
+      <div id="vfx-record-status" style="font-size:12.5px;color:var(--tx2);">Tap to record (uses your microphone)</div>
+    </div>
+
+    <div id="vfx-editor" style="display:none;">
+      <audio id="vfx-audio" controls style="width:100%;margin-bottom:14px;"></audio>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:16px;">
+        <div>
+          <label style="font-size:11px;color:var(--tx2);">PITCH <span id="vfx-pitch-val">0</span></label>
+          <input type="range" id="vfx-pitch" min="-12" max="12" value="0" step="1" style="width:100%;">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--tx2);">REVERB <span id="vfx-reverb-val">0%</span></label>
+          <input type="range" id="vfx-reverb" min="0" max="100" value="0" step="5" style="width:100%;">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--tx2);">ECHO <span id="vfx-echo-val">0%</span></label>
+          <input type="range" id="vfx-echo" min="0" max="100" value="0" step="5" style="width:100%;">
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+        <button onclick="vfxPreset('clean')" class="btn btn-secondary btn-sm">Clean</button>
+        <button onclick="vfxPreset('deep')" class="btn btn-secondary btn-sm">Deep Voice</button>
+        <button onclick="vfxPreset('high')" class="btn btn-secondary btn-sm">High Voice</button>
+        <button onclick="vfxPreset('hall')" class="btn btn-secondary btn-sm">Concert Hall</button>
+        <button onclick="vfxPreset('robot')" class="btn btn-secondary btn-sm">Robot / Chorus</button>
+      </div>
+
+      <div style="display:flex;gap:10px;">
+        <button onclick="vfxPreview()" style="background:#1db954;color:#000;border:none;font-weight:700;font-size:12.5px;padding:10px 18px;border-radius:20px;cursor:pointer;">▶ Preview With Effects</button>
+        <button onclick="vfxDownload()" style="background:rgba(255,255,255,.1);color:#fff;border:none;font-weight:700;font-size:12.5px;padding:10px 18px;border-radius:20px;cursor:pointer;">⬇ Download Mix</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════ AI Instrumental Generator ══════════
+async function aimGenerate(){
+  const prompt = document.getElementById('aim-prompt').value.trim();
+  if(!prompt){ alert('Describe the music you want first.'); return; }
+  const btn = document.getElementById('aim-btn');
+  const status = document.getElementById('aim-status');
+  btn.disabled = true; btn.textContent = 'Generating… (can take up to a minute)';
+  status.style.display = 'block'; status.textContent = 'Sending to Stable Audio…';
+  try{
+    const res = await fetch('/music/ai-studio/generate/', {
+      method: 'POST',
+      headers: {'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/x-www-form-urlencoded'},
+      body: `prompt=${encodeURIComponent(prompt)}&duration=${document.getElementById('aim-duration').value}`,
+    });
+    const data = await res.json();
+    if(!data.ok){
+      status.textContent = '⚠ ' + (data.message || data.error || 'Generation failed.');
+      return;
+    }
+    status.textContent = '';
+    document.getElementById('aim-audio').src = data.url;
+    document.getElementById('aim-edit-link').href = data.edit_url;
+    document.getElementById('aim-result').style.display = 'block';
+  } catch(e){
+    status.textContent = '⚠ Network error while generating.';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Generate';
+  }
+}
+
+// ══════════ Voice Effects Studio ══════════
+(function(){
+  let mediaRecorder, chunks = [], recording = false;
+  let rawBlob = null;
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  let ctx = null;
+
+  window.vfxToggleRecord = async function(){
+    const btn = document.getElementById('vfx-record-btn');
+    const status = document.getElementById('vfx-record-status');
+    if(!recording){
+      try{
+        const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+        chunks = [];
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.ondataavailable = e => chunks.push(e.data);
+        mediaRecorder.onstop = () => {
+          rawBlob = new Blob(chunks, {type:'audio/webm'});
+          document.getElementById('vfx-editor').style.display = 'block';
+          document.getElementById('vfx-audio').src = URL.createObjectURL(rawBlob);
+          stream.getTracks().forEach(t=>t.stop());
+        };
+        mediaRecorder.start();
+        recording = true;
+        btn.textContent = '⏹';
+        btn.style.background = '#666';
+        status.textContent = 'Recording… tap again to stop';
+      } catch(e){
+        status.textContent = 'Microphone access denied or unavailable.';
+      }
+    } else {
+      mediaRecorder.stop();
+      recording = false;
+      btn.textContent = '⏺';
+      btn.style.background = '#e0245e';
+      status.textContent = 'Recorded — adjust effects below';
+    }
+  };
+
+  window.vfxPreset = function(name){
+    const presets = {
+      clean:  {pitch:0,  reverb:0,  echo:0},
+      deep:   {pitch:-5, reverb:10, echo:0},
+      high:   {pitch:5,  reverb:0,  echo:0},
+      hall:   {pitch:0,  reverb:65, echo:15},
+      robot:  {pitch:-2, reverb:20, echo:35},
+    };
+    const p = presets[name];
+    if(!p) return;
+    document.getElementById('vfx-pitch').value = p.pitch;
+    document.getElementById('vfx-reverb').value = p.reverb;
+    document.getElementById('vfx-echo').value = p.echo;
+    document.getElementById('vfx-pitch-val').textContent = p.pitch;
+    document.getElementById('vfx-reverb-val').textContent = p.reverb + '%';
+    document.getElementById('vfx-echo-val').textContent = p.echo + '%';
+  };
+  ['pitch','reverb','echo'].forEach(id=>{
+    document.getElementById('vfx-'+id).addEventListener('input', e=>{
+      document.getElementById('vfx-'+id+'-val').textContent = e.target.value + (id==='pitch' ? '' : '%');
+    });
+  });
+
+  function makeImpulse(ctx, seconds, decay){
+    const rate = ctx.sampleRate, len = rate * seconds;
+    const impulse = ctx.createBuffer(2, len, rate);
+    for(let ch=0; ch<2; ch++){
+      const data = impulse.getChannelData(ch);
+      for(let i=0;i<len;i++) data[i] = (Math.random()*2-1) * Math.pow(1-i/len, decay);
+    }
+    return impulse;
+  }
+
+  async function renderWithEffects(){
+    if(!rawBlob) return null;
+    const arrayBuf = await rawBlob.arrayBuffer();
+    const offlineDecodeCtx = new AudioCtx();
+    const decoded = await offlineDecodeCtx.decodeAudioData(arrayBuf.slice(0));
+    offlineDecodeCtx.close();
+
+    const pitch = +document.getElementById('vfx-pitch').value;
+    const reverbAmt = (+document.getElementById('vfx-reverb').value) / 100;
+    const echoAmt = (+document.getElementById('vfx-echo').value) / 100;
+    const rate = Math.pow(2, pitch/12); // semitone shift via playback rate (also affects tempo slightly — acceptable tradeoff for a simple, real-time-safe effect)
+
+    const offline = new OfflineAudioContext(2, Math.ceil(decoded.duration * decoded.sampleRate / rate) + decoded.sampleRate*2, decoded.sampleRate);
+    const src = offline.createBufferSource();
+    src.buffer = decoded;
+    src.playbackRate.value = rate;
+
+    const dry = offline.createGain(); dry.gain.value = 1 - reverbAmt*0.6;
+    src.connect(dry); dry.connect(offline.destination);
+
+    if(reverbAmt > 0){
+      const convolver = offline.createConvolver();
+      convolver.buffer = makeImpulse(offline, 2.5, 2.5);
+      const wet = offline.createGain(); wet.gain.value = reverbAmt;
+      src.connect(convolver); convolver.connect(wet); wet.connect(offline.destination);
+    }
+    if(echoAmt > 0){
+      const delay = offline.createDelay(1.0); delay.delayTime.value = 0.28;
+      const feedback = offline.createGain(); feedback.gain.value = echoAmt * 0.5;
+      const echoWet = offline.createGain(); echoWet.gain.value = echoAmt;
+      src.connect(delay); delay.connect(feedback); feedback.connect(delay);
+      delay.connect(echoWet); echoWet.connect(offline.destination);
+    }
+    src.start(0);
+    return await offline.startRendering();
+  }
+
+  function bufferToWavBlob(buffer){
+    const numCh = buffer.numberOfChannels, len = buffer.length * numCh * 2 + 44;
+    const arrBuf = new ArrayBuffer(len), view = new DataView(arrBuf);
+    const writeStr = (o,s)=>{ for(let i=0;i<s.length;i++) view.setUint8(o+i, s.charCodeAt(i)); };
+    writeStr(0,'RIFF'); view.setUint32(4, len-8, true); writeStr(8,'WAVE');
+    writeStr(12,'fmt '); view.setUint32(16,16,true); view.setUint16(20,1,true);
+    view.setUint16(22,numCh,true); view.setUint32(24,buffer.sampleRate,true);
+    view.setUint32(28,buffer.sampleRate*numCh*2,true); view.setUint16(32,numCh*2,true); view.setUint16(34,16,true);
+    writeStr(36,'data'); view.setUint32(40, len-44, true);
+    let offset = 44;
+    for(let i=0;i<buffer.length;i++){
+      for(let ch=0; ch<numCh; ch++){
+        const sample = Math.max(-1, Math.min(1, buffer.getChannelData(ch)[i]));
+        view.setInt16(offset, sample<0 ? sample*0x8000 : sample*0x7FFF, true);
+        offset += 2;
+      }
+    }
+    return new Blob([arrBuf], {type:'audio/wav'});
+  }
+
+  window.vfxPreview = async function(){
+    const rendered = await renderWithEffects();
+    if(!rendered) return;
+    const blob = bufferToWavBlob(rendered);
+    document.getElementById('vfx-audio').src = URL.createObjectURL(blob);
+    document.getElementById('vfx-audio').play();
+  };
+
+  window.vfxDownload = async function(){
+    const rendered = await renderWithEffects();
+    if(!rendered) return;
+    const blob = bufferToWavBlob(rendered);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'my-voice-mix.wav';
+    a.click();
+  };
+})();
+</script>
+{% endblock %}

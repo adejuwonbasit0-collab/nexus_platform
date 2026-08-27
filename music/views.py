@@ -721,6 +721,60 @@ def dj_studio(request):
     return render(request, 'music/dj.html', {})
 
 
+def ai_music_studio(request):
+    """Instrumental AI music generation (Stable Audio) and a voice
+    effects tool (record your own voice, apply real audio effects) —
+    both live on one page since they're both 'make something musical'
+    tools that don't need a full separate section."""
+    from core import external_fetch as ext
+    return render(request, 'music/ai_music.html', {
+        'stable_audio_configured': ext.stable_audio_configured(),
+    })
+
+
+@require_POST
+def ai_music_generate(request):
+    """Generates an instrumental track from a text description via
+    Stability AI's Stable Audio. Instrumental only — see the honest note
+    in the template about why this doesn't do sung vocals from lyrics."""
+    from core import external_fetch as ext
+    import uuid
+    from django.core.files.base import ContentFile
+
+    prompt = (request.POST.get('prompt') or '').strip()
+    duration = request.POST.get('duration', '30')
+    if not prompt:
+        return JsonResponse({'ok': False, 'error': 'Describe the music you want first.'})
+
+    audio_bytes, err = ext.stable_audio_generate(prompt, duration=duration)
+    if err:
+        if 'No Stability AI key saved' in err:
+            return JsonResponse({
+                'ok': False, 'error': 'no_key',
+                'message': 'No Stability AI key configured yet. Add one above to enable AI music generation.',
+            })
+        return JsonResponse({'ok': False, 'error': err})
+
+    user = request.user if request.user.is_authenticated else None
+    track = Track(
+        title=f'AI Generated — {prompt[:60]}',
+        artist=Artist.objects.get_or_create(name='AI Studio', defaults={'slug': 'ai-studio'})[0],
+        release_year=2026,
+        uploaded_by=user,
+        is_fetched=False,
+        is_published=False,  # stays private/draft until the creator reviews and publishes it
+        description=f'AI-generated instrumental. Prompt: "{prompt}"',
+    )
+    fname = f'ai_music_{uuid.uuid4().hex[:8]}.mp3'
+    track.audio_file.save(fname, ContentFile(audio_bytes), save=False)
+    track.save()
+
+    return JsonResponse({
+        'ok': True, 'track_id': track.pk, 'title': track.title,
+        'url': track.playable_url, 'edit_url': f'/music/track/{track.slug}/',
+    })
+
+
 @require_POST
 def dj_ai_mix(request):
     """Takes a described vibe ('upbeat afrobeats for a house party') and

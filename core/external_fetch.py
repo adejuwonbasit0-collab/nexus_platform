@@ -33,10 +33,7 @@ def download_image_into(instance, field_name, url, filename_hint='cover.jpg'):
         return False
     try:
         from django.core.files.base import ContentFile
-        req = urllib.request.Request(url, headers={
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
-            'Accept': 'image/*,*/*;q=0.8',
-        })
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
         with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
             content = resp.read()
         if not content:
@@ -267,23 +264,6 @@ def tmdb_trailer_url(tmdb_id):
         if v.get('site') == 'YouTube' and v.get('type') == 'Trailer':
             return f"https://www.youtube.com/watch?v={v['key']}"
     return ''
-
-
-def tmdb_credits(tmdb_id, limit=12):
-    """Real cast — actor's actual name, character they played, and a
-    photo — pulled straight from TMDB, the same info any normal movie
-    site shows. Returns a JSON-ready list, empty list on failure."""
-    data = _tmdb_get(f'/movie/{tmdb_id}/credits')
-    if not data:
-        return []
-    out = []
-    for c in data.get('cast', [])[:limit]:
-        out.append({
-            'name': c.get('name', ''),
-            'character': c.get('character', ''),
-            'photo_url': f"{IMG_BASE}{c['profile_path']}" if c.get('profile_path') else '',
-        })
-    return out
 
 
 # ── Stock images: Pexels ─────────────────────────────────────────────────────
@@ -519,226 +499,7 @@ def pixabay_videos_search_verbose(query, per_page=18):
             'photographer': v.get('user', ''),
         })
     return out, None
-
-
-# ── Archive.org — public-domain / freely-licensed feature films ─────────────
-# Free, keyless, no auth required. Every result here is either public
-# domain or explicitly openly-licensed by its uploader, so it's safe to
-# stream directly — unlike a commercial catalogue, nothing here needs a
-# license check.
-
-ARCHIVE_ORG_HEADERS = {
-    # Archive.org's search API is known to rate-limit or silently degrade
-    # requests carrying the default Python-urllib user agent — a normal
-    # browser-like one avoids that.
-    'User-Agent': 'Mozilla/5.0 (compatible; NEXUS/1.0; +https://archive.org)',
-}
-
-def archive_org_configured():
-    return True  # no key needed
-
-
-def archive_org_search(query, per_page=20):
-    """Search Archive.org's movies collection. Returns lightweight results
-    (title/description/year/thumbnail) — the actual playable file URL is
-    resolved separately, only for items actually selected to import, via
-    archive_org_get_video_url()."""
-    fields = 'identifier,title,description,year,downloads'
-    q = f'mediatype:(movies) AND {query}' if query.strip() else 'mediatype:(movies) AND collection:(feature_films)'
-    params = urllib.parse.urlencode({
-        'q': q, 'fl[]': fields, 'rows': max(per_page, 3),
-        'output': 'json', 'sort[]': 'downloads desc',
-    }, doseq=True)
-    data, err = _get_json_verbose(f'https://archive.org/advancedsearch.php?{params}', headers=ARCHIVE_ORG_HEADERS)
-    if err:
-        return [], err
-    docs = (data.get('response') or {}).get('docs', [])
-    out = []
-    for d in docs:
-        identifier = d.get('identifier', '')
-        if not identifier:
-            continue
-        desc = d.get('description', '')
-        if isinstance(desc, list):
-            desc = ' '.join(desc)
-        out.append({
-            'source': 'Archive.org',
-            'external_id': identifier,
-            'title': d.get('title', identifier),
-            'description': (desc or '')[:500],
-            'release_year': d.get('year', ''),
-            'cover': f'https://archive.org/services/img/{identifier}',
-            'detail_url': f'https://archive.org/details/{identifier}',
-        })
-    return out, None
-
-
-def archive_org_get_video_url(identifier):
-    """Resolves an Archive.org identifier to a direct playable mp4 URL by
-    reading its file manifest — only called at import time, once per
-    selected item, to avoid a metadata call for every search result."""
-    data = _get_json(f'https://archive.org/metadata/{identifier}', headers=ARCHIVE_ORG_HEADERS)
-    if not data:
-        return ''
-    files = data.get('files', [])
-    # Prefer a real mp4; Archive.org items often also bundle .ogv/.mpeg —
-    # skip those in favor of the most universally-playable format.
-    mp4s = [f for f in files if (f.get('name', '').lower().endswith('.mp4'))]
-    if not mp4s:
-        return ''
-    # Larger encodes tend to be the "real" transfer rather than a thumbnail
-    # clip; fall back to the first if size is missing.
-    mp4s.sort(key=lambda f: int(f.get('size') or 0), reverse=True)
-    best = mp4s[0]
-    return f'https://archive.org/download/{identifier}/{best["name"]}'
-
-
-# ── Jamendo — full-length, streamable, Creative-Commons-licensed music ──────
-# Independent-artist tracks, full length (not 30-second previews like
-# iTunes), free with a client_id (free to register at jamendo.com).
-
-def _jamendo_client_id():
-    from core.models import SiteSettings
-    try:
-        return SiteSettings.objects.get(key='jamendo_client_id').value.strip()
-    except SiteSettings.DoesNotExist:
-        return ''
-
-
-def jamendo_configured():
-    return bool(_jamendo_client_id())
-
-
-def jamendo_search(query, per_page=20):
-    client_id = _jamendo_client_id()
-    if not client_id:
-        return [], 'No Jamendo client_id saved yet.'
-    params = {
-        'client_id': client_id, 'format': 'json', 'limit': max(per_page, 3),
-        'include': 'musicinfo', 'audioformat': 'mp32',
-    }
-    if query.strip():
-        params['search'] = query.strip()
-    else:
-        params['order'] = 'popularity_total'
-    q = urllib.parse.urlencode(params)
-    data, err = _get_json_verbose(f'https://api.jamendo.com/v3.0/tracks/?{q}')
-    if err:
-        return [], err
-    out = []
-    for t in data.get('results', []):
-        out.append({
-            'source': 'Jamendo',
-            'external_id': str(t.get('id', '')),
-            'title': t.get('name', 'Untitled'),
-            'artist': t.get('artist_name', 'Unknown Artist'),
-            'preview_url': t.get('audio', ''),   # full-length stream, not a 30s preview
-            'cover': t.get('image', ''),
-            'duration': t.get('duration', 0),
-            'genre': (t.get('musicinfo') or {}).get('tags', {}).get('genres', [''])[0] if t.get('musicinfo') else '',
-            'release_year': (t.get('releasedate') or '')[:4],
-        })
-    return out, None
-
-
-# ── YouTube — real embedded Shorts via YouTube's own official player ────────
-# Nothing is downloaded or rehosted here — only the video ID + metadata are
-# stored, and playback always happens through YouTube's own embedded
-# player (same as the existing is_youtube handling in shorts/models.py),
-# which is exactly what the YouTube Data API is licensed for.
-
-def _youtube_api_key():
-    from core.models import SiteSettings
-    try:
-        return SiteSettings.objects.get(key='youtube_api_key').value.strip()
-    except SiteSettings.DoesNotExist:
-        return ''
-
-
-def youtube_configured():
-    return bool(_youtube_api_key())
-
-
-def youtube_shorts_search(query, per_page=20):
-    key = _youtube_api_key()
-    if not key:
-        return [], 'No YouTube API key saved yet.'
-    # Fetch a larger pool than requested, since some will get filtered out
-    # for not being embeddable (see below) — asking for exactly per_page
-    # up front would under-deliver after filtering.
-    fetch_count = min(max(per_page, 3) * 2, 50)
-    params = urllib.parse.urlencode({
-        'part': 'snippet', 'q': query.strip() or 'comedy skits',
-        'type': 'video', 'videoDuration': 'short',  # under 4 minutes — closest official filter to "Shorts"
-        'maxResults': fetch_count, 'safeSearch': 'moderate', 'key': key,
-    })
-    data, err = _get_json_verbose(f'https://www.googleapis.com/youtube/v3/search?{params}')
-    if err:
-        return [], err
-
-    raw_items = []
-    for item in data.get('items', []):
-        vid = (item.get('id') or {}).get('videoId', '')
-        snippet = item.get('snippet') or {}
-        if not vid:
-            continue
-        thumbs = snippet.get('thumbnails') or {}
-        thumb = (thumbs.get('medium') or thumbs.get('default') or {}).get('url', '')
-        raw_items.append({
-            'source': 'YouTube',
-            'external_id': vid,
-            'video_url': f'https://www.youtube.com/watch?v={vid}',
-            'title': snippet.get('title', 'Untitled'),
-            'thumbnail_url': thumb,
-            'photographer': snippet.get('channelTitle', 'Unknown'),
-            'duration': 0,  # YouTube embed handles its own playback/duration
-        })
-    if not raw_items:
-        return [], None
-
-    # search.list never reports whether a video allows embedding — a
-    # video the owner has blocked from embedding shows up in search
-    # results identically to one that works fine, then fails with
-    # YouTube's own "This video is unavailable" the moment it's actually
-    # embedded. videos.list (a second, cheap call) DOES report this via
-    # status.embeddable, so filter on that before ever offering an item
-    # for import — this is the fix that actually prevents broken imports,
-    # rather than just working around symptoms after the fact.
-    #
-    # Important: if this check itself fails, the earlier version of this
-    # fix silently fell back to showing everything UNFILTERED — which
-    # defeats the entire point and is exactly how a non-embeddable video
-    # slipped through. Now it retries once, and if it still can't verify
-    # embeddability, those specific items are excluded rather than risked.
-    ids = ','.join(i['external_id'] for i in raw_items)
-    status_params = urllib.parse.urlencode({'part': 'status', 'id': ids, 'key': key})
-    status_url = f'https://www.googleapis.com/youtube/v3/videos?{status_params}'
-
-    status_data, status_err = _get_json_verbose(status_url)
-    if status_err:
-        status_data, status_err = _get_json_verbose(status_url)  # one retry
-
-    if status_err or not status_data:
-        return [], f'Could not verify which results are embeddable (YouTube status check failed: {status_err or "empty response"}). Try searching again.'
-
-    embeddable_ids = {
-        v['id'] for v in status_data.get('items', [])
-        if _youtube_status_ok(v.get('status') or {})
-    }
-    out = [i for i in raw_items if i['external_id'] in embeddable_ids]
-    return out[:per_page], None
-
-
-def _youtube_status_ok(status):
-    """Stricter than just 'embeddable' — a video can report embeddable
-    true and still fail at playback if it isn't actually public or
-    finished processing. Requiring all three cuts down further on
-    imports that would otherwise show 'This video is unavailable'."""
-    return (
-        status.get('embeddable', True)
-        and status.get('privacyStatus', 'public') == 'public'
-        and status.get('uploadStatus', 'processed') in ('processed', 'uploaded')
-    )
+# Free, keyless, crowd-sourced synced-lyrics database (lrclib.net). Used to
 # auto-fill Track.lyrics_lrc when importing via Fetch Music.
 
 def lrclib_get_lyrics(track_name, artist_name, album_name='', duration=None):
@@ -771,157 +532,68 @@ def lrclib_get_lyrics(track_name, artist_name, album_name='', duration=None):
     return ''
 
 
-# ── OpenSubtitles — real subtitle files, no AI involved ──────────────────────
-# The same database VLC/most media players pull from. Needs a free API key
-# (register at opensubtitles.com -> API Consumers). Whitelisted on
-# PythonAnywhere's free tier, unlike Jamendo.
+# ── Stable Audio — real, official instrumental music generation ────────────
+# Stability AI's own documented API (same account as the existing image
+# generation key). Verified: this is instrumental/backing-track
+# generation only — their official API has no lyrics/vocals parameter.
+# Reusable via any text description of mood, genre, instruments, tempo.
 
-def _opensubtitles_key():
-    from core.models import SiteSettings
-    try:
-        return SiteSettings.objects.get(key='opensubtitles_api_key').value.strip()
-    except SiteSettings.DoesNotExist:
-        return ''
+def stable_audio_configured():
+    from core.utils import get_ai_key
+    return bool(get_ai_key('stability'))
 
 
-def opensubtitles_configured():
-    return bool(_opensubtitles_key())
-
-
-def opensubtitles_fetch(title, year=None, language='en'):
-    """Real subtitle files — pulled straight from OpenSubtitles' database,
-    the same source VLC and most media players use, no AI involved at all.
-    Two-step: search for a matching subtitle, then resolve the actual
-    .srt file content. Returns (srt_text, error) — srt_text is None with
-    error=None when nothing matched (not a failure, just no result)."""
-    key = _opensubtitles_key()
+def stable_audio_generate(prompt, duration=30):
+    """Generates an instrumental track from a text description. Returns
+    (audio_bytes, error). duration is capped to what the API allows
+    (up to ~190s on stable-audio-2)."""
+    from core.utils import get_ai_key
+    key = get_ai_key('stability')
     if not key:
-        return None, 'No OpenSubtitles API key saved yet.'
+        return None, 'No Stability AI key saved yet.'
 
-    headers = {
-        'Api-Key': key,
-        'User-Agent': 'NEXUS v1.0',
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-    }
-    params = {'languages': language, 'query': title.strip().lower()}
-    if year:
-        params['year'] = str(year)
-    # OpenSubtitles asks for GET params sorted alphabetically to avoid an
-    # extra redirect round-trip.
-    q = urllib.parse.urlencode(dict(sorted(params.items())))
-    search_data, err = _get_json_verbose(f'https://api.opensubtitles.com/api/v1/subtitles?{q}', headers=headers)
-    if err:
-        return None, err
-    results = (search_data or {}).get('data', [])
-    if not results:
-        return None, None
+    duration = max(6, min(int(duration or 30), 190))
+    boundary = '----NexusStableAudioBoundary'
+    fields = {'prompt': prompt.strip()[:2000], 'duration': str(duration), 'output_format': 'mp3'}
+    body_parts = []
+    for name, value in fields.items():
+        body_parts.append(
+            f'--{boundary}\r\nContent-Disposition: form-data; name="{name}"\r\n\r\n{value}\r\n'
+        )
+    body_parts.append(f'--{boundary}--\r\n')
+    body = ''.join(body_parts).encode('utf-8')
 
-    # Prefer the most-downloaded match — best signal for "the right one"
-    # when a title has several community-submitted subtitle files.
-    results.sort(key=lambda r: (r.get('attributes') or {}).get('download_count', 0), reverse=True)
-    files = (results[0].get('attributes') or {}).get('files') or []
-    if not files:
-        return None, None
-    file_id = files[0].get('file_id')
-    if not file_id:
-        return None, None
-
+    req = urllib.request.Request(
+        'https://api.stability.ai/v2beta/audio/stable-audio-2/text-to-audio',
+        data=body,
+        headers={
+            'Authorization': f'Bearer {key}',
+            'Accept': 'audio/*',
+            'Content-Type': f'multipart/form-data; boundary={boundary}',
+        },
+        method='POST',
+    )
     try:
-        body = json.dumps({'file_id': file_id}).encode()
-        req = urllib.request.Request('https://api.opensubtitles.com/api/v1/download', data=body, headers=headers)
-        with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
-            download_data = json.loads(resp.read().decode('utf-8', errors='ignore'))
+        with urllib.request.urlopen(req, timeout=90) as resp:
+            content_type = resp.headers.get('Content-Type', '')
+            data = resp.read()
+            if 'audio' not in content_type and 'octet-stream' not in content_type:
+                # Stability returns JSON on error even with Accept:audio/*
+                try:
+                    err_json = json.loads(data.decode('utf-8', errors='ignore'))
+                    return None, err_json.get('message') or err_json.get('errors') or str(err_json)
+                except Exception:
+                    return None, f'Unexpected response type: {content_type}'
+            return data, None
     except urllib.error.HTTPError as e:
+        try:
+            body_text = e.read().decode('utf-8', errors='ignore')
+            err_json = json.loads(body_text)
+            msg = err_json.get('message') or err_json.get('errors') or body_text[:300]
+        except Exception:
+            msg = f'HTTP {e.code}'
         if e.code in (401, 403):
-            return None, f'HTTP {e.code} — the saved OpenSubtitles API key is likely invalid.'
-        if e.code == 406:
-            return None, 'Daily download limit reached for this API key (OpenSubtitles caps free-tier downloads per day).'
-        return None, f'HTTP {e.code} error requesting the subtitle download link.'
+            return None, f'HTTP {e.code}: Stability AI key is invalid or lacks audio access — {msg}'
+        return None, f'HTTP {e.code}: {msg}'
     except Exception as e:
-        return None, f'{type(e).__name__}: {str(e)[:150]}'
-
-    link = download_data.get('link')
-    if not link:
-        return None, download_data.get('message') or 'No download link in the response.'
-
-    try:
-        req = urllib.request.Request(link, headers={'User-Agent': 'NEXUS v1.0'})
-        with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
-            srt_text = resp.read().decode('utf-8', errors='replace')
-        return srt_text, None
-    except Exception as e:
-        return None, f'Downloaded link failed: {e}'
-
-
-# ── Archive.org audio — another free, full-length music source ──────────────
-# Same domain as the movies integration above (already whitelisted on
-# PythonAnywhere free tier), so this works even where Jamendo can't.
-# Covers netlabels, live concert recordings, and Creative-Commons releases
-# — real full tracks, not previews.
-
-def archive_org_audio_search(query, per_page=20):
-    q = f'mediatype:(audio) AND {query}' if query.strip() else 'mediatype:(audio) AND collection:(netlabels)'
-    params = urllib.parse.urlencode({
-        'q': q, 'fl[]': ['identifier', 'title', 'creator', 'year', 'downloads'],
-        'rows': max(per_page, 3), 'output': 'json', 'sort[]': 'downloads desc',
-    }, doseq=True)
-    data, err = _get_json_verbose(f'https://archive.org/advancedsearch.php?{params}', headers=ARCHIVE_ORG_HEADERS)
-    if err:
-        return [], err
-    docs = (data.get('response') or {}).get('docs', [])
-    out = []
-    for d in docs:
-        identifier = d.get('identifier', '')
-        if not identifier:
-            continue
-        creator = d.get('creator', 'Unknown Artist')
-        if isinstance(creator, list):
-            creator = creator[0] if creator else 'Unknown Artist'
-        out.append({
-            'source': 'Archive.org',
-            'external_id': identifier,
-            'title': d.get('title', identifier),
-            'artist': creator,
-            'cover': f'https://archive.org/services/img/{identifier}',
-            'release_year': d.get('year', ''),
-            'genre': '',
-            # Resolved to a real playable file only for selected imports,
-            # same lazy pattern as the movies integration.
-        })
-    return out, None
-
-
-def archive_org_audio_get_url(identifier):
-    """Resolves an Archive.org audio identifier to a direct playable file
-    URL — only called at import time for selected items."""
-    data = _get_json(f'https://archive.org/metadata/{identifier}', headers=ARCHIVE_ORG_HEADERS)
-    if not data:
-        return ''
-    files = data.get('files', [])
-    audio_exts = ('.mp3', '.ogg', '.m4a')
-    candidates = [f for f in files if f.get('name', '').lower().endswith(audio_exts)]
-    if not candidates:
-        return ''
-    # Prefer mp3 for universal browser playback
-    mp3s = [f for f in candidates if f['name'].lower().endswith('.mp3')]
-    best = (mp3s or candidates)[0]
-    return f'https://archive.org/download/{identifier}/{best["name"]}'
-
-
-# ── lyrics.ovh — plain-text lyrics fallback, whitelisted on PythonAnywhere ──
-# lrclib.net (the synced/timed lyrics source above) is NOT on PythonAnywhere's
-# free-tier allowlist. This is a fallback for that specific case: not
-# timed/synced, just plain lyrics text, but it means something still shows
-# instead of nothing when lrclib is unreachable.
-
-def lyricsovh_get_lyrics(title, artist):
-    try:
-        import urllib.parse as _up
-        url = f'https://api.lyrics.ovh/v1/{_up.quote(artist)}/{_up.quote(title)}'
-        data = _get_json(url, timeout=8)
-        if data and data.get('lyrics'):
-            return data['lyrics'].strip()
-    except Exception:
-        pass
-    return ''
+        return None, f'{type(e).__name__}: {str(e)[:200]}'
