@@ -57,7 +57,6 @@
 {# Tabs: Overview / Liked Songs / Subscriptions only #}
 <div class="dash-tabs">
   <button class="dash-tab on" onclick="switchTab('overview',this)">Overview</button>
-  <button class="dash-tab" onclick="switchTab('history',this)">🕐 Recently Viewed</button>
   <button class="dash-tab" onclick="switchTab('liked',this)">💚 Liked Songs</button>
   <button class="dash-tab" onclick="switchTab('subscription',this)">Subscription</button>
 </div>
@@ -89,7 +88,7 @@
     <div class="sp-card" style="width:160px;flex-shrink:0"
       onclick="playTrack('{{ like.track.playable_url|default:''|escapejs }}','{{ like.track.title|escapejs }}','{{ like.track.artist.name|escapejs }}','{{ like.track.display_banner|escapejs }}','/music/track/{{ like.track.slug }}/',{{ like.track.pk }})">
       <div class="sp-card-cover">
-        {% if like.track.cover_image %}<img src="{{ like.track.cover_image.url }}" loading="lazy">{% else %}🎵{% endif %}
+        {% if like.track.display_cover %}<img src="{{ like.track.display_cover }}" loading="lazy">{% else %}🎵{% endif %}
         <button class="sp-card-play">▶</button>
       </div>
       <div class="sp-card-title">{{ like.track.title }}</div>
@@ -107,31 +106,6 @@
   {% endif %}
 </div>
 
-{# RECENTLY VIEWED — across movies, music, images #}
-<div class="dash-panel" id="tab-history">
-  {% if recent_history %}
-  <div style="display:flex;flex-direction:column;gap:2px;">
-    {% for h in recent_history %}
-    <a href="{{ h.url }}" style="display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:8px;text-decoration:none;color:inherit;">
-      <div style="width:44px;height:44px;border-radius:6px;overflow:hidden;background:var(--bg3);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;">
-        {% if h.thumbnail_url %}<img src="{{ h.thumbnail_url }}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">
-        {% else %}{% if h.content_type == 'movie' or h.content_type == 'episode' %}🎬{% elif h.content_type == 'track' %}🎵{% elif h.content_type == 'short' %}📱{% else %}🖼{% endif %}{% endif %}
-      </div>
-      <div style="min-width:0;flex:1;">
-        <div style="font-size:13.5px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ h.title|default:"Untitled" }}</div>
-        <div style="font-size:11px;color:var(--tx2);text-transform:capitalize;">{{ h.get_content_type_display }} · {{ h.viewed_at|timesince }} ago</div>
-      </div>
-    </a>
-    {% endfor %}
-  </div>
-  {% else %}
-  <div class="empty">
-    <div class="empty-icon">🕐</div>
-    <div>Nothing viewed yet — movies, tracks, and images you open will show up here.</div>
-  </div>
-  {% endif %}
-</div>
-
 {# LIKED SONGS — full Spotify-style track list #}
 <div class="dash-panel" id="tab-liked">
   {% if liked_tracks %}
@@ -141,7 +115,7 @@
       onclick="playTrack('{{ like.track.playable_url|default:''|escapejs }}','{{ like.track.title|escapejs }}','{{ like.track.artist.name|escapejs }}','{{ like.track.display_banner|escapejs }}','/music/track/{{ like.track.slug }}/',{{ like.track.pk }})">
       <span class="sp-track-num">{{ forloop.counter }}</span>
       <div class="sp-track-thumb">
-        {% if like.track.cover_image %}<img src="{{ like.track.cover_image.url }}" loading="lazy">{% else %}🎵{% endif %}
+        {% if like.track.display_cover %}<img src="{{ like.track.display_cover }}" loading="lazy">{% else %}🎵{% endif %}
       </div>
       <div class="sp-track-info">
         <div class="sp-track-title">{{ like.track.title }}</div>

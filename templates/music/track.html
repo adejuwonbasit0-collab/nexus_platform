@@ -32,7 +32,7 @@
 <div class="tk-hero">
   <div class="tk-hero-bg" {% if track.cover_image %}style="background-image:url('{{ track.cover_image.url }}')"{% elif track.album and track.album.cover_image %}style="background-image:url('{{ track.album.cover_image.url }}')"{% endif %}></div>
   <div class="tk-hero-inner">
-    {% if track.cover_image %}<img src="{{ track.cover_image.url }}" class="tk-cover" alt="{{ track.title }}">
+    {% if track.display_cover %}<img src="{{ track.display_cover }}" class="tk-cover" alt="{{ track.title }}">
     {% elif track.album and track.album.cover_image %}<img src="{{ track.album.cover_image.url }}" class="tk-cover" alt="{{ track.title }}">
     {% else %}<div class="tk-cover-ph">🎵</div>{% endif %}
     <div>

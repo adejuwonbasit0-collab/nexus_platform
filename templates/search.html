@@ -41,7 +41,7 @@
     <div style="display:flex;flex-direction:column;gap:6px;">
       {% for t in tracks %}
       <a href="/music/track/{{ t.slug }}/" style="text-decoration:none;" class="card" style="display:flex;gap:12px;align-items:center;padding:10px 14px;">
-        {% if t.cover_image %}<img src="{{ t.cover_image.url }}" style="width:42px;height:42px;border-radius:6px;object-fit:cover;flex-shrink:0;">{% else %}<div style="width:42px;height:42px;border-radius:6px;background:var(--bg3);display:flex;align-items:center;justify-content:center;flex-shrink:0;">🎵</div>{% endif %}
+        {% if t.display_cover %}<img src="{{ t.display_cover }}" style="width:42px;height:42px;border-radius:6px;object-fit:cover;flex-shrink:0;">{% else %}<div style="width:42px;height:42px;border-radius:6px;background:var(--bg3);display:flex;align-items:center;justify-content:center;flex-shrink:0;">🎵</div>{% endif %}
         <div style="flex:1;"><div style="font-weight:500;font-size:0.86rem;">{{ t.title }}</div><div style="font-size:0.74rem;color:var(--text2);">{{ t.artist.name }}</div></div>
         <a href="/music/download/{{ t.pk }}/" class="btn btn-ghost btn-sm" onclick="event.stopPropagation()">⬇ MP3</a>
       </a>

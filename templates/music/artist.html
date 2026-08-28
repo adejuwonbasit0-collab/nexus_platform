@@ -75,7 +75,7 @@
     {% for t in tracks %}
     <div class="track-row" onclick="playTrack('{% if t.has_audio %}{{ t.playable_url|escapejs }}{% endif %}','{{ t.title|escapejs }}','{{ t.artist.name|escapejs }}','{{ t.display_banner|escapejs }}','/music/track/{{ t.slug }}/',{{ t.pk }})">
       <span style="width:22px;text-align:center;font-size:0.8rem;color:rgba(255,255,255,0.3);">{{ forloop.counter }}</span>
-      {% if t.cover_image %}<img class="cover" src="{{ t.cover_image.url }}" alt="">
+      {% if t.display_cover %}<img class="cover" src="{{ t.display_cover }}" alt="">
       {% elif t.album and t.album.cover_image %}<img class="cover" src="{{ t.album.cover_image.url }}" alt="">
       {% else %}<div class="cover" style="display:flex;align-items:center;justify-content:center;font-size:0.9rem;">🎵</div>{% endif %}
       <div class="info">
@@ -98,7 +98,7 @@
   <div style="display:flex;flex-direction:column;gap:6px;">
     {% for t in collabs %}
     <div class="track-row" onclick="playTrack('{% if t.has_audio %}{{ t.playable_url|escapejs }}{% endif %}','{{ t.title|escapejs }}','{{ t.artist.name|escapejs }}','{{ t.display_banner|escapejs }}','/music/track/{{ t.slug }}/',{{ t.pk }})">
-      {% if t.cover_image %}<img class="cover" src="{{ t.cover_image.url }}" alt="">
+      {% if t.display_cover %}<img class="cover" src="{{ t.display_cover }}" alt="">
       {% elif t.album and t.album.cover_image %}<img class="cover" src="{{ t.album.cover_image.url }}" alt="">
       {% else %}<div class="cover" style="display:flex;align-items:center;justify-content:center;">🎵</div>{% endif %}
       <div class="info">

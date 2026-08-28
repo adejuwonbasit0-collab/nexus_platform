@@ -44,7 +44,7 @@
     {% for t in tracks %}
     <div class="track-item" onclick="playMiniTrack('{% if t.has_audio %}{{ t.playable_url }}{% endif %}','{{ t.title|escapejs }}','{{ t.artist.name|escapejs }}','{{ t.display_banner|escapejs }}','/music/track/{{ t.slug }}/',{{ t.pk }})">
       <div class="track-num">{{ forloop.counter }}</div>
-      {% if t.cover_image %}<img class="track-cover" src="{{ t.cover_image.url }}" alt="">
+      {% if t.display_cover %}<img class="track-cover" src="{{ t.display_cover }}" alt="">
       {% elif t.album and t.album.cover_image %}<img class="track-cover" src="{{ t.album.cover_image.url }}" alt="">
       {% else %}<div class="track-cover">🎵</div>{% endif %}
       <div style="flex:1;min-width:0;">
@@ -74,7 +74,7 @@
       {% for t in all_tracks %}
       <div class="track-item" style="justify-content:space-between;">
         <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1;">
-          {% if t.cover_image %}<img class="track-cover" src="{{ t.cover_image.url }}" alt="">
+          {% if t.display_cover %}<img class="track-cover" src="{{ t.display_cover }}" alt="">
           {% else %}<div class="track-cover">🎵</div>{% endif %}
           <div style="min-width:0;">
             <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ t.title }}</div>

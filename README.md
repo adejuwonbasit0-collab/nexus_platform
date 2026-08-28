@@ -185,6 +185,8 @@ HTTP Range-request streaming — supports seeking, buffering, and chunked delive
 - [ ] Configure email backend for notifications
 - [ ] Add Celery + Redis for async tasks (AI generation, large uploads)
 - [ ] Enable HTTPS / SSL via Let's Encrypt
+
+
 git add .
 git commit -m "add"
 git push origin main

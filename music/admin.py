@@ -71,13 +71,18 @@ class TrackAdmin(admin.ModelAdmin):
     readonly_fields = ['plays_count', 'downloads_count', 'likes_count', 'trend_score']
     fieldsets = [
         ('Basic Info',   {'fields': ['title', 'slug', 'artist', 'featured_artists', 'album', 'genre']}),
-        ('Files',        {'fields': ['audio_file', 'cover_image']}),
+        ('Files', {
+            'fields': ['audio_file', 'audio_url', 'cover_image', 'cover_image_url'],
+            'description': 'Upload a file, OR paste a direct URL — either works. If both are set for cover art, '
+                           'the uploaded/downloaded file takes priority and the URL is only used as a fallback.',
+        }),
         ('Release Info', {'fields': ['release_year', 'duration', 'country', 'label', 'isrc']}),
         ('Credits',      {'fields': ['produced_by', 'written_by', 'recorded_at', 'mixed_by', 'mastered_by']}),
         ('Lyrics', {
-            'fields': ['lyrics'],
-            'description': 'Paste the official lyrics here. If left blank, '
-                           'users can request AI-generated lyrics (requires Anthropic API key in Settings). '
+            'fields': ['lyrics', 'lyrics_lrc'],
+            'description': 'Paste plain lyrics in "Lyrics", or timestamped LRC-format lyrics '
+                           '(e.g. "[00:12.50] Line of lyrics") in "Lyrics Lrc" for the line-synced player. '
+                           'If left blank, users can request AI-generated lyrics (requires Anthropic API key in Settings). '
                            'AI lyrics are clearly labelled and cached after the first request.',
         }),
         ('Flags',        {'fields': ['is_published', 'is_premium', 'is_featured', 'is_song_of_day', 'uploaded_by']}),

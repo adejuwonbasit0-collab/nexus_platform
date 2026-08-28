@@ -58,7 +58,7 @@ body{background:#0a0d12;}
   <div style="display:flex;flex-direction:column;gap:6px;">
     {% for t in tracks %}
     <div class="track-row" onclick="playTrack('{% if t.has_audio %}{{ t.playable_url|escapejs }}{% endif %}','{{ t.title|escapejs }}','{{ t.artist.name|escapejs }}','{{ t.display_banner|escapejs }}','/music/track/{{ t.slug }}/',{{ t.pk }})">
-      {% if t.cover_image %}<img src="{{ t.cover_image.url }}" style="width:44px;height:44px;border-radius:6px;object-fit:cover;flex-shrink:0;">
+      {% if t.display_cover %}<img src="{{ t.display_cover }}" style="width:44px;height:44px;border-radius:6px;object-fit:cover;flex-shrink:0;">
       {% elif t.album and t.album.cover_image %}<img src="{{ t.album.cover_image.url }}" style="width:44px;height:44px;border-radius:6px;object-fit:cover;flex-shrink:0;">
       {% else %}<div style="width:44px;height:44px;border-radius:6px;background:#0a2010;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1rem;">🎵</div>{% endif %}
       <div style="flex:1;min-width:0;">

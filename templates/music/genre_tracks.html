@@ -22,7 +22,7 @@ body{background:#060810;}
 <div class="container" style="padding:24px 20px 100px;">
   {% for t in tracks %}
   <div class="track-row" onclick="playMiniTrack('{% if t.has_audio %}{{ t.playable_url|escapejs }}{% endif %}','{{ t.title|escapejs }}','{{ t.artist.name|escapejs }}','{{ t.display_banner|escapejs }}','/music/track/{{ t.slug }}/',{{ t.pk }})">
-    {% if t.cover_image %}<img class="track-cover" src="{{ t.cover_image.url }}" alt="">
+    {% if t.display_cover %}<img class="track-cover" src="{{ t.display_cover }}" alt="">
     {% elif t.album and t.album.cover_image %}<img class="track-cover" src="{{ t.album.cover_image.url }}" alt="">
     {% else %}<div class="track-cover">🎵</div>{% endif %}
     <div style="flex:1;min-width:0;">

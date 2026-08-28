@@ -120,6 +120,7 @@ class Track(models.Model):
     audio_file       = models.FileField(upload_to=track_audio_path, null=True, blank=True)
     audio_url        = models.URLField(blank=True, help_text='External link to the audio file (used instead of an upload to save storage space).')
     cover_image      = models.ImageField(upload_to=track_cover_path, null=True, blank=True)
+    cover_image_url  = models.URLField(blank=True, max_length=500, help_text='Direct link to cover art. Used automatically when no uploaded/downloaded cover_image is set — the visitor\'s browser loads it straight from this URL, so it works even when the server itself cannot download the image.')
     banner_image     = models.ImageField(upload_to=track_cover_path, null=True, blank=True,
                         help_text='Wide banner shown behind the player. If left empty, the artist photo, then album cover, then site default is used automatically.')
     release_year     = models.IntegerField(default=2024)
@@ -176,6 +177,16 @@ class Track(models.Model):
     @property
     def is_external_audio(self):
         return bool(self.audio_url) and not self.audio_file
+
+    @property
+    def display_cover(self):
+        """One property every template can use — returns the downloaded
+        file's URL if present, otherwise the stored direct URL (which
+        works even when the server-side download never succeeded), or ''
+        if neither is set."""
+        if self.cover_image:
+            return self.cover_image.url
+        return self.cover_image_url or ''
 
     @property
     def playable_url(self):

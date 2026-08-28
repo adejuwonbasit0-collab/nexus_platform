@@ -12,47 +12,9 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.utils.text import slugify
 from django.core.cache import cache
-from django.db import IntegrityError
 
 from .views import _admin_required
 from . import external_fetch as ext
-
-
-def _get_or_create_by_name(Model, name, slug_field='slug', name_field='name', extra_defaults=None):
-    """Case-insensitive get-or-create that can never hit a UNIQUE-slug
-    IntegrityError. The bug this replaces: slugify(name) doesn't account
-    for a DIFFERENT existing row that slugifies to the same value (e.g.
-    fetched genre "Hip Hop" vs an existing "Hip-Hop" — different names,
-    same slug), so a blind get_or_create(name__iexact=..., defaults={...})
-    would find no matching row, then crash trying to insert a duplicate
-    slug. This looks up by name first (as before), and if creating,
-    numbers the slug until it's actually free."""
-    try:
-        return Model.objects.get(**{f'{name_field}__iexact': name}), False
-    except Model.DoesNotExist:
-        pass
-    except Model.MultipleObjectsReturned:
-        return Model.objects.filter(**{f'{name_field}__iexact': name}).first(), False
-
-    base_slug = slugify(name) or Model.__name__.lower()
-    slug = base_slug
-    n = 2
-    while Model.objects.filter(**{slug_field: slug}).exists():
-        slug = f'{base_slug}-{n}'
-        n += 1
-
-    defaults = {name_field: name, slug_field: slug}
-    if extra_defaults:
-        defaults.update(extra_defaults)
-    try:
-        return Model.objects.create(**defaults), True
-    except IntegrityError:
-        # Very rare race (two imports landing at the same instant) —
-        # someone else just created it, so use theirs instead of crashing.
-        existing = Model.objects.filter(**{f'{name_field}__iexact': name}).first()
-        if existing:
-            return existing, False
-        raise
 
 
 # ── Music ────────────────────────────────────────────────────────────────────
@@ -62,7 +24,6 @@ def fetch_music(request):
     tab = request.GET.get('tab', 'search')
     q = request.GET.get('q', '').strip()
     genre_id = request.GET.get('genre', '')
-    source = request.GET.get('source', 'itunes')  # itunes (30s previews) | jamendo (full-length, CC-licensed)
 
     if request.method == 'POST' and request.POST.get('action') == 'save_audd_key':
         from core.models import SiteSettings
@@ -73,27 +34,11 @@ def fetch_music(request):
         messages.success(request, 'AudD API token saved — Discover will use it for song identification.')
         return redirect(request.path + f'?tab={tab}')
 
-    if request.method == 'POST' and request.POST.get('action') == 'save_jamendo_key':
-        from core.models import SiteSettings
-        key = request.POST.get('jamendo_client_id', '').strip()
-        obj, _c = SiteSettings.objects.get_or_create(key='jamendo_client_id', defaults={'label': 'Jamendo Client ID', 'group': 'integrations'})
-        obj.value = key
-        obj.save()
-        messages.success(request, 'Jamendo client_id saved — you can now import full-length tracks, not just 30s previews.')
-        return redirect(request.path + '?tab=search&source=jamendo')
-
     from core.models import SiteSettings
     audd_configured = SiteSettings.objects.filter(key='audd_api_token').exclude(value='').exists()
-    jamendo_configured = ext.jamendo_configured()
 
     results = []
-    search_error = None
-    if source == 'jamendo':
-        if jamendo_configured:
-            results, search_error = ext.jamendo_search(q, per_page=30)
-    elif source == 'archive':
-        results, search_error = ext.archive_org_audio_search(q, per_page=30)
-    elif tab == 'search':
+    if tab == 'search':
         if q:
             results = ext.itunes_search(q, limit=30)
     elif tab == 'trending':
@@ -115,10 +60,9 @@ def fetch_music(request):
     pending_count = Track.objects.filter(is_fetched=True, is_published=False).count()
 
     return render(request, 'admin_panel/modules/fetch_music.html', {
-        'tab': tab, 'q': q, 'genre_id': genre_id, 'source': source,
+        'tab': tab, 'q': q, 'genre_id': genre_id,
         'results': results, 'genres': ext.ITUNES_GENRES,
         'pending_count': pending_count, 'audd_configured': audd_configured,
-        'jamendo_configured': jamendo_configured, 'search_error': search_error,
     })
 
 
@@ -148,31 +92,28 @@ def fetch_music_import(request):
         # Chart-based browsing (Trending/Latest/Genre) doesn't carry a
         # preview URL — fill it in now, per selected item, so a handful of
         # failed lookups can never affect the whole batch.
-        if (it.get('source') or '') != 'Archive.org':
-            it = ext.enrich_for_import(it)
+        it = ext.enrich_for_import(it)
 
-        artist, _c = _get_or_create_by_name(Artist, artist_name)
+        artist, _c = Artist.objects.get_or_create(
+            name__iexact=artist_name,
+            defaults={'name': artist_name, 'slug': slugify(artist_name) or 'artist'},
+        )
         genre = None
         gname = (it.get('genre') or '').strip()
         if gname:
-            genre, _c = _get_or_create_by_name(Genre, gname)
+            genre, _c = Genre.objects.get_or_create(
+                name__iexact=gname, defaults={'name': gname, 'slug': slugify(gname) or 'genre'}
+            )
 
         year_raw = str(it.get('release_year') or '').strip()
         year = int(year_raw) if year_raw.isdigit() else 2024
 
-        source_name = it.get('source') or 'iTunes'
-        audio_url = (it.get('preview_url') or '').strip()
-        if source_name == 'Archive.org':
-            # Real, full-length file — resolved now, not left for manual
-            # entry, same pattern as the Archive.org movies importer.
-            audio_url = ext.archive_org_audio_get_url(it.get('external_id', '')) or ''
-
         track = Track(
             title=title, artist=artist, genre=genre,
-            audio_url=audio_url,
+            audio_url=(it.get('preview_url') or '').strip(),
             release_year=year,
             uploaded_by=request.user,
-            is_fetched=True, fetch_source=source_name,
+            is_fetched=True, fetch_source=it.get('source') or 'iTunes',
             is_published=approve,
         )
         track.save()
@@ -180,6 +121,13 @@ def fetch_music_import(request):
         cover = it.get('cover') or ''
         cover_ok = False
         if cover:
+            # Store the direct URL immediately — this alone guarantees the
+            # cover shows up, since the visitor's browser fetches it
+            # straight from the source and never depends on this server
+            # successfully downloading anything (which is what was
+            # actually failing before, for reasons that vary by host).
+            track.cover_image_url = cover
+            track.save(update_fields=['cover_image_url'])
             cover_ok = ext.download_image_into(track, 'cover_image', cover, filename_hint=f'{title}.jpg')
             if cover_ok:
                 track.save(update_fields=['cover_image'])
@@ -189,15 +137,6 @@ def fetch_music_import(request):
         if lyrics:
             track.lyrics_lrc = lyrics
             track.save(update_fields=['lyrics_lrc'])
-        else:
-            # lrclib.net isn't reachable on PythonAnywhere's free tier —
-            # fall back to plain (unsynced) lyrics from a source that IS
-            # whitelisted there, so something shows instead of nothing.
-            plain_lyrics = ext.lyricsovh_get_lyrics(title, artist_name)
-            if plain_lyrics:
-                track.lyrics = plain_lyrics
-                track.save(update_fields=['lyrics'])
-                no_lyrics = False
 
         created += 1
         if not track.audio_url:
@@ -230,14 +169,10 @@ def fetch_movies(request):
     tab = request.GET.get('tab', 'search')
     q = request.GET.get('q', '').strip()
     genre_id = request.GET.get('genre', '')
-    source = request.GET.get('source', 'tmdb')  # tmdb (posters/trailers/metadata only) | archive (real, full, legally-free films)
 
     configured = ext.tmdb_configured()
     results = []
-    search_error = None
-    if source == 'archive':
-        results, search_error = ext.archive_org_search(q, per_page=24)
-    elif configured:
+    if configured:
         if tab == 'search':
             if q:
                 results = ext.tmdb_search(q)
@@ -258,17 +193,6 @@ def fetch_movies(request):
         messages.success(request, 'TMDB API key saved.')
         return redirect('/admin-panel/fetch/movies/')
 
-    if request.method == 'POST' and request.POST.get('action') == 'save_opensubtitles_key':
-        from core.models import SiteSettings
-        key = request.POST.get('opensubtitles_api_key', '').strip()
-        obj, _c = SiteSettings.objects.get_or_create(key='opensubtitles_api_key', defaults={'label': 'OpenSubtitles API Key', 'group': 'integrations'})
-        obj.value = key
-        obj.save()
-        messages.success(request, 'OpenSubtitles key saved — movie pages will now try real subtitles first.')
-        return redirect('/admin-panel/fetch/movies/')
-
-    opensubtitles_configured = ext.opensubtitles_configured()
-
     from movies.models import Movie
     imported_ids = set(
         Movie.objects.filter(is_fetched=True).values_list('title', flat=True)
@@ -280,9 +204,9 @@ def fetch_movies(request):
     pending_count = Movie.objects.filter(is_fetched=True, is_published=False).count()
 
     return render(request, 'admin_panel/modules/fetch_movies.html', {
-        'tab': tab, 'q': q, 'genre_id': genre_id, 'source': source, 'search_error': search_error,
+        'tab': tab, 'q': q, 'genre_id': genre_id,
         'results': results, 'genres': genres,
-        'tmdb_configured': configured, 'opensubtitles_configured': opensubtitles_configured, 'pending_count': pending_count,
+        'tmdb_configured': configured, 'pending_count': pending_count,
     })
 
 
@@ -317,18 +241,8 @@ def fetch_movies_import(request):
             is_published=approve,
         )
         tmdb_id = it.get('external_id', '')
-        source = it.get('source') or 'TMDB'
-        if source == 'Archive.org':
-            # Real, legally-free full film — resolve the actual playable
-            # file now, so this movie is watchable immediately, not just
-            # metadata waiting on a manual video link like TMDB imports.
-            movie.video_url = ext.archive_org_get_video_url(tmdb_id) or ''
-            movie.trailer_url = it.get('detail_url', '') or ''
-        elif tmdb_id:
+        if tmdb_id:
             movie.trailer_url = ext.tmdb_trailer_url(tmdb_id) or ''
-            cast = ext.tmdb_credits(tmdb_id)
-            if cast:
-                movie.cast_json = _json.dumps(cast)
         movie.save()
 
         cover = it.get('cover') or ''
@@ -339,10 +253,7 @@ def fetch_movies_import(request):
 
     if created:
         state = 'imported and approved' if approve else 'imported as pending — approve them from the Movies tab'
-        if source == 'Archive.org':
-            messages.success(request, f'{created} movie(s) {state}. Full, legally-free films from Archive.org — ready to watch, no video link needed.')
-        else:
-            messages.success(request, f'{created} movie(s) {state}. Posters, ratings, and trailers were fetched — add the actual video file/link on each one before publishing.')
+        messages.success(request, f'{created} movie(s) {state}. Posters, ratings, and trailers were fetched — add the actual video file/link on each one before publishing.')
     else:
         messages.info(request, 'Nothing new to import — those movies are already in your library.')
     cache.delete('trending_page_v2')
@@ -577,30 +488,13 @@ def fetch_shorts(request):
         messages.success(request, 'Pexels API key saved.')
         return redirect(request.path + '?tab=search&provider=pexels')
 
-    if request.method == 'POST' and request.POST.get('action') == 'save_youtube_key':
-        from core.models import SiteSettings
-        key = request.POST.get('youtube_api_key', '').strip()
-        obj, _c = SiteSettings.objects.get_or_create(key='youtube_api_key', defaults={'label': 'YouTube API Key', 'group': 'integrations'})
-        obj.value = key
-        obj.save()
-        messages.success(request, 'YouTube API key saved — imports now play through YouTube\'s own embedded player, with real sound.')
-        return redirect(request.path + '?tab=search&provider=youtube')
-
     pexels_configured = ext.pexels_configured()
     pixabay_configured = ext.pixabay_configured()
-    youtube_configured = ext.youtube_configured()
-    configured = (pexels_configured or pixabay_configured) if provider == 'all' else (
-        pexels_configured if provider == 'pexels' else
-        youtube_configured if provider == 'youtube' else
-        pixabay_configured
-    )
+    configured = (pexels_configured or pixabay_configured) if provider == 'all' else (pexels_configured if provider == 'pexels' else pixabay_configured)
 
     results = []
     search_error = None
-    if provider == 'youtube':
-        if youtube_configured:
-            results, search_error = ext.youtube_shorts_search(q, per_page=24)
-    elif provider == 'all':
+    if provider == 'all':
         errors = []
         if is_random and pexels_configured:
             r, e = ext.pexels_videos_popular_verbose(per_page=10)
@@ -633,7 +527,6 @@ def fetch_shorts(request):
         'tab': tab, 'q': q, 'provider': provider, 'is_random': is_random,
         'results': results, 'search_error': search_error,
         'pexels_configured': pexels_configured, 'pixabay_configured': pixabay_configured,
-        'youtube_configured': youtube_configured,
         'pending_count': pending_count,
     })
 
@@ -740,7 +633,7 @@ def fetch_bulk_action(request):
     kind = request.POST.get('kind', '')
     action = request.POST.get('action', '')
     pks = [p for p in request.POST.get('pks', '').split(',') if p.strip()]
-    if not pks or kind not in ('track', 'movie', 'image', 'short', 'blog', 'series') or action not in ('approve', 'reject', 'delete', 'fetch_lyrics', 'refresh_link', 'fetch_cast', 'fetch_subtitles'):
+    if not pks or kind not in ('track', 'movie', 'image', 'short', 'blog', 'series') or action not in ('approve', 'reject', 'delete', 'fetch_lyrics', 'refresh_link'):
         return JsonResponse({'ok': False, 'error': 'Invalid request'}, status=400)
 
     if kind == 'track':
@@ -800,34 +693,6 @@ def fetch_bulk_action(request):
             if lyrics:
                 t.lyrics_lrc = lyrics
                 t.save(update_fields=['lyrics_lrc'])
-                found += 1
-        return JsonResponse({'ok': True, 'count': count, 'action': action, 'found': found})
-    elif action == 'fetch_cast' and kind == 'movie':
-        found = 0
-        for m in qs:
-            if m.cast_json:
-                continue
-            hits = ext.tmdb_search(m.title)
-            if not hits:
-                continue
-            tmdb_id = hits[0].get('external_id')
-            if not tmdb_id:
-                continue
-            cast = ext.tmdb_credits(tmdb_id)
-            if cast:
-                m.cast_json = _json.dumps(cast)
-                m.save(update_fields=['cast_json'])
-                found += 1
-        return JsonResponse({'ok': True, 'count': count, 'action': action, 'found': found})
-    elif action == 'fetch_subtitles' and kind == 'movie':
-        found = 0
-        for m in qs:
-            if m.subtitles.strip():
-                continue
-            srt, _err = ext.opensubtitles_fetch(m.title, year=m.release_year)
-            if srt:
-                m.subtitles = srt
-                m.save(update_fields=['subtitles'])
                 found += 1
         return JsonResponse({'ok': True, 'count': count, 'action': action, 'found': found})
 
