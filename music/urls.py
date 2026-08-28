@@ -31,6 +31,7 @@ urlpatterns = [
     path('dj/',                           views.dj_studio,            name='dj_studio'),
     path('dj/ai-mix/',                    views.dj_ai_mix,            name='dj_ai_mix'),
     # AI Music Studio (instrumental generation + voice effects)
-    path('ai-studio/',                    views.ai_music_studio,      name='ai_music_studio'),
-    path('ai-studio/generate/',           views.ai_music_generate,    name='ai_music_generate'),
+    path('ai-generator/',                 views.ai_music_generator_view, name='ai_music_generator'),
+    path('ai-generator/generate/',        views.ai_music_generate,       name='ai_music_generate'),
+    path('voice-studio/',                 views.voice_studio_view,       name='voice_studio'),
 ]

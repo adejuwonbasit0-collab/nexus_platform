@@ -721,15 +721,17 @@ def dj_studio(request):
     return render(request, 'music/dj.html', {})
 
 
-def ai_music_studio(request):
-    """Instrumental AI music generation (Stable Audio) and a voice
-    effects tool (record your own voice, apply real audio effects) —
-    both live on one page since they're both 'make something musical'
-    tools that don't need a full separate section."""
+def ai_music_generator_view(request):
+    """AI instrumental music generation (Stable Audio) - its own page."""
     from core import external_fetch as ext
-    return render(request, 'music/ai_music.html', {
+    return render(request, 'music/ai_music_generator.html', {
         'stable_audio_configured': ext.stable_audio_configured(),
     })
+
+
+def voice_studio_view(request):
+    """Voice recording + real audio effects - its own page."""
+    return render(request, 'music/voice_studio.html', {})
 
 
 @require_POST

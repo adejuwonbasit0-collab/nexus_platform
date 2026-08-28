@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+{% block title %}Voice Studio — NEXUS{% endblock %}
+{% block content %}
+<style>
+  .vfx-panel{background:linear-gradient(180deg,#1c1c1c,#141414);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:22px;}
+  .vfx-record-btn{background:#e0245e;color:#fff;border:none;width:72px;height:72px;border-radius:50%;font-size:26px;cursor:pointer;box-shadow:0 0 0 0 rgba(224,36,94,.5);transition:box-shadow .3s;}
+  .vfx-record-btn.recording{animation:vfx-pulse 1.4s infinite;}
+  @keyframes vfx-pulse{0%{box-shadow:0 0 0 0 rgba(224,36,94,.5)}70%{box-shadow:0 0 0 16px rgba(224,36,94,0)}100%{box-shadow:0 0 0 0 rgba(224,36,94,0)}}
+  .vfx-preset{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:#fff;font-size:12px;font-weight:600;padding:9px 16px;border-radius:20px;cursor:pointer;}
+  .vfx-preset:hover{background:rgba(29,185,84,.15);border-color:rgba(29,185,84,.4);}
+</style>
+<div class="wrap" style="padding:24px 0 60px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:8px;">
+    <div style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:800;">🎤 Voice Studio</div>
+    <div style="display:flex;gap:14px;font-size:12px;">
+      <a href="/music/ai-generator/" style="color:#1db954;text-decoration:none;">🎹 AI Music Generator →</a>
+      <a href="/music/dj/" style="color:#1db954;text-decoration:none;">🎚 DJ Studio →</a>
+    </div>
+  </div>
+  <div style="color:var(--tx2);font-size:13px;margin-bottom:24px;max-width:640px;">
+    Record yourself, then shape it with real audio effects — pitch shift, reverb, echo, robot/chorus. Everything here uses only
+    your own live recording, processed entirely in your browser. Nothing is cloned or synthesized to sound like anyone else.
+  </div>
+
+  <div class="vfx-panel" style="text-align:center;margin-bottom:20px;">
+    <button id="vfx-record-btn" class="vfx-record-btn" onclick="vfxToggleRecord()">⏺</button>
+    <div id="vfx-record-status" style="font-size:13px;color:var(--tx2);margin-top:14px;">Tap to record (uses your microphone)</div>
+  </div>
+
+  <div id="vfx-editor" class="vfx-panel" style="display:none;">
+    <audio id="vfx-audio" controls style="width:100%;margin-bottom:20px;"></audio>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:18px;margin-bottom:20px;">
+      <div>
+        <label style="font-size:11px;color:var(--tx2);text-transform:uppercase;">Pitch <span id="vfx-pitch-val" style="color:#1db954;">0</span></label>
+        <input type="range" id="vfx-pitch" min="-12" max="12" value="0" step="1" style="width:100%;">
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--tx2);text-transform:uppercase;">Reverb <span id="vfx-reverb-val" style="color:#1db954;">0%</span></label>
+        <input type="range" id="vfx-reverb" min="0" max="100" value="0" step="5" style="width:100%;">
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--tx2);text-transform:uppercase;">Echo <span id="vfx-echo-val" style="color:#1db954;">0%</span></label>
+        <input type="range" id="vfx-echo" min="0" max="100" value="0" step="5" style="width:100%;">
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
+      <button onclick="vfxPreset('clean')" class="vfx-preset">Clean</button>
+      <button onclick="vfxPreset('deep')" class="vfx-preset">Deep Voice</button>
+      <button onclick="vfxPreset('high')" class="vfx-preset">High Voice</button>
+      <button onclick="vfxPreset('hall')" class="vfx-preset">Concert Hall</button>
+      <button onclick="vfxPreset('robot')" class="vfx-preset">Robot / Chorus</button>
+    </div>
+
+    <div style="display:flex;gap:10px;">
+      <button onclick="vfxPreview()" style="background:#1db954;color:#000;border:none;font-weight:800;font-size:13px;padding:12px 22px;border-radius:24px;cursor:pointer;">▶ Preview With Effects</button>
+      <button onclick="vfxDownload()" style="background:rgba(255,255,255,.1);color:#fff;border:none;font-weight:800;font-size:13px;padding:12px 22px;border-radius:24px;cursor:pointer;">⬇ Download Mix</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  let mediaRecorder, chunks = [], recording = false;
+  let rawBlob = null;
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+
+  window.vfxToggleRecord = async function(){
+    const btn = document.getElementById('vfx-record-btn');
+    const status = document.getElementById('vfx-record-status');
+    if(!recording){
+      try{
+        const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+        chunks = [];
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.ondataavailable = e => chunks.push(e.data);
+        mediaRecorder.onstop = () => {
+          rawBlob = new Blob(chunks, {type:'audio/webm'});
+          document.getElementById('vfx-editor').style.display = 'block';
+          document.getElementById('vfx-audio').src = URL.createObjectURL(rawBlob);
+          stream.getTracks().forEach(t=>t.stop());
+        };
+        mediaRecorder.start();
+        recording = true;
+        btn.textContent = '⏹';
+        btn.classList.add('recording');
+        status.textContent = 'Recording… tap again to stop';
+      } catch(e){
+        status.textContent = 'Microphone access denied or unavailable.';
+      }
+    } else {
+      mediaRecorder.stop();
+      recording = false;
+      btn.textContent = '⏺';
+      btn.classList.remove('recording');
+      status.textContent = 'Recorded — adjust effects below';
+    }
+  };
+
+  window.vfxPreset = function(name){
+    const presets = {
+      clean:  {pitch:0,  reverb:0,  echo:0},
+      deep:   {pitch:-5, reverb:10, echo:0},
+      high:   {pitch:5,  reverb:0,  echo:0},
+      hall:   {pitch:0,  reverb:65, echo:15},
+      robot:  {pitch:-2, reverb:20, echo:35},
+    };
+    const p = presets[name];
+    if(!p) return;
+    document.getElementById('vfx-pitch').value = p.pitch;
+    document.getElementById('vfx-reverb').value = p.reverb;
+    document.getElementById('vfx-echo').value = p.echo;
+    document.getElementById('vfx-pitch-val').textContent = p.pitch;
+    document.getElementById('vfx-reverb-val').textContent = p.reverb + '%';
+    document.getElementById('vfx-echo-val').textContent = p.echo + '%';
+  };
+  ['pitch','reverb','echo'].forEach(id=>{
+    document.getElementById('vfx-'+id).addEventListener('input', e=>{
+      document.getElementById('vfx-'+id+'-val').textContent = e.target.value + (id==='pitch' ? '' : '%');
+    });
+  });
+
+  function makeImpulse(ctx, seconds, decay){
+    const rate = ctx.sampleRate, len = rate * seconds;
+    const impulse = ctx.createBuffer(2, len, rate);
+    for(let ch=0; ch<2; ch++){
+      const data = impulse.getChannelData(ch);
+      for(let i=0;i<len;i++) data[i] = (Math.random()*2-1) * Math.pow(1-i/len, decay);
+    }
+    return impulse;
+  }
+
+  async function renderWithEffects(){
+    if(!rawBlob) return null;
+    const arrayBuf = await rawBlob.arrayBuffer();
+    const offlineDecodeCtx = new AudioCtx();
+    const decoded = await offlineDecodeCtx.decodeAudioData(arrayBuf.slice(0));
+    offlineDecodeCtx.close();
+
+    const pitch = +document.getElementById('vfx-pitch').value;
+    const reverbAmt = (+document.getElementById('vfx-reverb').value) / 100;
+    const echoAmt = (+document.getElementById('vfx-echo').value) / 100;
+    const rate = Math.pow(2, pitch/12);
+
+    const offline = new OfflineAudioContext(2, Math.ceil(decoded.duration * decoded.sampleRate / rate) + decoded.sampleRate*2, decoded.sampleRate);
+    const src = offline.createBufferSource();
+    src.buffer = decoded;
+    src.playbackRate.value = rate;
+
+    const dry = offline.createGain(); dry.gain.value = 1 - reverbAmt*0.6;
+    src.connect(dry); dry.connect(offline.destination);
+
+    if(reverbAmt > 0){
+      const convolver = offline.createConvolver();
+      convolver.buffer = makeImpulse(offline, 2.5, 2.5);
+      const wet = offline.createGain(); wet.gain.value = reverbAmt;
+      src.connect(convolver); convolver.connect(wet); wet.connect(offline.destination);
+    }
+    if(echoAmt > 0){
+      const delay = offline.createDelay(1.0); delay.delayTime.value = 0.28;
+      const feedback = offline.createGain(); feedback.gain.value = echoAmt * 0.5;
+      const echoWet = offline.createGain(); echoWet.gain.value = echoAmt;
+      src.connect(delay); delay.connect(feedback); feedback.connect(delay);
+      delay.connect(echoWet); echoWet.connect(offline.destination);
+    }
+    src.start(0);
+    return await offline.startRendering();
+  }
+
+  function bufferToWavBlob(buffer){
+    const numCh = buffer.numberOfChannels, len = buffer.length * numCh * 2 + 44;
+    const arrBuf = new ArrayBuffer(len), view = new DataView(arrBuf);
+    const writeStr = (o,s)=>{ for(let i=0;i<s.length;i++) view.setUint8(o+i, s.charCodeAt(i)); };
+    writeStr(0,'RIFF'); view.setUint32(4, len-8, true); writeStr(8,'WAVE');
+    writeStr(12,'fmt '); view.setUint32(16,16,true); view.setUint16(20,1,true);
+    view.setUint16(22,numCh,true); view.setUint32(24,buffer.sampleRate,true);
+    view.setUint32(28,buffer.sampleRate*numCh*2,true); view.setUint16(32,numCh*2,true); view.setUint16(34,16,true);
+    writeStr(36,'data'); view.setUint32(40, len-44, true);
+    let offset = 44;
+    for(let i=0;i<buffer.length;i++){
+      for(let ch=0; ch<numCh; ch++){
+        const sample = Math.max(-1, Math.min(1, buffer.getChannelData(ch)[i]));
+        view.setInt16(offset, sample<0 ? sample*0x8000 : sample*0x7FFF, true);
+        offset += 2;
+      }
+    }
+    return new Blob([arrBuf], {type:'audio/wav'});
+  }
+
+  window.vfxPreview = async function(){
+    const rendered = await renderWithEffects();
+    if(!rendered) return;
+    const blob = bufferToWavBlob(rendered);
+    document.getElementById('vfx-audio').src = URL.createObjectURL(blob);
+    document.getElementById('vfx-audio').play();
+  };
+
+  window.vfxDownload = async function(){
+    const rendered = await renderWithEffects();
+    if(!rendered) return;
+    const blob = bufferToWavBlob(rendered);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'my-voice-mix.wav';
+    a.click();
+  };
+})();
+</script>
+{% endblock %}

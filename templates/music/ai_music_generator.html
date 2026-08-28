@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% block title %}AI Music Generator — NEXUS{% endblock %}
+{% block content %}
+<style>
+  .aig-panel{background:linear-gradient(180deg,#1c1c1c,#141414);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:22px;}
+  .aig-glow{background:radial-gradient(circle at 30% 20%,rgba(29,185,84,.12),transparent 60%);}
+</style>
+<div class="wrap" style="padding:24px 0 60px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:8px;">
+    <div style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:800;">🎹 AI Music Generator</div>
+    <div style="display:flex;gap:14px;font-size:12px;">
+      <a href="/music/voice-studio/" style="color:#1db954;text-decoration:none;">🎤 Voice Studio →</a>
+      <a href="/music/dj/" style="color:#1db954;text-decoration:none;">🎚 DJ Studio →</a>
+    </div>
+  </div>
+  <div style="color:var(--tx2);font-size:13px;margin-bottom:24px;max-width:640px;">
+    Describe a mood, genre, instruments, or tempo — Stability AI's Stable Audio composes an instrumental track from it.
+    <strong>Honest note:</strong> this generates instrumental music only. There's no legitimate, officially-supported API for
+    AI-sung vocals from lyrics right now — the real options either have no public API or only unofficial wrappers that violate
+    their own terms of service, so that piece isn't built here.
+  </div>
+
+  <div class="aig-panel aig-glow">
+    {% if not stable_audio_configured %}
+    <details style="margin-bottom:18px;" open>
+      <summary style="cursor:pointer;font-size:12.5px;color:var(--tx2);padding:8px 0;">🔑 Set up Stability AI (needed for generation)</summary>
+      <div style="background:rgba(255,255,255,.03);border-radius:10px;padding:14px 16px;margin-top:8px;">
+        <div style="font-size:12px;color:var(--tx2);margin-bottom:10px;">
+          1. Go to <a href="https://platform.stability.ai/account/keys" target="_blank" style="color:#1db954;">platform.stability.ai/account/keys</a> and sign up (free to start, generation is pay-as-you-go credits).<br>
+          2. Create an API key and copy it.<br>
+          3. Paste it in <strong>Admin → Settings → AI Providers → Stability AI</strong> and save — the same key already used for AI image generation works here too.
+        </div>
+        <a href="/admin-panel/settings/?tab=ai" class="btn btn-secondary btn-sm">Go to AI Settings</a>
+      </div>
+    </details>
+    {% endif %}
+
+    <label style="font-size:11px;color:var(--tx2);text-transform:uppercase;letter-spacing:.05em;">Describe the track</label>
+    <textarea id="aim-prompt" rows="3" placeholder="e.g. warm lofi hip-hop beat, mellow piano, soft vinyl crackle, 90 BPM" style="width:100%;background:#0e0e0e;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 14px;color:var(--tx);font-size:13.5px;margin:8px 0 16px;resize:vertical;"></textarea>
+
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+      <div>
+        <label style="font-size:10.5px;color:var(--tx2);display:block;margin-bottom:4px;">DURATION</label>
+        <select id="aim-duration" style="background:#0e0e0e;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 12px;color:var(--tx);font-size:13px;">
+          <option value="15">15 sec</option>
+          <option value="30" selected>30 sec</option>
+          <option value="60">60 sec</option>
+          <option value="120">2 min</option>
+        </select>
+      </div>
+      <button onclick="aimGenerate()" id="aim-btn" style="background:#1db954;color:#000;border:none;font-weight:800;font-size:13.5px;padding:13px 26px;border-radius:10px;cursor:pointer;{% if not stable_audio_configured %}opacity:.5;{% endif %}" {% if not stable_audio_configured %}disabled{% endif %}>▶ Generate Track</button>
+    </div>
+
+    <div id="aim-status" style="font-size:12px;color:var(--tx2);display:none;margin-top:14px;"></div>
+
+    <div id="aim-result" style="display:none;margin-top:20px;padding-top:20px;border-top:1px solid rgba(255,255,255,.06);">
+      <div style="font-size:11px;color:var(--tx2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Generated</div>
+      <audio id="aim-audio" controls style="width:100%;margin-bottom:10px;"></audio>
+      <div style="font-size:12px;color:var(--tx2);">Saved to your library as a draft (unpublished) — <a id="aim-edit-link" href="#" style="color:#1db954;">edit and publish it here</a> whenever you're happy with it.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+async function aimGenerate(){
+  const prompt = document.getElementById('aim-prompt').value.trim();
+  if(!prompt){ alert('Describe the music you want first.'); return; }
+  const btn = document.getElementById('aim-btn');
+  const status = document.getElementById('aim-status');
+  btn.disabled = true; btn.textContent = 'Generating… (can take up to a minute)';
+  status.style.display = 'block'; status.textContent = 'Sending to Stable Audio…';
+  try{
+    const res = await fetch('/music/ai-generator/generate/', {
+      method: 'POST',
+      headers: {'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/x-www-form-urlencoded'},
+      body: `prompt=${encodeURIComponent(prompt)}&duration=${document.getElementById('aim-duration').value}`,
+    });
+    const data = await res.json();
+    if(!data.ok){
+      status.textContent = '⚠ ' + (data.message || data.error || 'Generation failed.');
+      return;
+    }
+    status.textContent = '';
+    document.getElementById('aim-audio').src = data.url;
+    document.getElementById('aim-edit-link').href = data.edit_url;
+    document.getElementById('aim-result').style.display = 'block';
+  } catch(e){
+    status.textContent = '⚠ Network error while generating.';
+  } finally {
+    btn.disabled = false; btn.textContent = '▶ Generate Track';
+  }
+}
+</script>
+{% endblock %}
