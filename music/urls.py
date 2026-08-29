@@ -34,4 +34,5 @@ urlpatterns = [
     path('ai-generator/',                 views.ai_music_generator_view, name='ai_music_generator'),
     path('ai-generator/generate/',        views.ai_music_generate,       name='ai_music_generate'),
     path('voice-studio/',                 views.voice_studio_view,       name='voice_studio'),
+    path('upload-recording/',             views.upload_recording,        name='upload_recording'),
 ]

@@ -53,10 +53,12 @@
       <button onclick="vfxPreset('robot')" class="vfx-preset">Robot / Chorus</button>
     </div>
 
-    <div style="display:flex;gap:10px;">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
       <button onclick="vfxPreview()" style="background:#1db954;color:#000;border:none;font-weight:800;font-size:13px;padding:12px 22px;border-radius:24px;cursor:pointer;">▶ Preview With Effects</button>
       <button onclick="vfxDownload()" style="background:rgba(255,255,255,.1);color:#fff;border:none;font-weight:800;font-size:13px;padding:12px 22px;border-radius:24px;cursor:pointer;">⬇ Download Mix</button>
+      <button onclick="vfxSaveToLibrary()" style="background:#1db954;color:#000;border:none;font-weight:800;font-size:13px;padding:12px 22px;border-radius:24px;cursor:pointer;">💾 Save to Library</button>
     </div>
+    <div id="vfx-save-status" style="font-size:12px;color:var(--tx2);margin-top:10px;display:none;"></div>
   </div>
 </div>
 
@@ -204,6 +206,26 @@
     a.href = URL.createObjectURL(blob);
     a.download = 'my-voice-mix.wav';
     a.click();
+  };
+
+  window.vfxSaveToLibrary = async function(){
+    const status = document.getElementById('vfx-save-status');
+    status.style.display = 'block'; status.textContent = 'Saving…';
+    const rendered = await renderWithEffects();
+    if(!rendered){ status.textContent = 'Nothing to save yet — record something first.'; return; }
+    const blob = bufferToWavBlob(rendered);
+    const form = new FormData();
+    form.append('audio', blob, 'voice-mix.wav');
+    form.append('kind', 'voice');
+    try{
+      const res = await fetch('/music/upload-recording/', {
+        method: 'POST', headers: {'X-CSRFToken': getCookie('csrftoken')}, body: form,
+      });
+      const data = await res.json();
+      status.textContent = data.ok ? '✅ Saved — find it in Your Library under Music.' : ('⚠ ' + (data.error || 'Could not save.'));
+    } catch(e){
+      status.textContent = '⚠ Network error while saving.';
+    }
   };
 })();
 </script>

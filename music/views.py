@@ -771,6 +771,13 @@ def ai_music_generate(request):
     track.audio_file.save(fname, ContentFile(audio_bytes), save=False)
     track.save()
 
+    if user:
+        from accounts.models import DownloadHistory
+        DownloadHistory.objects.create(
+            user=user, content_type='music', object_id=track.pk,
+            file_url=track.playable_url or '',
+        )
+
     return JsonResponse({
         'ok': True, 'track_id': track.pk, 'title': track.title,
         'url': track.playable_url, 'edit_url': f'/music/track/{track.slug}/',
@@ -864,3 +871,44 @@ def dj_ai_mix(request):
             'cover': cover, 'url': t.playable_url or '',
         })
     return JsonResponse({'ok': True, 'tracks': results, 'vibe': vibe})
+
+
+@require_POST
+def upload_recording(request):
+    """Saves a Voice Studio or DJ mix recording as a Track and logs it in
+    DownloadHistory — this is what makes those two tools' output actually
+    show up in the user's Library, instead of only ever being a one-time
+    browser download with no record of it anywhere."""
+    if not request.user.is_authenticated:
+        return JsonResponse({'ok': False, 'error': 'Log in to save recordings to your library.'})
+
+    audio_file = request.FILES.get('audio')
+    kind = request.POST.get('kind', 'recording')  # 'voice' or 'dj_mix'
+    title = (request.POST.get('title') or '').strip()
+    if not audio_file:
+        return JsonResponse({'ok': False, 'error': 'No audio received.'})
+
+    import uuid
+    label = 'My Voice Recording' if kind == 'voice' else 'My DJ Mix'
+    artist_name = request.user.get_username() if hasattr(request.user, 'get_username') else str(request.user)
+
+    track = Track(
+        title=title or f'{label} — {timezone.now().strftime("%b %d, %Y")}',
+        artist=Artist.objects.get_or_create(name=artist_name, defaults={'slug': artist_name.lower().replace(" ", "-")[:50]})[0],
+        release_year=timezone.now().year,
+        uploaded_by=request.user,
+        is_fetched=False,
+        is_published=False,  # personal recording, private by default
+        description=f'{label}, made in {"Voice Studio" if kind == "voice" else "DJ Studio"}.',
+    )
+    ext = 'wav' if kind == 'voice' else 'webm'
+    fname = f'{kind}_{uuid.uuid4().hex[:8]}.{ext}'
+    track.audio_file.save(fname, audio_file, save=False)
+    track.save()
+
+    from accounts.models import DownloadHistory
+    DownloadHistory.objects.create(
+        user=request.user, content_type='music', object_id=track.pk,
+        file_url=track.playable_url or '',
+    )
+    return JsonResponse({'ok': True, 'track_id': track.pk})

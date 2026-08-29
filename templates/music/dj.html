@@ -40,6 +40,7 @@
       <div id="dj-record-status" style="font-size:11.5px;color:var(--tx2);">Captures everything playing through all 4 channels — hit record, play your mix, hit stop, then download.</div>
     </div>
     <a id="dj-download-link" style="display:none;background:#1db954;color:#000;font-weight:800;font-size:12.5px;padding:10px 18px;border-radius:20px;text-decoration:none;">⬇ Download Mix</a>
+    <button id="dj-save-btn" onclick="djSaveToLibrary()" style="display:none;background:rgba(255,255,255,.1);color:#fff;border:none;font-weight:800;font-size:12.5px;padding:10px 18px;border-radius:20px;cursor:pointer;">💾 Save to Library</button>
   </div>
 
   <!-- AI Mix panel -->
@@ -380,32 +381,53 @@
   decks['B'].crossGain.gain.value = Math.sin(Math.PI/4);
 
   // ── Record & download the master mix ────────────────────────────────────
-  let recorder, recordedChunks = [], isRecording = false;
+  let recorder, recordedChunks = [], isRecording = false, lastMixBlob = null;
   window.djToggleRecord = function(){
     const btn = document.getElementById('dj-record-btn');
     const status = document.getElementById('dj-record-status');
     const dlLink = document.getElementById('dj-download-link');
+    const saveBtn = document.getElementById('dj-save-btn');
     if(ctx.state === 'suspended') ctx.resume();
     if(!isRecording){
       recordedChunks = [];
       recorder = new MediaRecorder(recordDest.stream);
       recorder.ondataavailable = e => { if(e.data.size > 0) recordedChunks.push(e.data); };
       recorder.onstop = () => {
-        const blob = new Blob(recordedChunks, {type:'audio/webm'});
-        dlLink.href = URL.createObjectURL(blob);
+        lastMixBlob = new Blob(recordedChunks, {type:'audio/webm'});
+        dlLink.href = URL.createObjectURL(lastMixBlob);
         dlLink.download = 'my-dj-mix.webm';
         dlLink.style.display = 'inline-block';
-        status.textContent = 'Recording finished — download it, or record again to redo it.';
+        saveBtn.style.display = 'inline-block';
+        status.textContent = 'Recording finished — download it, save it to your library, or record again to redo it.';
       };
       recorder.start();
       isRecording = true;
       btn.textContent = '⏹';
       status.textContent = 'Recording… play through your mix, then hit stop.';
       dlLink.style.display = 'none';
+      saveBtn.style.display = 'none';
     } else {
       recorder.stop();
       isRecording = false;
       btn.textContent = '⏺';
+    }
+  };
+
+  window.djSaveToLibrary = async function(){
+    const status = document.getElementById('dj-record-status');
+    if(!lastMixBlob){ status.textContent = 'Nothing recorded yet.'; return; }
+    status.textContent = 'Saving…';
+    const form = new FormData();
+    form.append('audio', lastMixBlob, 'dj-mix.webm');
+    form.append('kind', 'dj_mix');
+    try{
+      const res = await fetch('/music/upload-recording/', {
+        method: 'POST', headers: {'X-CSRFToken': getCookie('csrftoken')}, body: form,
+      });
+      const data = await res.json();
+      status.textContent = data.ok ? '✅ Saved — find it in Your Library under Music.' : ('⚠ ' + (data.error || 'Could not save.'));
+    } catch(e){
+      status.textContent = '⚠ Network error while saving.';
     }
   };
 
